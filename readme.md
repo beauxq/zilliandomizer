@@ -13,29 +13,36 @@ This is a randomizer for this game.
 
 ---
 
-To use:
+## setup / install
 
-install [https://www.python.org/](https://www.python.org/)
+1. install Python from [https://www.python.org/](https://www.python.org/)
 
-download this code
+2. download the code from this page
+   1. green "Code" button in the top right portion of this page
+   2. "Download ZIP"
+   3. unzip it to a folder on your hard drive
 
-put the original US/NTSC rom in the `roms` directory with this filename: `Zillion (UE) [!].sms`
-
-edit `options.yaml` in the same directory as the rom
-
-run `src/generate.py`
-
-The randomized rom will output into the same directory as the original rom (with the seed number in the filename)
+3. put your original US/NTSC rom in the `roms` directory with this filename: `Zillion (UE) [!].sms`
 
 ---
 
-gameplay customizations:
+## usage
 
-Letting the player choose who to level up has a few drawbacks:
+1. edit `options.yaml` in the same directory as the rom
+
+2. in the `src` directory, run `generate.py`
+
+The randomized rom will output into the same directory as the original rom (with the seed number in the filename).
+
+---
+
+## gameplay customizations:
+
+The way the original game lets the player choose who to level up has a few drawbacks in a randomizer:
  - possible softlock from making bad choices (example: nobody has jump 3 when it's required)
  - In multiworld (Archipelago support coming soon), you won't be able to choose because you won't know it's coming beforehand.
 
-So with this new system:
+So this randomizer uses a new level-up system:
  - Everyone levels up together (even if they're not rescued yet).
  - You can choose how many opa-opas are required for a level up.
  - You can set a max level from 1 to 8.
