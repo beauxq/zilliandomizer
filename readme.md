@@ -32,15 +32,15 @@ The randomized rom will output into the same directory as the original rom (with
 gameplay customizations:
 
 Letting the player choose who to level up has a few drawbacks:
-    - possible softlock from making bad choices (example: nobody has jump 3 when it's required)
-    - In multiworld (Archipelago support coming soon), you won't be able to choose because you won't know it's coming beforehand.
+ - possible softlock from making bad choices (example: nobody has jump 3 when it's required)
+ - In multiworld (Archipelago support coming soon), you won't be able to choose because you won't know it's coming beforehand.
 
 So with this new system:
-    - Everyone levels up together (even if they're not rescued yet).
-    - You can choose how many opa-opas are required for a level up.
-    - You can set a max level from 1 to 8.
-    - The currently active character is still the only one that gets the health refill.
-        - In the future, this might change to choose based on missing (effective) health, and/or an option to refill everyone.
+ - Everyone levels up together (even if they're not rescued yet).
+ - You can choose how many opa-opas are required for a level up.
+ - You can set a max level from 1 to 8.
+ - The currently active character is still the only one that gets the health refill.
+   - In the future, this might change to choose based on missing (effective) health, and/or an option to refill everyone.
 
 ---
 
