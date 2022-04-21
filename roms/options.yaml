@@ -1,0 +1,32 @@
+# when the jump level-ups happen for each character (see readme)
+# (vanilla, balanced, low, restrictive)
+jump: balanced
+
+# when the Zillion power level-ups happen for each character (see readme)
+# (vanilla, balanced, low, restrictive)
+gun: balanced
+
+# how many opa-opas are required for each level up (see readme)
+# (1-4)
+opas_per_level: 2
+
+# the highest level the characters can attain
+# (1-8)
+max_level: 8
+
+# the default cursor position
+# when the introduction asks if you want to see all of the computer codes
+# (true, false)
+tutorial: false  
+
+# an amount of technical ability that might be required playing the game
+# (0-5)
+skill: 2
+
+# which character you start the game with
+# (JJ, Apple, Champ, random)
+start_char: random
+
+# how many floppy disks are required to win
+# (0-8)
+floppy_req: 5

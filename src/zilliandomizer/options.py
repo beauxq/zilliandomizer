@@ -1,9 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Dict, List, Literal, Tuple
+from random import choice
+from typing import Any, Dict, List, Literal, Tuple
 
+VLBR_CHOICES = ("vanilla", "balanced", "low", "restrictive")
 Chars = Literal["JJ", "Apple", "Champ"]
-VBLR = Literal["vanilla", "balanced", "low", "restrictive"]
+VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator in subscript require Python 3.11
 """ `"vanilla"` `"balanced"` `"low"` `"restrictive"` """
 
 chars: Tuple[Chars, Chars, Chars] = ("JJ", "Champ", "Apple")  # order in rom data
@@ -27,21 +29,101 @@ class ID(IntEnum):
 
 ItemCounts = Dict[ID, int]
 
+default_item_counts: ItemCounts = {
+    ID.card: 50,
+    ID.bread: 35,
+    ID.opa: 26,
+    ID.gun: 10,
+    ID.floppy: 7,
+    ID.scope: 4,
+    ID.red: 2
+}
+
+
+def factory() -> ItemCounts:
+    """ default factory for dataclass item_counts """
+    tr: ItemCounts = {}
+    for id in default_item_counts:
+        tr[id] = default_item_counts[id]
+    return tr
+
 
 @dataclass  # TODO: python 3.10 (kw_only=True)
 class Options:
-    item_counts: ItemCounts
+    item_counts: ItemCounts = field(default_factory=factory)
     """ ids 5 through 11 """
-    jump: VBLR
-    gun: VBLR
-    opas_per_level: int
-    max_level: int
-    tutorial: bool
-    skill: int
-    start_char: Chars
-    floppy_req: int
+    jump: VBLR = "balanced"
+    gun: VBLR = "balanced"
+    opas_per_level: int = 2
+    max_level: int = 8
+    tutorial: bool = False
+    skill: int = 2
+    start_char: Chars = "JJ"
+    floppy_req: int = 5
     """ how many floppies are required """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
+
+
+# TODO: TypedDict
+choices: Dict[str, Any] = {
+    "jump": VLBR_CHOICES,
+    "gun": VLBR_CHOICES,
+    "opas_per_level": (1, 2, 3),
+    "max_level": range(1, 9),
+    "tutorial": (True, False),
+    "skill": range(6),
+    "start_char": chars,
+    "floppy_req": range(9)
+}
+
+
+def parse_options(t: str) -> Options:
+    # mypy doesn't know about __dataclass_fields__
+    fields: Dict[str, Any] = Options.__dataclass_fields__  # type: ignore
+
+    def get_typed_value(option: str, value: str) -> Any:
+        if value == "random":
+            value = choice(choices[option])
+        typed_value: Any = value
+        if fields[option].type is bool:
+            typed_value = (value.lower() in ("true", "yes", "on"))
+        else:
+            try:
+                v = fields[option].type(value)
+                typed_value = v
+            except TypeError:
+                # probably type Literal
+                pass
+        if typed_value not in choices[option]:
+            raise ValueError(f"invalid value {value} for {option}")
+        return typed_value
+
+    tr = Options()
+    for line in t.split("\n"):
+        # remove # comments
+        try:
+            line = line[:line.index("#")]
+        except ValueError:
+            pass  # no "#"
+
+        line = line.strip()
+        if len(line) == 0:
+            continue
+        split = line.split(":")
+        if len(split) != 2:
+            raise ValueError(f'invalid line in options: "{line}"')
+        option = split[0].strip().strip('"')
+        value = split[1].strip().strip('"')
+        if option in fields and option != "item_counts":
+            typed_value = get_typed_value(option, value)
+            tr.__setattr__(option, typed_value)
+        else:
+            # right now, the only suboption is item_counts
+            # TODO: rework for multiple options with suboptions
+            # TODO: parse item_counts
+            raise ValueError(f"invalid option: {option}")
+
+    return tr
 
 
 char_to_hp: Dict[Chars, int] = {
@@ -122,3 +204,21 @@ jj  ap  ch      jj  ap  ch      jj  ap  ch      jj  ap  ch
 3   3   3       ---------       3   3   3       2   3   2
 ```
 """
+
+
+def test_parse() -> None:
+    t = """
+    jump: random
+    gun: restrictive
+    opas_per_level: 3
+    max_level:random
+    tutorial: False
+    start_char:  random
+    floppy_req:3
+    """
+    o = parse_options(t)
+    print(o)
+
+
+if __name__ == "__main__":
+    test_parse()

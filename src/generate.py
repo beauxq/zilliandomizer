@@ -1,21 +1,27 @@
 import os
-from random import choice, randrange
+from random import randrange
 from zilliandomizer.randomizer import Randomizer, some_options
-from zilliandomizer.options import Options
+from zilliandomizer.options import Options, parse_options
 from zilliandomizer.logger import Logger
 from zilliandomizer.patch import Patcher
 
 
 def generate() -> None:
     s = randrange(0x10000000000000000)
+    p = Patcher()
     options: Options = some_options
-    options.start_char = choice(["JJ", "Apple", "Champ"])
+    options_file = p.rom_path + os.sep + "options.yaml"
+    if os.path.exists(options_file):
+        print(f"found options file: {options_file}")
+        with open(options_file) as file:
+            options = parse_options(file.read())
     logger = Logger()
     logger.stdout = False
+    logger.log(str(options))
+    logger.log(f"seed {hex(s)}")
     r = Randomizer(options, logger)
     r.roll(s)
 
-    p = Patcher()
     p.write_locations(r.locations)
     p.all_fixes_and_options(options)
     filename = f"zilliandomizer-{s:016x}.sms"
