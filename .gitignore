@@ -1,0 +1,9 @@
+*.pyc
+.vscode
+htmlcov
+.coverage
+*.egg-info
+.tox
+zilliandomizer*.S*
+*.sms
+spoiler*.txt
