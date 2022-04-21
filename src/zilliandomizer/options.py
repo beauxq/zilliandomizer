@@ -83,7 +83,8 @@ def parse_options(t: str) -> Options:
 
     def get_typed_value(option: str, value: str) -> Any:
         if value == "random":
-            value = choice(choices[option])
+            return choice(choices[option])
+
         typed_value: Any = value
         if fields[option].type is bool:
             typed_value = (value.lower() in ("true", "yes", "on"))
