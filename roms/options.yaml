@@ -1,10 +1,10 @@
 # when the jump level-ups happen for each character (see readme)
 # (vanilla, balanced, low, restrictive, random)
-jump: balanced
+jump_levels: balanced
 
 # when the Zillion power level-ups happen for each character (see readme)
 # (vanilla, balanced, low, restrictive, random)
-gun: balanced
+gun_levels: balanced
 
 # how many opa-opas are required for each level up (see readme)
 # (1-4, random)
