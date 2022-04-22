@@ -559,8 +559,8 @@ class Patcher:
         self.set_start_char(options.start_char)
         self.set_required_floppies(options.floppy_req)
         self.set_new_opa_level_system(options.opas_per_level, 20, options.max_level)
-        self.set_new_gun_system_and_levels(options.gun)
-        self.set_jump_levels(options.jump)
+        self.set_new_gun_system_and_levels(options.gun_levels)
+        self.set_jump_levels(options.jump_levels)
 
 
 def test_read_items_from_rom() -> None:

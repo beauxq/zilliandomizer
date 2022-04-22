@@ -3,7 +3,7 @@ from enum import IntEnum
 from random import choice
 from typing import Any, Dict, List, Literal, Tuple
 
-VLBR_CHOICES = ("vanilla", "balanced", "low", "restrictive")
+VBLR_CHOICES = ("vanilla", "balanced", "low", "restrictive")
 Chars = Literal["JJ", "Apple", "Champ"]
 VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator in subscript require Python 3.11
 """ `"vanilla"` `"balanced"` `"low"` `"restrictive"` """
@@ -52,8 +52,8 @@ def factory() -> ItemCounts:
 class Options:
     item_counts: ItemCounts = field(default_factory=factory)
     """ ids 5 through 11 """
-    jump: VBLR = "balanced"
-    gun: VBLR = "balanced"
+    jump_levels: VBLR = "balanced"
+    gun_levels: VBLR = "balanced"
     opas_per_level: int = 2
     max_level: int = 8
     tutorial: bool = False
@@ -66,14 +66,26 @@ class Options:
 
 # TODO: TypedDict
 choices: Dict[str, Any] = {
-    "jump": VLBR_CHOICES,
-    "gun": VLBR_CHOICES,
+    "jump_levels": VBLR_CHOICES,
+    "gun_levels": VBLR_CHOICES,
     "opas_per_level": (1, 2, 3),
     "max_level": range(1, 9),
     "tutorial": (True, False),
     "skill": range(6),
     "start_char": chars,
     "floppy_req": range(9)
+}
+
+sub_options = {
+    "item_counts": {
+        "card": ID.card,
+        "bread": ID.bread,
+        "opa": ID.opa,
+        "gun": ID.gun,
+        "floppy": ID.floppy,
+        "scope": ID.scope,
+        "red": ID.red
+    }
 }
 
 
@@ -100,6 +112,7 @@ def parse_options(t: str) -> Options:
         return typed_value
 
     tr = Options()
+    parent_option = ""
     for line in t.split("\n"):
         # remove # comments
         try:
@@ -115,14 +128,24 @@ def parse_options(t: str) -> Options:
             raise ValueError(f'invalid line in options: "{line}"')
         option = split[0].strip().strip('"')
         value = split[1].strip().strip('"')
-        if option in fields and option != "item_counts":
+        if option in fields and option not in sub_options:
+            parent_option = ""
             typed_value = get_typed_value(option, value)
             tr.__setattr__(option, typed_value)
+        elif option in sub_options:
+            parent_option = option
         else:
+            if parent_option == "":
+                raise ValueError(f"invalid option: {option}")
+            if option not in sub_options[parent_option]:
+                raise ValueError(f"invalid sub-option {option} for option {parent_option}")
+
             # right now, the only suboption is item_counts
-            # TODO: rework for multiple options with suboptions
-            # TODO: parse item_counts
-            raise ValueError(f"invalid option: {option}")
+            try:
+                int_value = int(value)
+            except ValueError:
+                raise ValueError(f"invalid value {value} for sub-option {option} under {parent_option}")
+            tr.__getattribute__(parent_option)[sub_options[parent_option][option]] = int_value
 
     return tr
 
@@ -205,21 +228,3 @@ jj  ap  ch      jj  ap  ch      jj  ap  ch      jj  ap  ch
 3   3   3       ---------       3   3   3       2   3   2
 ```
 """
-
-
-def test_parse() -> None:
-    t = """
-    jump: random
-    gun: restrictive
-    opas_per_level: 3
-    max_level:random
-    tutorial: False
-    start_char:  random
-    floppy_req:3
-    """
-    o = parse_options(t)
-    print(o)
-
-
-if __name__ == "__main__":
-    test_parse()

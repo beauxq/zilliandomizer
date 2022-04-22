@@ -25,7 +25,7 @@ some_options = Options(item_counts={
     ID.floppy: 8,
     ID.scope: 4,
     ID.red: 2
-}, jump="balanced", gun="balanced", opas_per_level=2, max_level=8, tutorial=False,
+}, jump_levels="balanced", gun_levels="balanced", opas_per_level=2, max_level=8, tutorial=False,
     skill=2, start_char="JJ", floppy_req=5)
 """ some default options until I make an interface for setting options """
 
@@ -260,11 +260,11 @@ class Randomizer:
         levels_gained = counts[ID.opa] // self.options.opas_per_level
         levels_gained = min(self.options.max_level - 1, levels_gained)
         added_hp = 20 * levels_gained
-        gun = max(char_to_gun[char][self.options.gun][
-            min(counts[ID.gun], len(char_to_gun[char][self.options.gun]) - 1)
+        gun = max(char_to_gun[char][self.options.gun_levels][
+            min(counts[ID.gun], len(char_to_gun[char][self.options.gun_levels]) - 1)
         ] for char in have_chars)
-        jump = max(char_to_jump[char][self.options.jump][
-            min(levels_gained, len(char_to_jump[char][self.options.jump]) - 1)
+        jump = max(char_to_jump[char][self.options.jump_levels][
+            min(levels_gained, len(char_to_jump[char][self.options.jump_levels]) - 1)
         ] for char in have_chars)
         red = counts[ID.red]
         floppy = counts[ID.floppy]
