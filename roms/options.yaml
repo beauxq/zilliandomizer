@@ -30,3 +30,15 @@ start_char: random
 # how many floppy disks are required to win
 # (0-8, random)
 floppy_req: 5
+
+# how many of each item
+# total maximum 144
+# remaining will be filled with "Empty"
+item_counts:
+  card: 55   # vanilla 63
+  bread: 33  # vanilla 33
+  opa: 26    # vanilla 26
+  gun: 9     # vanilla 6
+  floppy: 8  # vanilla 5
+  scope: 4   # vanilla 4
+  red: 2     # vanilla 1
