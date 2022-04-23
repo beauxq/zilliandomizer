@@ -3,8 +3,8 @@ import os
 from typing import Dict, Generator, List, Set, Tuple, cast, Counter as _Counter
 from zilliandomizer.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.locations import Location
-from zilliandomizer.options import VBLR, Chars, Options, char_to_jump, char_to_gun, chars
-from zilliandomizer import asm
+from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
+from zilliandomizer import asm, rom_info
 from zilliandomizer.utils import ItemData, make_loc_name
 
 ROM_NAME = "Zillion (UE) [!].sms"
@@ -38,7 +38,7 @@ class Patcher:
     def __init__(self) -> None:
         self.writes = {}
         self.verify = True
-        self.end_of_available = 0x7e00  # 1st used byte after an unused section
+        self.end_of_available = rom_info.free_space_end_7e00  # 1st used byte after an unused section
 
         self.rom_path = ""
         for path_list in paths:
@@ -68,10 +68,10 @@ class Patcher:
         # jp c, ++
         # 01:4FB0 = 11011010 (DA) changed from 11000010 (C2)
         # 01:4FAF = number of floppies required
-        addr = 0x4FB0
+        addr = rom_info.floppy_req_instruction_4fb0
         if self.verify:
-            assert self.rom[addr] == 0xC2
-        self.writes[addr] = 0xDA
+            assert self.rom[addr] == asm.JPNZ
+        self.writes[addr] = asm.JPC
 
         # TODO: Investigate: I think there's another place in the code that checks the floppy requirement.
         # maybe something happens at the ship if you have them?
@@ -88,8 +88,8 @@ class Patcher:
         # that will set max floppies displayed to 8
         # (if you go more than 8, they wrap around to the other side of the screen, we don't need that)
         # You can still get more floppies. It just won't show more than this setting.
-        compare_addr = 0x1899
-        change_addr = 0x189D
+        compare_addr = rom_info.floppy_display_compare_1899
+        change_addr = rom_info.floppy_display_change_189d
         if self.verify:
             assert self.rom[compare_addr] == 0x06
             assert self.rom[change_addr] == 0x05
@@ -103,18 +103,25 @@ class Patcher:
         vram_load_lo = 0xae
         vram_load_hi = 0x03
 
+        champ_lo = rom_info.champ_rescue_banked_tiles_8b93 % 256
+        champ_hi = rom_info.champ_rescue_banked_tiles_8b93 // 256
+        apple_lo = rom_info.apple_rescue_banked_tiles_8695 % 256
+        apple_hi = rom_info.apple_rescue_banked_tiles_8695 // 256
+        blue_lo = rom_info.blue_basic_banked_tiles_81fd % 256
+        blue_hi = rom_info.blue_basic_banked_tiles_81fd // 256
+
         blue_code = [
-            asm.LDHL, 0x93, 0x8B,  # set of tiles that has champ's rescue
+            asm.LDHL, champ_lo, champ_hi,  # set of tiles that has champ's rescue
             asm.LDDE, 0xC0, 0x6F,  # where to put that data
             asm.CALL, vram_load_lo, vram_load_hi,
-            asm.LDHL, 0x95, 0x86,  # set of tiles that has apple's rescue
+            asm.LDHL, apple_lo, apple_hi,  # set of tiles that has apple's rescue
             asm.LDDE, 0x20, 0x67,  # where to put that data
             asm.CALL, vram_load_lo, vram_load_hi,
-            asm.LDHL, 0xFD, 0x81,  # blue area canisters
+            asm.LDHL, blue_lo, blue_hi,  # blue area canisters
             asm.RET
         ]
 
-        blue_code_addr = 0x1ffdb
+        blue_code_addr = rom_info.bank_7_free_space_1ffdb
         banked_blue_addr = blue_code_addr - bank_offset
 
         for i in range(len(blue_code)):
@@ -123,10 +130,10 @@ class Patcher:
             self.writes[blue_code_addr + i] = blue_code[i]
 
         red_code = [
-            asm.LDHL, 0x93, 0x8B,  # set of tiles that has champ's rescue
+            asm.LDHL, champ_lo, champ_hi,  # set of tiles that has champ's rescue
             asm.LDDE, 0xC0, 0x6F,  # where to put that data
             asm.CALL, vram_load_lo, vram_load_hi,
-            asm.LDHL, 0x95, 0x86,  # set of tiles that has apple's rescue
+            asm.LDHL, apple_lo, apple_hi,  # set of tiles that has apple's rescue
             asm.RET
         ]
 
@@ -138,38 +145,41 @@ class Patcher:
                 assert self.rom[red_code_addr + i] == 0xff
             self.writes[red_code_addr + i] = red_code[i]
 
+        blue_entry = rom_info.load_blue_code_10a3
+        red_entry = rom_info.load_red_code_10cd
+
         if self.verify:
-            assert self.rom[0x10a3] == blue_code[-4]
-            assert self.rom[0x10a4] == blue_code[-3]
-            assert self.rom[0x10a5] == blue_code[-2]
-            assert self.rom[0x10cd] == red_code[-4]
-            assert self.rom[0x10ce] == red_code[-3]
-            assert self.rom[0x10cf] == red_code[-2]
-        self.writes[0x10a3] = asm.CALL
-        self.writes[0x10a4] = banked_blue_addr % 256
-        self.writes[0x10a5] = banked_blue_addr // 256
-        self.writes[0x10cd] = asm.CALL
-        self.writes[0x10ce] = banked_red_addr % 256
-        self.writes[0x10cf] = banked_red_addr // 256
+            assert self.rom[blue_entry + 0] == blue_code[-4]
+            assert self.rom[blue_entry + 1] == blue_code[-3]
+            assert self.rom[blue_entry + 2] == blue_code[-2]
+            assert self.rom[red_entry + 0] == red_code[-4]
+            assert self.rom[red_entry + 1] == red_code[-3]
+            assert self.rom[red_entry + 2] == red_code[-2]
+        self.writes[blue_entry + 0] = asm.CALL
+        self.writes[blue_entry + 1] = banked_blue_addr % 256
+        self.writes[blue_entry + 2] = banked_blue_addr // 256
+        self.writes[red_entry + 0] = asm.CALL
+        self.writes[red_entry + 1] = banked_red_addr % 256
+        self.writes[red_entry + 2] = banked_red_addr // 256
 
     def set_required_floppies(self, floppy_count: int) -> None:
         """ set how many floppies are required to use the main computer """
         # 01:4FAF = number of floppies required
-        addr = 0x4FAF
+        addr = rom_info.floppy_req_4faf
         if self.verify:
             assert self.rom[addr] == 0x05
         assert 0 <= floppy_count < 256
         self.writes[addr] = floppy_count
 
         # change introduction text to tell how many floppies are required
-        addr = 0x1a771
+        addr = rom_info.floppy_intro_text_1a771
         original_text = b'THE 5 FLOPPY DISKS FROM'
         replacement = f"THE {floppy_count} FLOPPY DISKS FROM"
         if floppy_count > 9:
             replacement = f"{floppy_count} FLOPPY DISKS FROM  "
             if floppy_count < 100:
                 replacement += " "
-        replacement_bytes = replacement.encode()
+        replacement_bytes = replacement.encode("ascii")
         assert len(original_text) == len(replacement_bytes)
         for i in range(len(original_text)):
             if self.verify:
@@ -194,7 +204,7 @@ class Patcher:
         # found it at 1d0c
         # The bit is also written to C707, but that's not the source of truth.
 
-        address = 0x1d0c
+        address = rom_info.tutorial_menu_default_1d0c
         other_bits = 0x4c
         if self.verify:
             assert (self.rom[address] & 0b11101111) == other_bits
@@ -213,7 +223,7 @@ class Patcher:
         #         ldir
         # so it looks like 0B03 gets copied to c127 to initialize it
 
-        current_char_init_addr = 0x0b03
+        current_char_init_addr = rom_info.current_char_init_0b03
         if self.verify:
             assert self.rom[current_char_init_addr] == 0x00
         self.writes[current_char_init_addr] = {
@@ -228,12 +238,12 @@ class Patcher:
         # c160 for Apple
         # c170 for champ
         # whether they are rescued is initialized by _DATA_7B98_
-        jj_rescue = 0x7B98
-        champ_rescue = 0x7BA8
-        apple_rescue = 0x7BB8
+        jj_rescue = rom_info.char_init_7b98
+        champ_rescue = rom_info.char_init_7b98 + 16
+        apple_rescue = rom_info.char_init_7b98 + 32
         # for whom to rescue
-        apple_rescue_code = 0x4bdb  # 70 change to 50 for jj
-        champ_rescue_code = 0x4be1  # 60 change to 50 for jj
+        apple_rescue_code = rom_info.apple_rescue_code_4bdb  # 70 change to 50 for jj
+        champ_rescue_code = rom_info.champ_rescue_code_4be1  # 60 change to 50 for jj
         if self.verify:
             assert self.rom[jj_rescue] == 0x01
             assert self.rom[champ_rescue] == 0x00
@@ -250,23 +260,26 @@ class Patcher:
             # rescue JJ instead of Champ
             self.writes[champ_rescue_code] = 0x50
 
+        apple_text_addr = rom_info.apple_rescue_lines_1add8
+        champ_text_addr = rom_info.champ_rescue_lines_1ae38
+
         # change text that char says depending on who is where
         apple_text: Dict[int, Tuple[bytes, bytes]] = {
-            0x1add8: (b'THANK YOU FOR', b'I<M SO GLAD  '),
-            0x1ade8: (b'RESCUING ME:', b'THAT YOU<RE '),
-            0x1adf7: (b'I<M SORRY THAT', b'ALL RIGHT>    '),
-            0x1ae08: (b'I WAS CAPTURED:', b'JJ:            '),
-            0x1ae1d: (b'IS CHAMP', b'LET<S   '),
-            0x1ae28: (b'ALL RIGHT;', b'GO:       ')
+            apple_text_addr[0]: (b'THANK YOU FOR', b'I<M SO GLAD  '),
+            apple_text_addr[1]: (b'RESCUING ME:', b'THAT YOU<RE '),
+            apple_text_addr[2]: (b'I<M SORRY THAT', b'ALL RIGHT>    '),
+            apple_text_addr[3]: (b'I WAS CAPTURED:', b'JJ:            '),
+            apple_text_addr[4]: (b'IS CHAMP', b'LET<S   '),
+            apple_text_addr[5]: (b'ALL RIGHT;', b'GO:       ')
         }
         champ_text: Dict[int, Tuple[bytes, bytes]] = {
-            0x1ae38: (b'YOU<RE', b'HOW DO'),
-            0x1ae41: (b'VERY LATE:', b'WE KEEP   '),
-            0x1ae4e: (b'WHAT<VE YOU', b'GETTING IN '),
-            0x1ae5c: (b'BEEN DOING;', b'THIS MESS; '),
-            0x1ae6d: (b'AH> I<VE', b'LET<S   '),
-            0x1ae78: (b'BUNGLED THINGS', b'GET OUT OF    '),
-            0x1ae89: (b'BADLY:', b'HERE: ')
+            champ_text_addr[0]: (b'YOU<RE', b'HOW DO'),
+            champ_text_addr[1]: (b'VERY LATE:', b'WE KEEP   '),
+            champ_text_addr[2]: (b'WHAT<VE YOU', b'GETTING IN '),
+            champ_text_addr[3]: (b'BEEN DOING;', b'THIS MESS; '),
+            champ_text_addr[4]: (b'AH> I<VE', b'LET<S   '),
+            champ_text_addr[5]: (b'BUNGLED THINGS', b'GET OUT OF    '),
+            champ_text_addr[6]: (b'BADLY:', b'HERE: ')
         }
         for old, new in apple_text.values():
             assert len(old) == len(new)
@@ -307,7 +320,7 @@ class Patcher:
             file.write(new_rom)
 
     def get_item_index_for_room(self, room: int) -> int:
-        index = 0x91c2 + 2 * room
+        index = rom_info.room_table_91c2 + 2 * room
         low = self.rom[index]
         high = self.rom[index + 1]
         return (high << 8) | low
@@ -379,22 +392,18 @@ class Patcher:
         max_level = max(1, max_level)
 
         # original code location
-        old_hi = 0x4a
-        old_lo = 0xdf
+        old_hi = rom_info.level_up_code_4adf // 256
+        old_lo = rom_info.level_up_code_4adf % 256
 
         # this is the location of the "+" label of the 4ADF section of code in the rom
-        _4ADF_plus_hi = 0x4a
-        _4ADF_plus_lo = 0xeb
+        _4ADF_plus_hi = rom_info.level_up_code_plus_4aeb // 256
+        _4ADF_plus_lo = rom_info.level_up_code_plus_4aeb % 256
 
         # ram locations for each char's level
         lv_hi = 0xc1
         lv_jj_lo = 0x55
         lv_ch_lo = 0x65
         lv_ap_lo = 0x75
-
-        # original code location
-        old_hi = 0x4a
-        old_lo = 0xdf
 
         # new ram going to use - hope it's not already used
         opa_hi = 0xc2
@@ -483,7 +492,7 @@ class Patcher:
 
         # change jump table to point at new code
         # table at 4ABC, 2 bytes for each entry, we want entry 9 for opa-opa
-        entry = 0x4abc + 2 * 9
+        entry = rom_info.item_pickup_jump_table_4abc + 2 * ID.opa
         if self.verify:
             assert self.rom[entry] == old_lo
             assert self.rom[entry + 1] == old_hi
@@ -491,10 +500,10 @@ class Patcher:
         self.writes[entry + 1] = new_code_addr // 256
 
     def set_jump_levels(self, jump_option: VBLR) -> None:
-        table_addr = 0x7cc8
+        table_addr = rom_info.stats_per_level_table_7cc8
         jump_base = table_addr + 1
 
-        init_table_jump = 0x7b98 + 8  # jump in initialization of char data
+        init_table_jump = rom_info.char_init_7b98 + 8  # jump in initialization of char data
 
         for char_i, char in enumerate(chars):
             jump_addr = init_table_jump + char_i * 16
@@ -531,7 +540,7 @@ class Patcher:
             self.writes[addr] = table[i]
 
         # initialization of gun data
-        init_table_gun = 0x7b98 + 6  # gun in initialization of char data
+        init_table_gun = rom_info.char_init_7b98 + 6  # gun in initialization of char data
         for table_i, addr in enumerate(range(init_table_gun, init_table_gun + 33, 16)):
             if self.verify:
                 assert self.rom[addr] == char_to_gun[chars[table_i]]["vanilla"][0] - 1
@@ -549,8 +558,8 @@ class Patcher:
         gn_ap_lo = 0x76
 
         # the vanilla code to go back to after incrementing guns
-        after_gun_hi = 0x7c
-        after_gun_lo = 0x1e
+        after_gun_hi = rom_info.code_after_increment_gun_7c1e // 256
+        after_gun_lo = rom_info.code_after_increment_gun_7c1e % 256
 
         new_gun_code = bytearray([
             asm.LDAV, new_gun_lo, new_gun_hi,
@@ -594,13 +603,15 @@ class Patcher:
                 assert self.rom[write_addr] == 0xff
             self.writes[write_addr] = new_gun_code[i]
 
+        gun_inc = rom_info.increment_gun_code_4af8
+
         # now change existing increment gun code to point at that new code
         changes: Dict[int, Tuple[int, int]] = {
-            0x4af8: (gn_cu_lo, new_gun_lo),  # increment at this address
-            0x4af9: (gn_hi, new_gun_hi),
-            0x4afc: (0x02, MAX_GUN_LEVEL_COUNT - 1),  # compare value for limit
-            0x4b00: (after_gun_lo, new_code_addr % 256),  # jump here if we incremented
-            0x4b01: (after_gun_hi, new_code_addr // 256)
+            gun_inc + 0: (gn_cu_lo, new_gun_lo),  # increment at this address
+            gun_inc + 1: (gn_hi, new_gun_hi),
+            gun_inc + 4: (0x02, MAX_GUN_LEVEL_COUNT - 1),  # compare value for limit
+            gun_inc + 8: (after_gun_lo, new_code_addr % 256),  # jump here if we incremented
+            gun_inc + 9: (after_gun_hi, new_code_addr // 256)
         }
         for addr in changes:
             old, new = changes[addr]

@@ -38,8 +38,12 @@ JRZ = 0x28
 """ jump relative if zero """
 JP = 0xc3
 """ jump """
+JPNZ = 0xc2
+""" jump if not zero """
 JPNC = 0xd2
 """ jump if no carry """
+JPC = 0xda
+""" jump if carry """
 CALL = 0xcd
 """ subroutine call """
 RET = 0xc9
