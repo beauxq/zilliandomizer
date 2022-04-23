@@ -96,6 +96,36 @@ class Patcher:
         self.writes[compare_addr] = 0x09
         self.writes[change_addr] = 0x08
 
+    def fix_rescue_tile_load(self) -> None:
+        """ load apple and champ rescue tiles when entering blue area """
+
+        code = [
+            0x21, 0x93, 0x8B,  # set of tiles that has champ's rescue
+            0x11, 0xC0, 0x6F,
+            0xCD, 0xAE, 0x03,
+            0x21, 0x95, 0x86,  # set of tiles that has apple's rescue
+            0x11, 0x20, 0x67,
+            0xCD, 0xAE, 0x03,
+            0x21, 0xFD, 0x81,  # blue area canisters
+            0xC9
+        ]
+
+        new_code_addr = 0x1ffe0
+        banked_addr = 0xbfe0  # I hope this bank is always loaded when this code runs
+
+        for i in range(len(code)):
+            if self.verify:
+                assert self.rom[new_code_addr + i] == 0xff
+            self.writes[new_code_addr + i] = code[i]
+
+        if self.verify:
+            assert self.rom[0x10a3] == 0x21
+            assert self.rom[0x10a4] == 0xfd
+            assert self.rom[0x10a5] == 0x81
+        self.writes[0x10a3] = 0xcd
+        self.writes[0x10a4] = banked_addr % 256
+        self.writes[0x10a5] = banked_addr // 256
+
     def set_required_floppies(self, floppy_count: int) -> None:
         """ set how many floppies are required to use the main computer """
         # 01:4FAF = number of floppies required
@@ -555,6 +585,7 @@ class Patcher:
     def all_fixes_and_options(self, options: Options) -> None:
         self.fix_floppy_display()
         self.fix_floppy_req()
+        self.fix_rescue_tile_load()
         self.set_display_computer_codes_default(options.tutorial)
         self.set_start_char(options.start_char)
         self.set_required_floppies(options.floppy_req)
