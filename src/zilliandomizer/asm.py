@@ -16,6 +16,8 @@ LDCA = 0x4F
 """ load into c, value in a """
 LDCI = 0x0e
 """ load into c, immediate value """
+LDDE = 0x11
+""" load into de, immediate value """
 INCA = 0x3c
 """ increment a """
 INCHL = 0x23
@@ -38,5 +40,9 @@ JP = 0xc3
 """ jump """
 JPNC = 0xd2
 """ jump if no carry """
+CALL = 0xcd
+""" subroutine call """
+RET = 0xc9
+""" return from subroutine """
 DAA = 0x27
 """ adjust a for binary coded decimal """

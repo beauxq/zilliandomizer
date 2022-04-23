@@ -97,34 +97,60 @@ class Patcher:
         self.writes[change_addr] = 0x08
 
     def fix_rescue_tile_load(self) -> None:
-        """ load apple and champ rescue tiles when entering blue area """
+        """ load apple and champ rescue tiles when entering blue area and red area """
+        bank_offset = 0x14000  # I hope this bank is always loaded when this code runs
 
-        code = [
-            0x21, 0x93, 0x8B,  # set of tiles that has champ's rescue
-            0x11, 0xC0, 0x6F,
-            0xCD, 0xAE, 0x03,
-            0x21, 0x95, 0x86,  # set of tiles that has apple's rescue
-            0x11, 0x20, 0x67,
-            0xCD, 0xAE, 0x03,
-            0x21, 0xFD, 0x81,  # blue area canisters
-            0xC9
+        vram_load_lo = 0xae
+        vram_load_hi = 0x03
+
+        blue_code = [
+            asm.LDHL, 0x93, 0x8B,  # set of tiles that has champ's rescue
+            asm.LDDE, 0xC0, 0x6F,  # where to put that data
+            asm.CALL, vram_load_lo, vram_load_hi,
+            asm.LDHL, 0x95, 0x86,  # set of tiles that has apple's rescue
+            asm.LDDE, 0x20, 0x67,  # where to put that data
+            asm.CALL, vram_load_lo, vram_load_hi,
+            asm.LDHL, 0xFD, 0x81,  # blue area canisters
+            asm.RET
         ]
 
-        new_code_addr = 0x1ffe0
-        banked_addr = 0xbfe0  # I hope this bank is always loaded when this code runs
+        blue_code_addr = 0x1ffdb
+        banked_blue_addr = blue_code_addr - bank_offset
 
-        for i in range(len(code)):
+        for i in range(len(blue_code)):
             if self.verify:
-                assert self.rom[new_code_addr + i] == 0xff
-            self.writes[new_code_addr + i] = code[i]
+                assert self.rom[blue_code_addr + i] == 0xff
+            self.writes[blue_code_addr + i] = blue_code[i]
+
+        red_code = [
+            asm.LDHL, 0x93, 0x8B,  # set of tiles that has champ's rescue
+            asm.LDDE, 0xC0, 0x6F,  # where to put that data
+            asm.CALL, vram_load_lo, vram_load_hi,
+            asm.LDHL, 0x95, 0x86,  # set of tiles that has apple's rescue
+            asm.RET
+        ]
+
+        red_code_addr = blue_code_addr + len(blue_code)
+        banked_red_addr = red_code_addr - bank_offset
+
+        for i in range(len(red_code)):
+            if self.verify:
+                assert self.rom[red_code_addr + i] == 0xff
+            self.writes[red_code_addr + i] = red_code[i]
 
         if self.verify:
-            assert self.rom[0x10a3] == 0x21
-            assert self.rom[0x10a4] == 0xfd
-            assert self.rom[0x10a5] == 0x81
-        self.writes[0x10a3] = 0xcd
-        self.writes[0x10a4] = banked_addr % 256
-        self.writes[0x10a5] = banked_addr // 256
+            assert self.rom[0x10a3] == blue_code[-4]
+            assert self.rom[0x10a4] == blue_code[-3]
+            assert self.rom[0x10a5] == blue_code[-2]
+            assert self.rom[0x10cd] == red_code[-4]
+            assert self.rom[0x10ce] == red_code[-3]
+            assert self.rom[0x10cf] == red_code[-2]
+        self.writes[0x10a3] = asm.CALL
+        self.writes[0x10a4] = banked_blue_addr % 256
+        self.writes[0x10a5] = banked_blue_addr // 256
+        self.writes[0x10cd] = asm.CALL
+        self.writes[0x10ce] = banked_red_addr % 256
+        self.writes[0x10cf] = banked_red_addr // 256
 
     def set_required_floppies(self, floppy_count: int) -> None:
         """ set how many floppies are required to use the main computer """
