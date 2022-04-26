@@ -102,7 +102,7 @@ def set_verified_bytes(b: bytearray) -> None:
 
 
 @pytest.fixture
-def setup() -> Iterator[None]:
+def fake_rom() -> Iterator[None]:
     path = "roms" + os.sep + ROM_NAME
     created = False
     if not os.path.exists(path):
@@ -116,6 +116,24 @@ def setup() -> Iterator[None]:
         os.remove(path)
 
 
-@pytest.mark.usefixtures("setup")
+@pytest.fixture
+def no_options_file() -> Iterator[None]:
+    path_original = "roms" + os.sep + "options.yaml"
+    path_temp = "roms" + os.sep + "_options.yaml"
+    renamed = False
+    if os.path.exists(path_original):
+        renamed = True
+        os.rename(path_original, path_temp)
+    yield
+    if renamed:
+        os.rename(path_temp, path_original)
+
+
+@pytest.mark.usefixtures("fake_rom")
 def test_all() -> None:
+    generate(0x42069427)
+
+
+@pytest.mark.usefixtures("fake_rom", "no_options_file")
+def test_default_options() -> None:
     generate(0x42069427)

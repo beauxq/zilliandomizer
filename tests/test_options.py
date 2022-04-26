@@ -1,3 +1,4 @@
+import pytest
 from zilliandomizer.options import parse_options, ID, VBLR_CHOICES, chars
 
 
@@ -38,4 +39,57 @@ def test_parse_item_counts() -> None:
     assert o.start_char == "Apple"
 
 
-# TODO: test parse exceptions
+def test_options_exceptions() -> None:
+    with pytest.raises(ValueError):
+        parse_options("""
+        min_level:3
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        max_level: -3
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        max_level: 9
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        max_level : 4 : 5
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        hello
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        max_level = 8
+        """)
+    # TODO: make = valid?
+
+    with pytest.raises(ValueError):
+        # should be gun_level: balanced
+        parse_options("""
+        gun: balanced
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        hello: 3
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        item_counts:
+          bomb: 10
+        """)
+
+    with pytest.raises(ValueError):
+        parse_options("""
+        item_counts:
+          gun: apple
+        """)
