@@ -344,7 +344,7 @@ class Patcher:
             yield this_item
             start += 8
 
-    def write_locations(self, locations: Dict[str, Location]) -> None:
+    def write_locations(self, locations: Dict[str, Location], start_char: Chars) -> None:
         for room_no, room in enumerate(self.get_item_rooms()):
             for item_no, item_from_rom in enumerate(self.get_items(room)):
                 if item_from_rom[0] in {KEYWORD, NORMAL, RESCUE}:
@@ -367,7 +367,10 @@ class Patcher:
                     elif room_no >= 40:
                         s += 6
                     if loc.item.code == RESCUE:
-                        s = loc.item.id * 2 + 0x14
+                        if start_char == "Apple":
+                            s = 0x16  # use Champ rescue sprite for both JJ and Champ
+                        else:
+                            s = loc.item.id * 2 + 0x14
                     g = max(0, loc.req.gun - 1)
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(room + 1 + 8 * item_no, new_item_data)

@@ -342,7 +342,7 @@ def test_randomizer() -> None:
     r.roll(s)
 
     p = Patcher()
-    p.write_locations(r.locations)
+    p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)
     filename = f"zilliandomizer-{s:016x}.sms"
     # p.write(filename)

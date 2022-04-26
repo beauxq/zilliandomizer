@@ -21,7 +21,7 @@ def generate(seed: int) -> None:
     r = Randomizer(options, logger)
     r.roll(seed)
 
-    p.write_locations(r.locations)
+    p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)
     filename = f"zilliandomizer-{seed_str}.sms"
     p.write(filename)
