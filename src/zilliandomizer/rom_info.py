@@ -48,6 +48,10 @@ current_char_init_0b03 = 0x0b03
 char_init_7b98 = 0x7b98
 """ initialization of char stats (to ram c150) """
 
+intro_rescue_text_address = 0x1a83b
+""" introduction text telling who is captured """
+intro_rescue_text = b'CHAMP AND APPLE ARE'
+
 apple_rescue_code_4bdb = 0x4bdb
 """ low byte of pointer to ram character stats for whom to rescue when rescuing apple """
 champ_rescue_code_4be1 = 0x4be1

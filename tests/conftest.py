@@ -67,6 +67,10 @@ def set_verified_bytes(b: bytearray) -> None:
         for char_i, char in enumerate(line):
             b[rom_info.champ_rescue_lines_1ae38[line_i] + char_i] = char
 
+    # introduction captured text
+    for i in range(len(rom_info.intro_rescue_text)):
+        b[rom_info.intro_rescue_text_address + i] = rom_info.intro_rescue_text[i]
+
     # gun and level code block
     for i in range(rom_info.free_space_end_7e00 - 216, rom_info.free_space_end_7e00):
         b[i] = 0xff

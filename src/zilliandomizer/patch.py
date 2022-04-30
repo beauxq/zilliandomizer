@@ -1,4 +1,5 @@
 import os
+from random import shuffle
 from typing import Dict, Generator, List, Tuple, cast
 from zilliandomizer.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.locations import Location
@@ -301,7 +302,18 @@ class Patcher:
                 for i in range(len(new)):
                     self.writes[addr + i] = new[i]
 
-        # TODO: starting text says who has been captured, wrongly
+        # starting text says who has been captured
+        captured: List[str] = [each_char.upper() for each_char in chars if each_char != char]
+        shuffle(captured)
+        replace_text = f"{captured[0]} AND {captured[1]} ARE"
+        need_space = len(rom_info.intro_rescue_text) - len(replace_text)
+        replace_text += (" " * need_space)
+        replace_text_bytes = replace_text.encode("ascii")
+        for i in range(len(rom_info.intro_rescue_text)):
+            addr = rom_info.intro_rescue_text_address + i
+            if self.verify:
+                assert self.rom[addr] == rom_info.intro_rescue_text[i]
+            self.writes[addr] = replace_text_bytes[i]
 
     def set_item(self, address: int, data: ItemData) -> None:
         for i, v in enumerate(data):
