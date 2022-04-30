@@ -1,7 +1,7 @@
 from collections import Counter, defaultdict, deque
 from random import choice, randint, randrange, seed, shuffle
 import time
-from typing import Deque, Dict, List, Optional, Set, Tuple, Counter as _Counter, cast
+from typing import Deque, Dict, List, Optional, Set, Counter as _Counter, cast
 
 from zilliandomizer.location_data import make_locations
 from zilliandomizer.logger import Logger
@@ -10,24 +10,11 @@ from zilliandomizer.region_data import make_regions
 from zilliandomizer.regions import Region
 from zilliandomizer.locations import Location, Req
 from zilliandomizer.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
-from zilliandomizer.patch import Patcher
 
 # this is used in math, not just an id
 # (in case someone is tempted to change it to 0 to match rom value)
 MIN_GUN = 1
 MAX_GUN = 3
-
-some_options = Options(item_counts={
-    ID.card: 50,
-    ID.bread: 35,
-    ID.opa: 26,
-    ID.gun: 12,
-    ID.floppy: 8,
-    ID.scope: 4,
-    ID.red: 2
-}, jump_levels="balanced", gun_levels="balanced", opas_per_level=2, max_level=8, tutorial=False,
-    skill=2, start_char="JJ", floppy_req=5)
-""" some default options until I make an interface for setting options """
 
 
 class Randomizer:
@@ -331,90 +318,3 @@ class Randomizer:
                 print("WARNING: check failed when algorithm didn't see failure")
         if not success:
             raise Randomizer.RollFail(f"roll attempts timed out with {fail_count} failures")
-
-
-def test_randomizer() -> None:
-    s = randrange(0x10000000000000000)
-    options: Options = some_options
-    logger = Logger()
-    logger.stdout = True
-    r = Randomizer(options, logger)
-    r.roll(s)
-
-    p = Patcher()
-    p.write_locations(r.locations, options.start_char)
-    p.all_fixes_and_options(options)
-    filename = f"zilliandomizer-{s:016x}.sms"
-    # p.write(filename)
-    print(f"generated: {filename}")
-
-
-def test_placement() -> None:
-    total_iter = 100
-    total_completable = 0
-    total_item_row = 0
-
-    for _ in range(total_iter):
-        s = randrange(0x10000000000000000)
-        options: Options = some_options
-        logger = Logger()
-        logger.stdout = False
-        r = Randomizer(options, logger)
-        r.roll(s)
-        if r.check():
-            total_completable += 1
-            for line in logger.lines:
-                if line.startswith("get Apple"):
-                    row = int(line.split(' ')[-1][1:3])
-                    total_item_row += row
-                    break
-    print(f"average Apple row: {total_item_row / total_completable}")
-
-
-def test_room_door_gun_requirements() -> None:
-    rn = Randomizer(some_options)
-    gun_reqs = rn.room_door_gun_requirements()
-
-    for room in range(136):
-        if room in gun_reqs:
-            print(gun_reqs[room], end=" ")
-        else:
-            print("  ", end="")
-        if room % 8 == 7:
-            print()
-
-
-def test_get_locations() -> None:
-    rn = Randomizer(some_options)
-    have = Req(gun=3, jump=3, hp=940, skill=9001)
-    locs = rn.get_locations(have)
-    print(len(locs))
-    rooms: _Counter[Tuple[int, int]] = Counter()
-    for loc in locs:
-        rs, cs = loc.name.split('y')[0].split('c')
-        r = int(rs[1:])
-        c = int(cs)
-        rooms[(r, c)] += 1
-    for row in range(17):
-        for col in range(8):
-            if (row, col) in rooms:
-                print(f"{rooms[(row, col)]} ", end="")
-            else:
-                print("  ", end="")
-        print()
-
-
-def test_connections() -> None:
-    """ check to make sure connections go in both directions """
-    locations = make_locations()
-    make_regions(locations)
-    for name in Region.all:
-        region = Region.all[name]
-        for neighbor in region.connections:
-            if region not in neighbor.connections:
-                print(f'{neighbor.name}.connections.add(({name}, Req()))')
-
-
-if __name__ == "__main__":
-    # test_placement()
-    test_randomizer()

@@ -19,7 +19,11 @@ def no_options_file() -> Iterator[None]:
 
 @pytest.mark.usefixtures("fake_rom")
 def test_all() -> None:
-    generate(0x42069427)
+    # looking for seeds that see all conditions...
+    # I don't know if I can guarantee 100% branch coverage after any changes
+    generate(0x42069428)
+    generate(0x42069429)
+    generate(0x42069430)
 
 
 @pytest.mark.usefixtures("fake_rom", "no_options_file")

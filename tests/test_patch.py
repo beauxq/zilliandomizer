@@ -1,8 +1,8 @@
 import os
 import pytest
-from typing import Counter as _Counter, Set
+from typing import Counter as _Counter, Iterator, Set
 from collections import Counter
-from zilliandomizer.patch import Patcher
+from zilliandomizer.patch import ROM_NAME, Patcher
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -45,12 +45,57 @@ def test_patches() -> None:
     p.set_display_computer_codes_default(False)
     p.fix_floppy_display()
     p.fix_floppy_req()
+    p.fix_rescue_tile_load()
     p.set_new_opa_level_system(1)
     p.set_jump_levels("restrictive")
     p.set_new_gun_system_and_levels("restrictive")
     p.set_required_floppies(18)
+    p.set_start_char("Apple")
+
+    p.write("patch_test")
+    if os.path.exists("patch_test.sms"):
+        os.remove("patch_test.sms")
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_no_verify() -> None:
+    p = Patcher()
+    p.verify = False
+    p.set_display_computer_codes_default(False)
+    p.fix_floppy_display()
+    p.fix_floppy_req()
+    p.fix_rescue_tile_load()
+    p.set_new_opa_level_system(1, 9)
+    p.set_jump_levels("low")
+    p.set_new_gun_system_and_levels("balanced")
+    p.set_required_floppies(180)
     p.set_start_char("Champ")
 
     p.write("patch_test")
     if os.path.exists("patch_test.sms"):
         os.remove("patch_test.sms")
+
+
+@pytest.fixture
+def no_rom() -> Iterator[None]:
+    path_original = "roms" + os.sep + ROM_NAME
+    path_temp = "roms" + os.sep + "_" + ROM_NAME
+    renamed = False
+    if os.path.exists(path_original):
+        renamed = True
+        os.rename(path_original, path_temp)
+    yield
+    if renamed:
+        os.rename(path_temp, path_original)
+
+
+@pytest.mark.usefixtures("no_rom")
+def test_no_rom() -> None:
+    with pytest.raises(FileNotFoundError):
+        Patcher()
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_set_item() -> None:
+    p = Patcher()
+    p.set_item(23, (-1, 0, 1, 2, 254, 255, 256, 257))
