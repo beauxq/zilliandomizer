@@ -2,6 +2,8 @@ import pytest
 from typing import Iterator
 import os
 
+from verified import verified
+
 from zilliandomizer.options import ID, chars, char_to_jump
 from zilliandomizer.patch import ROM_NAME
 from zilliandomizer import asm, rom_info
@@ -103,6 +105,9 @@ def set_verified_bytes(b: bytearray) -> None:
         for level_i in range(8):
             addr = jump_base + char_i * 32 + level_i * 4
             b[addr] = char_to_jump[character]["vanilla"][level_i] - 1
+
+    for key in verified:
+        b[key] = verified[key]
 
 
 @pytest.fixture

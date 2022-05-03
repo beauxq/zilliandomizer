@@ -95,3 +95,30 @@ increment_gun_code_4af8 = 0x4af8
 """ code to increment gun level """
 code_after_increment_gun_7c1e = 0x7c1e
 """ code to run after incrementing gun level """
+
+terrain_index = 0x13725
+"""
+starting at `_DATA_13725_` is 65 bytes for each of the 17 rows
+
+each row is 1 byte (unknown purpose, `01` in most of them)
+
+followed by 8 bytes for each column
+    - 00-01 banked address of terrain data for that location
+    - 02 unknown
+    - 03 map index (0-135)
+    - 04-07 unknown
+"""
+terrain_begin = 0x10ef0
+"""
+The terrain data is packed tightly with some run-length encoding:
+
+command, byte, ...
+```
+if command & 0x80:
+    command & 0x7f is the number of bytes to take
+else:
+    command is the number of copies of the next byte
+```
+Each room's terrain data ends with `0x00`
+"""
+terrain_end = 0x120da

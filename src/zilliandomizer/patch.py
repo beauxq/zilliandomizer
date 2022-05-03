@@ -5,6 +5,7 @@ from zilliandomizer.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.locations import Location
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer import asm, rom_info
+from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import ItemData, make_loc_name
 
 ROM_NAME = "Zillion (UE) [!].sms"
@@ -25,7 +26,6 @@ paths: List[List[str]] = [
 
 # TODO: fix Champ rescue sprite in top rooms
 # TODO: lots of JJ rescue graphic work
-# (easy step is, after champ sprite is fixed, use that for jj on play screen)
 
 
 class Patcher:
@@ -34,6 +34,7 @@ class Patcher:
     end_of_available: int
     rom_path: str
     rom: bytearray
+    tc: TerrainCompressor
 
     def __init__(self) -> None:
         self.writes = {}
@@ -53,6 +54,8 @@ class Patcher:
 
         with open(f"{self.rom_path}{os.sep}{ROM_NAME}", "rb") as file:
             self.rom = bytearray(file.read())
+
+        self.tc = TerrainCompressor(self.rom)
 
     def fix_floppy_req(self) -> None:
         """
@@ -634,6 +637,7 @@ class Patcher:
             self.writes[addr] = new
 
     def all_fixes_and_options(self, options: Options) -> None:
+        self.writes.update(self.tc.get_writes())
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()
