@@ -1,4 +1,5 @@
 import os
+from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import Options, parse_options, ID
 from zilliandomizer.logger import Logger
@@ -34,6 +35,9 @@ def generate(seed: int) -> None:
     logger.log(f"seed {seed_str}")
     r = Randomizer(options, logger)
     r.roll(seed)
+
+    a = Alarms(p.tc)
+    a.choose_all()
 
     p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)
