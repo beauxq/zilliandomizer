@@ -41,8 +41,12 @@ class Alarms:
             # TODO: which rooms should have more/fewer alarm lines
             # change probability according to that
 
+            # TODO: skill level could disable lessened and
+            # change probability of more alarms
+
         print(f"chosen: {chosen}")
         _bytes = TerrainCompressor.decompress(self.tc.get_room(map_index))
+        assert len(_bytes) == 96
         for a in this_room:
             for loc in a.blocks:
                 row, col = loc

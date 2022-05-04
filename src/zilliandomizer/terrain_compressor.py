@@ -111,6 +111,19 @@ class TerrainCompressor:
                 # verified[cursor] = 0x00
 
                 decompressed = TerrainCompressor.decompress(original_compressed_bytes)
+                if map_index == 0x0b:
+                    # This room has 2 extra bytes past the end of the room.
+                    # I'm guessing it's a typo in the rom.
+                    #
+                    # (Someone ended the room with 02 3b. That was a visible bug,
+                    #  so some else said "It needs to end with 03 3b."
+                    #  So someone tacked on a 03 3b after the 02 3b,
+                    #  instead of replacing it.)
+                    #
+                    # And I'm guessing it doesn't have any effect on the game. 🤞
+                    # (I don't know the effect of writing 2 bytes past the end of the room.)
+                    decompressed = decompressed[:-2]
+                assert len(decompressed) == 96
                 recompressed = TerrainCompressor.compress(decompressed)
 
                 # update class data
