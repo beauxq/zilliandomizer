@@ -19,7 +19,7 @@ def test_randomizer() -> None:
     s = 7777
     options: Options = some_options
     logger = Logger()
-    logger.stdout = True
+    logger.spoil_stdout = True
     r = Randomizer(options, logger)
     r.roll(s)
 
@@ -39,12 +39,12 @@ def test_placement() -> None:
     for s in range(total_iter):
         options: Options = some_options
         logger = Logger()
-        logger.stdout = False
+        logger.spoil_stdout = False
         r = Randomizer(options, logger)
         r.roll(s)
         if r.check():
             total_completable += 1
-            for line in logger.lines:
+            for line in logger.spoiler_lines:
                 if line.startswith("get Apple"):
                     row = int(line.split(' ')[-1][1:3])
                     total_item_row += row

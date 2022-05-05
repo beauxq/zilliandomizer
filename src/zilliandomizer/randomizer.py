@@ -31,7 +31,7 @@ class Randomizer:
         self.options = options
         if logger is None:
             logger = Logger()
-            logger.stdout = True
+            logger.spoil_stdout = True
         self.logger = logger
 
         self.reset()
@@ -185,7 +185,7 @@ class Randomizer:
         sphere = 0
         while True:
             if checking and sphere:
-                self.logger.log(f"end of sphere: {sphere}")
+                self.logger.spoil(f"end of sphere: {sphere}")
             have = self.make_ability(items)
             locs = self.get_locations(have)
             for loc in locs:
@@ -193,7 +193,7 @@ class Randomizer:
                     items.append(loc.item)
                     if loc.item.is_progression and loc.item.code != KEYWORD:
                         if checking:
-                            self.logger.log(f"get {loc.item.name} from {loc.name}")
+                            self.logger.spoil(f"get {loc.item.name} from {loc.name}")
                 locations_found[loc] = True
             if len(items) == prev_item_count:
                 # didn't get anything new this sphere
@@ -216,11 +216,11 @@ class Randomizer:
         tr.append(items[-1])
         locs = self.get_locations(Req(gun=3, jump=3, hp=990, skill=9001))
         remaining = [loc for loc in locs if self.can_put_item(loc)]
-        self.logger.log(f"location count: {len(locs)}  after keywords: {len(remaining)}")
+        self.logger.spoil(f"location count: {len(locs)}  after keywords: {len(remaining)}")
         if len(tr) > len(remaining):
             raise ValueError(f"too many items in options - {len(remaining) - 2} locations for {len(tr) - 2} items")
         empty_count = len(remaining) - len(tr)
-        self.logger.log(f"filling remaining space with {empty_count} empty")
+        self.logger.spoil(f"filling remaining space with {empty_count} empty")
         for _ in range(empty_count):
             tr.append(items[4])  # empty
 
@@ -309,7 +309,7 @@ class Randomizer:
                 self.assume_fill()
             except Randomizer.RollFail:
                 fail_count += 1
-                self.logger.log(f"algorithm fail {fail_count}")
+                self.logger.spoil(f"algorithm fail {fail_count}")
                 self.reset()
                 continue
             if self.check():

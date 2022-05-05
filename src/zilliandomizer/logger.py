@@ -3,10 +3,15 @@ from typing import List
 
 class Logger:
     def __init__(self) -> None:
-        self.lines: List[str] = []
-        self.stdout: bool = True
+        self.spoiler_lines: List[str] = []
+        self.spoil_stdout: bool = True
+        self.debug_stdout: bool = False
 
-    def log(self, line: str) -> None:
-        self.lines.append(line)
-        if self.stdout:
+    def spoil(self, line: str) -> None:
+        self.spoiler_lines.append(line)
+        if self.spoil_stdout:
+            print(line)
+
+    def debug(self, line: str) -> None:
+        if self.debug_stdout:
             print(line)

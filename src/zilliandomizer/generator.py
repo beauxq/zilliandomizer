@@ -30,13 +30,13 @@ def generate(seed: int) -> None:
     else:
         print("no options file found, using default")
     logger = Logger()
-    logger.stdout = False
-    logger.log(str(options))
-    logger.log(f"seed {seed_str}")
+    logger.spoil_stdout = False
+    logger.spoil(str(options))
+    logger.spoil(f"seed {seed_str}")
     r = Randomizer(options, logger)
     r.roll(seed)
 
-    a = Alarms(p.tc)
+    a = Alarms(p.tc, logger)
     a.choose_all()
 
     p.write_locations(r.locations, options.start_char)
@@ -45,6 +45,6 @@ def generate(seed: int) -> None:
     p.write(filename)
     # TODO: abstract out the spoiler writer (handling directory in a better way)
     with open(p.rom_path + os.sep + f"spoiler-{seed_str}.txt", "wt") as file:
-        for line in logger.lines:
+        for line in logger.spoiler_lines:
             file.write(line + "\n")
     print(f"generated: {filename}")

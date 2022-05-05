@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import ClassVar, Dict, List, Literal
 
 from zilliandomizer import rom_info
@@ -73,6 +74,10 @@ class TerrainCompressor:
     """ map index: recompressed bytes (including 0 on end) """
     _size: int
     """ total """
+
+    # need to be able to save state this class, to try choosing alarms multiple times
+    _saved_rooms: Dict[int, List[int]] = {}
+    _saved_size: int = 0
 
     def __init__(self, rom: bytes) -> None:
         self.load(rom)
@@ -162,13 +167,24 @@ class TerrainCompressor:
 
         return tr
 
+    def get_space(self) -> int:
+        """ return number of bytes from limit (negative if over limit) """
+        return (rom_info.terrain_end - rom_info.terrain_begin) - self._size
+
     def get_room(self, map_index: int) -> List[int]:
         """ compressed """
         return self._rooms[map_index][:]
 
-    def set_room(self, map_index: int, data: List[int]) -> int:
+    def set_room(self, map_index: int, data: List[int]) -> None:
         """ compressed, return number of bytes from limit (negative if over limit) """
         self._size -= len(self._rooms[map_index])
         self._size += len(data)
         self._rooms[map_index] = data[:]  # copy to make sure it doesn't get modified after setting
-        return (rom_info.terrain_end - rom_info.terrain_begin) - self._size
+
+    def save_state(self) -> None:
+        self._saved_rooms = deepcopy(self._rooms)
+        self._saved_size = self._size
+
+    def load_state(self) -> None:
+        self._rooms = deepcopy(self._saved_rooms)
+        self._size = self._saved_size

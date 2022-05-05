@@ -154,5 +154,35 @@ alarm_data: Dict[int, List[Alarm]] = {
         Alarm("h-mid", False, (2, 6), 3, False, fs(), fs(["h-bot", "v-top-left", "v-top-right"])),
         Alarm("h-bot", False, (4, 11), 3, False, fs(["v-right"]), fs(["v-bot-right"]))
     ],
+    0x1a: [
+        Alarm("v-top-left", True, (0, 6), 2, False, fs(), fs(["h-top", "v-mid-left"])),
+        Alarm("v-top-mid", True, (0, 11), 3, False, fs(["h-top"]), fs(["v-mid", "v-bot", "v-mid-left"])),
+        Alarm("v-top-right", True, (0, 13), 2, False, fs(), fs(["h-top", "v-mid-left"])),
+        Alarm("v-mid-left", True, (2, 7), 2, False, fs(), fs()),  # lessened in all others because blocks computer
+        Alarm("v-mid", True, (3, 11), 2, False, fs(), fs(["v-top-mid", "v-bot", "v-mid-left"])),
+        Alarm("v-mid-right", True, (2, 13), 2, True, fs(), fs(["v-mid-left"])),
+        Alarm("v-bot-left", True, (4, 3), 2, False, fs(["h-left"]), fs(["v-mid-left"])),
+        Alarm("v-bot", True, (5, 12), 1, False, fs(), fs(["v-top-mid", "v-mid", "v-mid-left"])),
+        Alarm("h-top", False, (2, 8), 5, False, fs(["v-top-mid"]), fs(["v-top-left", "v-top-right", "v-mid-left"])),
+        Alarm("h-left", False, (4, 3), 2, False, fs(["v-bot-left"]), fs(["v-mid-left"])),
+    ],
+    0x1c: [
+        Alarm("v-top-1", True, (0, 5), 3, False, fs(["h-top"]), fs(["v-mid-1", "v-bot-1", "h-mid-1"])),
+        Alarm("v-top-2", True, (0, 8), 2, False, fs(["h-top"]), fs(["v-mid-2", "v-bot-2", "h-mid-2"])),
+        Alarm("v-top-3", True, (0, 10), 3, False, fs(["h-top"]), fs(["v-bot-3"])),
+        Alarm("v-top-4", True, (0, 14), 2, False, fs(["h-top"]), fs()),
+        Alarm("v-mid-1", True, (3, 5), 2, False, fs(["h-mid-1"]), fs(["v-top-1", "v-bot-1"])),
+        Alarm("v-mid-2", True, (2, 8), 2, True, fs(["h-mid-2"]), fs(["v-top-2", "v-bot-2", "h-top"])),
+        #      v-mid-3 is not missing, it's just combined with v-bot-3
+        Alarm("v-mid-4", True, (2, 14), 2, False, fs(), fs(["v-bot-3"])),
+        Alarm("v-bot-1", True, (5, 6), 1, False, fs(), fs(["v-top-1", "v-mid-1", "h-mid-1"])),
+        Alarm("v-bot-2", True, (4, 7), 2, False, fs(), fs(["v-top-2", "h-top", "v-mid-2", "h-mid-2"])),
+        Alarm("v-bot-3", True, (3, 11), 3, False, fs(["h-mid-3"]), fs(["v-mid-4"])),
+        Alarm("h-top", False, (1, 1), 14, False, fs(["v-top-1", "v-top-2", "v-top-3", "v-top-4"]),
+              fs(["v-mid-2", "h-mid-2", "v-bot-2"])),
+        Alarm("h-mid-1", False, (4, 2), 5, False, fs(["v-mid-1"]), fs(["v-top-1", "v-bot-1", "h-mid-3"])),
+        Alarm("h-mid-2", False, (3, 6), 4, False, fs(["v-mid-2"]), fs(["v-top-2", "h-top", "v-bot-2"])),
+        Alarm("h-mid-3", False, (4, 9), 5, False, fs(["v-bot-3"]), fs(["h-mid-1"])),
+    ],
 }
 """ map_index: list of possible `Alarm` in room """
