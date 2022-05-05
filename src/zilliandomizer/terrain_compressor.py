@@ -98,7 +98,9 @@ class TerrainCompressor:
                 # verified[index_address + 1] = data_hi
                 map_index = rom[index_address + 3]
                 # verified[index_address + 3] = map_index
-                assert map_index == row * 8 + col, "terrain index matching map index"
+                # for now at least, this is the 1st assertion that someone with the wrong rom version runs into
+                error = "terrain index matching map index - Is this the correct version of the rom?"
+                assert map_index == row * 8 + col, error
                 address = ((data_hi << 8) | data_lo) + TerrainCompressor.BANK_OFFSET
 
                 assert (map_index != 0x0a) or (address == rom_info.terrain_begin), f"first room address {address}"

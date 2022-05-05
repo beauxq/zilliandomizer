@@ -13,6 +13,10 @@ This is a randomizer for this game.
 
 ---
 
+You might be able to find me on the [Randomizer Central discord](https://discord.gg/QeP4wQQBdp) (username beauxq) There's a help-center there to get help with any randomizer. (Most other people there will not be familiar with this randomizer.)
+
+---
+
 ## setup / install
 
 1. install Python from [https://www.python.org/](https://www.python.org/)
@@ -23,7 +27,7 @@ This is a randomizer for this game.
    3. unzip it to a folder on your hard drive
 
 3. put your original US/NTSC rom in the `roms` directory with this filename: `Zillion (UE) [!].sms`
-
+   - I think version 1.1 of the rom is needed. (I don't know information about different versions of the rom.)
 ---
 
 ## usage
