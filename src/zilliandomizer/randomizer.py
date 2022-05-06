@@ -12,7 +12,7 @@ from zilliandomizer.locations import Location, Req
 from zilliandomizer.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
 
 # this is used in math, not just an id
-# (in case someone is tempted to change it to 0 to match rom value)
+# (in case someone is tempted to change it to 0-2 to match rom value)
 MIN_GUN = 1
 MAX_GUN = 3
 

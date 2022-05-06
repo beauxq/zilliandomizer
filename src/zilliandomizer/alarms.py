@@ -32,6 +32,7 @@ class Alarms:
         self._logger = logger
         # testing
         # logger.spoil_stdout = True
+        # logger.debug_stdout = True
 
     def choose_all(self) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
