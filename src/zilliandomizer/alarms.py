@@ -129,8 +129,8 @@ class Alarms:
             # TODO: skill level could disable lessened and
             # change probability of more alarms
 
-        # testing
-        # if 0x18 < map_index < 0x1f:
+        # testing d601
+        # if 0x20 < map_index < 0x30:
         #     chosen = {a.id for a in this_room if a.vertical}
         #     chosen = set()
 
