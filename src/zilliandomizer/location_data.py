@@ -307,11 +307,15 @@ def make_locations() -> Dict[str, Location]:
         "r12c6y58xa0": Location("r12c6y58xa0", Req(gun=2)),
         "r12c6y98xb0": Location("r12c6y98xb0", Req(gun=1)),
         "r12c6y98xe0": Location("r12c6y98xe0", Req(gun=3)),
-        # TODO: to get out of this room, I think requires speed > jump
+        # TODO: find out whether it's possible to get out of this room with jump 1
+        # to get out of this room, I think requires speed > jump
         # I tried a lot with speed 3 and jump 3 and couldn't do it.
         # I usually don't have much trouble with speed 4 and jump 3.
         # I was able to do it with speed 3 and jump 2.
-        "r13c1y98x10": Location("r13c1y98x10", Req(gun=1, hp=120), Req(hp=240, union=(Req(skill=3), Req(jump=5)))),
+        # Since "get out" logic is not used, moving it to "get in".
+        "r13c1y98x10": Location("r13c1y98x10",
+                                Req(gun=1, hp=240, jump=2, union=(Req(skill=3), Req(jump=5))),
+                                Req(hp=240, jump=2, union=(Req(skill=3), Req(jump=5)))),
         "r13c1y18x70": Location("r13c1y18x70", Req(gun=1)),
         "r13c1y18x80": Location("r13c1y18x80", Req(gun=1)),
         "r13c1y58x90": Location("r13c1y58x90", Req(gun=1)),

@@ -122,3 +122,4 @@ else:
 Each room's terrain data ends with `0x00`
 """
 terrain_end = 0x120da
+""" the byte after the last room's 0x00 """

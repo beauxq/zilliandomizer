@@ -517,6 +517,17 @@ class Patcher:
         self.writes[entry + 1] = new_code_addr // 256
 
     def set_jump_levels(self, jump_option: VBLR) -> None:
+        # because of r13c1y98x10, this function also sets speed to 1 higher than jump
+        # speed is the byte after jump in stats_per_level_table_7cc8
+        # speed is the byte before jump in char_init_7b98
+
+        # vanilla speed values for verification
+        speed_values: Dict[Chars, List[int]] = {
+            "JJ": [1, 1, 1, 1, 2, 2, 3, 3],
+            "Champ": [0, 0, 0, 0, 1, 1, 2, 2],
+            "Apple": [2, 2, 2, 2, 3, 3, 3, 3]
+        }
+
         table_addr = rom_info.stats_per_level_table_7cc8
         jump_base = table_addr + 1
 
@@ -524,17 +535,22 @@ class Patcher:
 
         for char_i, char in enumerate(chars):
             jump_addr = init_table_jump + char_i * 16
+            speed_addr = jump_addr - 1
             if self.verify:
                 # print(char)
                 # print(self.rom[jump_addr], char_to_jump[char]["vanilla"][0] - 1)
                 assert self.rom[jump_addr] == char_to_jump[char]["vanilla"][0] - 1
+                assert self.rom[speed_addr] == speed_values[char][0]
             self.writes[jump_addr] = char_to_jump[char][jump_option][0] - 1
+            self.writes[jump_addr - 1] = self.writes[jump_addr] + 1
 
             for level_i in range(8):
                 addr = jump_base + char_i * 32 + level_i * 4
                 if self.verify:
                     assert self.rom[addr] == char_to_jump[char]["vanilla"][level_i] - 1
+                    assert self.rom[addr + 1] == speed_values[char][level_i]
                 self.writes[addr] = char_to_jump[char][jump_option][level_i] - 1
+                self.writes[addr + 1] = self.writes[addr] + 1  # speed
 
     def set_new_gun_system_and_levels(self, gun: VBLR) -> None:
         MAX_GUN_LEVEL_COUNT = 7
