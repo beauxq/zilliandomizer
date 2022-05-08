@@ -31,8 +31,8 @@ class Alarms:
         self._space_per_room = self._space_pacer / len(ALARM_ROOMS)
         self._logger = logger
         # testing
-        logger.spoil_stdout = True
-        logger.debug_stdout = True
+        # logger.spoil_stdout = True
+        # logger.debug_stdout = True
 
     def choose_all(self) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
