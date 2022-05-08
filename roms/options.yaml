@@ -42,3 +42,7 @@ item_counts:
   floppy: 8  # vanilla 5
   scope: 4   # vanilla 4
   red: 2     # vanilla 1
+
+# how many times can you use "continue" after dying
+# (0-126, infinity)
+continues: infinity  # vanilla 3

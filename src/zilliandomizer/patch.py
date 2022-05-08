@@ -652,6 +652,26 @@ class Patcher:
                 assert self.rom[addr] == old
             self.writes[addr] = new
 
+    def set_continues(self, count: int) -> None:
+        # TODO: change text that says "THE CONTINUE FEATURE CAN BE USED ONLY THREE TIMES"
+        if count == -1:
+            # infinity
+            # it's important for this code that continue_count_init
+            # doesn't get changed from it's vanilla 4 value
+            code = [
+                asm.BIT_B_HL_LO, asm.BIT_2_HL_HI,  # test bit 2 in (hl) (see if (hl) is 4)
+                asm.JRZ, 0x100 - 13,               # jr z, -13
+            ]
+            for i in range(len(code)):
+                addr = rom_info.continue_dec_addr_2523 + i
+                if self.verify:
+                    assert self.rom[addr] == rom_info.continue_dec_code[i]
+                self.writes[addr] = code[i]
+        else:  # not infinity
+            if self.verify:
+                assert self.rom[rom_info.continue_count_init_0af5] == 4
+            self.writes[rom_info.continue_count_init_0af5] = count + 1
+
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.fix_floppy_display()
@@ -663,3 +683,4 @@ class Patcher:
         self.set_new_opa_level_system(options.opas_per_level, 20, options.max_level)
         self.set_new_gun_system_and_levels(options.gun_levels)
         self.set_jump_levels(options.jump_levels)
+        self.set_continues(options.continues)

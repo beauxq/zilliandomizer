@@ -1,7 +1,8 @@
 import os
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
-from zilliandomizer.options import Options, parse_options, ID
+from zilliandomizer.options import Options, ID
+from zilliandomizer.options_parsing import parse_options
 from zilliandomizer.logger import Logger
 from zilliandomizer.patch import Patcher
 

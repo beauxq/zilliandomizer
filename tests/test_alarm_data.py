@@ -22,3 +22,4 @@ def test_sets() -> None:
 
 # TODO: make sure all alarms that use the same block have each other in their `disables`
 # TODO: make sure each alarm isn't disabling or lessening itself (This isn't a problem, but it indicates a mistake.)
+# TODO: (different file test_alarms) Make sure it always chooses at least one

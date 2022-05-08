@@ -34,6 +34,10 @@ ADDHLBC = 0x09
 """ add bc to hl """
 CP = 0xfe
 """ compare """
+BIT_B_HL_LO = 0xcb
+""" test bit b of value in address hl, low byte """
+BIT_2_HL_HI = 0x46 | (2 << 3)
+""" test bit 2 of value in address hl, high byte """
 JRZ = 0x28
 """ jump relative if zero """
 JP = 0xc3

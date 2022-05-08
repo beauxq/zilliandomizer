@@ -218,7 +218,7 @@ class Randomizer:
         remaining = [loc for loc in locs if self.can_put_item(loc)]
         self.logger.spoil(f"location count: {len(locs)}  after keywords: {len(remaining)}")
         if len(tr) > len(remaining):
-            raise ValueError(f"too many items in options - {len(remaining) - 2} locations for {len(tr) - 2} items")
+            raise ValueError(f"invalid logic from options - {len(remaining) - 2} locations for {len(tr) - 2} items")
         empty_count = len(remaining) - len(tr)
         self.logger.spoil(f"filling remaining space with {empty_count} empty")
         for _ in range(empty_count):

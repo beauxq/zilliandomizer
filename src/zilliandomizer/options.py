@@ -1,14 +1,20 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 from random import choice
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Dict, List, Literal, NoReturn, Tuple
 
-VBLR_CHOICES = ("vanilla", "balanced", "low", "restrictive")
 Chars = Literal["JJ", "Apple", "Champ"]
 VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator in subscript require Python 3.11
 """ `"vanilla"` `"balanced"` `"low"` `"restrictive"` """
 
+VBLR_CHOICES: Tuple[VBLR, ...] = ("vanilla", "balanced", "low", "restrictive")
 chars: Tuple[Chars, Chars, Chars] = ("JJ", "Champ", "Apple")  # order in rom data
+
+options_filename = "options.yaml"
+
+
+def error(s: str) -> NoReturn:
+    raise ValueError(f"{options_filename}: {s}")
 
 
 class ID(IntEnum):
@@ -40,7 +46,7 @@ default_item_counts: ItemCounts = {
 }
 
 
-def factory() -> ItemCounts:
+def item_counts_factory() -> ItemCounts:
     """ default factory for dataclass item_counts """
     tr: ItemCounts = {}
     for id in default_item_counts:
@@ -48,9 +54,14 @@ def factory() -> ItemCounts:
     return tr
 
 
+def start_char_factory() -> Chars:
+    """ default factory for dataclass start_char """
+    return choice(chars)
+
+
 @dataclass  # TODO: python 3.10 (kw_only=True)
 class Options:
-    item_counts: ItemCounts = field(default_factory=factory)
+    item_counts: ItemCounts = field(default_factory=item_counts_factory)
     """ ids 5 through 11 """
     jump_levels: VBLR = "balanced"
     gun_levels: VBLR = "balanced"
@@ -58,96 +69,12 @@ class Options:
     max_level: int = 8
     tutorial: bool = False
     skill: int = 2
-    start_char: Chars = "JJ"
+    start_char: Chars = field(default_factory=start_char_factory)
     floppy_req: int = 5
     """ how many floppies are required """
+    continues: int = -1
+    """ number of continues before game over, -1 for infinity """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
-
-
-# TODO: TypedDict
-choices: Dict[str, Any] = {
-    "jump_levels": VBLR_CHOICES,
-    "gun_levels": VBLR_CHOICES,
-    "opas_per_level": (1, 2, 3),
-    "max_level": range(1, 9),
-    "tutorial": (True, False),
-    "skill": range(6),
-    "start_char": chars,
-    "floppy_req": range(9)
-}
-
-sub_options = {
-    "item_counts": {
-        "card": ID.card,
-        "bread": ID.bread,
-        "opa": ID.opa,
-        "gun": ID.gun,
-        "floppy": ID.floppy,
-        "scope": ID.scope,
-        "red": ID.red
-    }
-}
-
-
-def parse_options(t: str) -> Options:
-    # mypy doesn't know about __dataclass_fields__
-    fields: Dict[str, Any] = Options.__dataclass_fields__  # type: ignore
-
-    def get_typed_value(option: str, value: str) -> Any:
-        if value == "random":
-            return choice(choices[option])
-
-        typed_value: Any = value
-        if fields[option].type is bool:
-            typed_value = (value.lower() in ("true", "yes", "on"))
-        else:
-            try:
-                v = fields[option].type(value)
-                typed_value = v
-            except TypeError:
-                # probably type Literal
-                pass
-        if typed_value not in choices[option]:
-            raise ValueError(f"invalid value {value} for {option}")
-        return typed_value
-
-    tr = Options()
-    parent_option = ""
-    for line in t.split("\n"):
-        # remove # comments
-        try:
-            line = line[:line.index("#")]
-        except ValueError:
-            pass  # no "#"
-
-        line = line.strip()
-        if len(line) == 0:
-            continue
-        split = line.split(":")
-        if len(split) != 2:
-            raise ValueError(f'invalid line in options: "{line}"')
-        option = split[0].strip().strip('"')
-        value = split[1].strip().strip('"')
-        if option in fields and option not in sub_options:
-            parent_option = ""
-            typed_value = get_typed_value(option, value)
-            tr.__setattr__(option, typed_value)
-        elif option in sub_options:
-            parent_option = option
-        else:
-            if parent_option == "":
-                raise ValueError(f"invalid option: {option}")
-            if option not in sub_options[parent_option]:
-                raise ValueError(f"invalid sub-option {option} for option {parent_option}")
-
-            # right now, the only suboption is item_counts
-            try:
-                int_value = int(value)
-            except ValueError:
-                raise ValueError(f"invalid value {value} for sub-option {option} under {parent_option}")
-            tr.__getattribute__(parent_option)[sub_options[parent_option][option]] = int_value
-
-    return tr
 
 
 char_to_hp: Dict[Chars, int] = {

@@ -117,6 +117,10 @@ def set_verified_bytes(b: bytearray) -> None:
             b[addr] = char_to_jump[character]["vanilla"][level_i] - 1
             b[addr + 1] = speed_values[character][level_i]
 
+    b[rom_info.continue_count_init_0af5] = 4
+    for addr, v in enumerate(rom_info.continue_dec_code, rom_info.continue_dec_addr_2523):
+        b[addr] = v
+
     for key in verified:
         b[key] = verified[key]
 

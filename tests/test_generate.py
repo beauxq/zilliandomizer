@@ -29,3 +29,6 @@ def test_all() -> None:
 @pytest.mark.usefixtures("fake_rom", "no_options_file")
 def test_default_options() -> None:
     generate(0x42069427)
+
+
+# TODO: make sure the same seed with the same options generates the same output

@@ -91,7 +91,7 @@ class TerrainCompressor:
 
         for row in range(17):
             for col in range(8):
-                index_address = rom_info.terrain_index + row * 65 + 1 + col * 8
+                index_address = rom_info.terrain_index_13725 + row * 65 + 1 + col * 8
                 data_lo = rom[index_address]
                 # verified[index_address] = data_lo
                 data_hi = rom[index_address + 1]
@@ -103,9 +103,9 @@ class TerrainCompressor:
                 assert map_index == row * 8 + col, error
                 address = ((data_hi << 8) | data_lo) + TerrainCompressor.BANK_OFFSET
 
-                assert (map_index != 0x0a) or (address == rom_info.terrain_begin), f"first room address {address}"
+                assert (map_index != 0x0a) or (address == rom_info.terrain_begin_10ef0), f"first room address {address}"
 
-                if address < rom_info.terrain_begin or address >= rom_info.terrain_end:
+                if address < rom_info.terrain_begin_10ef0 or address >= rom_info.terrain_end_120da:
                     continue  # hallways
 
                 cursor = address
@@ -138,7 +138,7 @@ class TerrainCompressor:
                 self._rooms[map_index] = recompressed
                 self._size += len(recompressed)
 
-        original_size = rom_info.terrain_end - rom_info.terrain_begin
+        original_size = rom_info.terrain_end_120da - rom_info.terrain_begin_10ef0
         assert original_size - self._size == 77, f"original terrain size: {original_size}  recompressed: {self._size}"
 
         """
@@ -152,12 +152,12 @@ class TerrainCompressor:
     def get_writes(self) -> Dict[int, int]:
         tr: Dict[int, int] = {}
 
-        terrain_cursor = rom_info.terrain_begin
+        terrain_cursor = rom_info.terrain_begin_10ef0
 
         for map_index in self._map_indexes:
             row = map_index // 8
             col = map_index % 8
-            index_address = rom_info.terrain_index + row * 65 + 1 + col * 8
+            index_address = rom_info.terrain_index_13725 + row * 65 + 1 + col * 8
             banked_address = terrain_cursor - TerrainCompressor.BANK_OFFSET
             tr[index_address] = banked_address & 0xff
             tr[index_address + 1] = banked_address >> 8
@@ -165,13 +165,13 @@ class TerrainCompressor:
                 tr[terrain_cursor] = byte
                 terrain_cursor += 1
 
-        assert terrain_cursor <= rom_info.terrain_end
+        assert terrain_cursor <= rom_info.terrain_end_120da
 
         return tr
 
     def get_space(self) -> int:
         """ return number of bytes from limit (negative if over limit) """
-        return (rom_info.terrain_end - rom_info.terrain_begin) - self._size
+        return (rom_info.terrain_end_120da - rom_info.terrain_begin_10ef0) - self._size
 
     def get_room(self, map_index: int) -> List[int]:
         """ compressed """

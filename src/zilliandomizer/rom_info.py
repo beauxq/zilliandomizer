@@ -96,7 +96,7 @@ increment_gun_code_4af8 = 0x4af8
 code_after_increment_gun_7c1e = 0x7c1e
 """ code to run after incrementing gun level """
 
-terrain_index = 0x13725
+terrain_index_13725 = 0x13725
 """
 starting at `_DATA_13725_` is 65 bytes for each of the 17 rows
 
@@ -108,7 +108,7 @@ followed by 8 bytes for each column
     - 03 map index (0-135)
     - 04-07 unknown
 """
-terrain_begin = 0x10ef0
+terrain_begin_10ef0 = 0x10ef0
 """
 The terrain data is packed tightly with some run-length encoding:
 
@@ -121,5 +121,12 @@ else:
 ```
 Each room's terrain data ends with `0x00`
 """
-terrain_end = 0x120da
+terrain_end_120da = 0x120da
 """ the byte after the last room's 0x00 """
+
+continue_count_init_0af5 = 0x0af5
+""" the initialization value for the number of continues (+ 1) """
+continue_dec_addr_2523 = 0x2523
+""" the address of the code that decrements the continues """
+continue_dec_code = [0x35, 0xfa, 0x1a, 0x25]
+""" the code that decrements the continues """

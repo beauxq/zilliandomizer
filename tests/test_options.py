@@ -1,5 +1,6 @@
 import pytest
-from zilliandomizer.options import parse_options, ID, VBLR_CHOICES, chars
+from zilliandomizer.options import ID, VBLR_CHOICES, chars
+from zilliandomizer.options_parsing import parse_options
 
 
 def test_parse() -> None:
@@ -22,17 +23,69 @@ def test_parse() -> None:
     assert o.floppy_req == 3
 
 
+def test_parse_continues() -> None:
+    t = """
+    jump_levels: restrictive
+    gun_levels: low
+    opas_per_level: random
+    max_level: "random"
+    tutorial: "False"
+    start_char:  random
+    floppy_req: random
+    continues: infinity
+    """
+
+    o = parse_options(t)
+    assert o.jump_levels == "restrictive"
+    assert o.gun_levels == "low"
+    assert o.opas_per_level < 6
+    assert 1 <= o.max_level <= 8
+    assert o.tutorial is False
+    assert o.start_char in chars
+    assert o.floppy_req < 127
+    assert o.continues == -1
+
+    t = """
+    jump_levels: "vanilla"
+    gun_levels: "vanilla"
+    opas_per_level: 5
+    max_level: 1
+    tutorial: True
+    start_char:  random
+    floppy_req: random
+    continues: 0
+    """
+
+    o = parse_options(t)
+    assert o.jump_levels == "vanilla"
+    assert o.gun_levels == "vanilla"
+    assert o.opas_per_level == 5
+    assert o.max_level == 1
+    assert o.tutorial is True
+    assert o.start_char in chars
+    assert o.floppy_req < 127
+    assert o.continues == 0
+
+    t = """
+    continues: 1
+    """
+
+    o = parse_options(t)
+    assert o.continues == 1
+
+
 def test_parse_item_counts() -> None:
     t = """
-    max_level: 2
+    max_level: 3
     item_counts:
       card: 70
       opa: 27
       gun: 5
+      floppy: 6
     start_char: Apple
     """
     o = parse_options(t)
-    assert o.max_level == 2
+    assert o.max_level == 3
     assert o.item_counts[ID.card] == 70
     assert o.item_counts[ID.opa] == 27
     assert o.item_counts[ID.gun] == 5
@@ -92,4 +145,26 @@ def test_options_exceptions() -> None:
         parse_options("""
         item_counts:
           gun: apple
+        """)
+
+
+def test_validation_errors() -> None:
+    # too many items
+    with pytest.raises(ValueError):
+        parse_options("""
+        item_counts:
+          opa: 50
+          gun: 50
+          floppy: 50
+        """)
+
+    # if default jump_levels is balanced, max_level 2 doesn't allow jump 3
+    with pytest.raises(ValueError):
+        parse_options("""
+        max_level: 2
+        item_counts:
+          card: 70
+          opa: 27
+          gun: 5
+        start_char: Apple
         """)
