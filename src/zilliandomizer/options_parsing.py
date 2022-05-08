@@ -30,7 +30,7 @@ def validate(op: Options) -> None:
 valid_choices: Dict[str, Container[Any]] = {
     "jump_levels": VBLR_CHOICES,
     "gun_levels": VBLR_CHOICES,
-    "opas_per_level": range(127),
+    "opas_per_level": range(1, 127),
     "max_level": range(1, 9),
     "tutorial": (True, False),
     "skill": range(6),

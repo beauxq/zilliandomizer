@@ -7,7 +7,7 @@ jump_levels: balanced
 gun_levels: balanced
 
 # how many opa-opas are required for each level up (see readme)
-# (1-4, random)
+# (1-126, random)
 opas_per_level: 2
 
 # the highest level the characters can attain
@@ -28,7 +28,7 @@ skill: 2
 start_char: random
 
 # how many floppy disks are required to win
-# (0-8, random)
+# (0-126, random) (limited by item_counts)
 floppy_req: 5
 
 # how many of each item

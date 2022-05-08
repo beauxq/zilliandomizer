@@ -40,6 +40,14 @@ The randomized rom will output into the same directory as the original rom (with
 
 ---
 
+## update
+
+ - It should be enough to delete the old `src` directory and put the new one in it's place.
+   - (Merging the new one into the old one could cause problems.)
+ - You shouldn't need to overwrite your `roms` directory with your `options.yaml`, but you might want to check out the new `options.yaml` to see what new options are available.
+
+---
+
 ## gameplay customizations:
 
 The way the original game lets the player choose who to level up has a few drawbacks in a randomizer:
