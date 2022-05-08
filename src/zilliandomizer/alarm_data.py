@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, FrozenSet, List, Tuple, Generator
 
+from zilliandomizer.terrain_tiles import Tile
+
 
 ALARM_ROOMS: List[int] = [
     0x0b, 0x0f,
@@ -64,41 +66,118 @@ class Alarm:
 
 to_vertical = {
     # ceiling
-    0x3a: 0x40,
-    0x40: 0x40,
+    Tile.b_ceiling: Tile.b_ceiling_v,
+    Tile.b_ceiling_v: Tile.b_ceiling_v,
+
+    Tile.r_light_ceiling: Tile.r_light_ceiling_v,
+    Tile.r_light_ceiling_v: Tile.r_light_ceiling_v,
+
+    Tile.p_ceiling: Tile.p_ceiling_v,
+    Tile.p_ceiling_v: Tile.p_ceiling_v,
+
     # space
-    0x39: 0x3f,
-    0x3f: 0x3f,
-    0x42: 0x3f,
+    Tile.b_space: Tile.b_space_v,
+    Tile.b_space_v: Tile.b_space_v,
+    Tile.b_space_h: Tile.b_space_v,
+
+    Tile.r_dark_space: Tile.r_dark_space_v,
+    Tile.r_dark_space_v: Tile.r_dark_space_v,
+    Tile.r_dark_space_h: Tile.r_dark_space_v,
+
+    Tile.p_space: Tile.p_space_v,
+    Tile.p_space_v: Tile.p_space_v,
+    Tile.p_space_h: Tile.p_space_v,
+
     # floor
-    0x3b: 0x41,
-    0x41: 0x41,
-    0x43: 0x41,
+    Tile.b_floor: Tile.b_floor_v,
+    Tile.b_floor_v: Tile.b_floor_v,
+    Tile.b_floor_h: Tile.b_floor_v,
+
+    Tile.r_dark_floor: Tile.r_dark_floor_v,
+    Tile.r_dark_floor_v: Tile.r_dark_floor_v,
+    Tile.r_dark_floor_h: Tile.r_dark_floor_v,
+
+    Tile.p_floor: Tile.p_floor_v,
+    Tile.p_floor_v: Tile.p_floor_v,
+    Tile.p_floor_h: Tile.p_floor_v,
 }
 
 to_horizontal = {
     # space
-    0x39: 0x42,
-    0x3f: 0x42,
-    0x42: 0x42,
+    Tile.b_space: Tile.b_space_h,
+    Tile.b_space_v: Tile.b_space_h,
+    Tile.b_space_h: Tile.b_space_h,
+
+    Tile.r_light_space: Tile.r_light_space_h,
+    Tile.r_light_space_h: Tile.r_light_space_h,
+
+    Tile.r_dark_space: Tile.r_dark_space_h,
+    Tile.r_dark_space_v: Tile.r_dark_space_h,
+    Tile.r_dark_space_h: Tile.r_dark_space_h,
+
+    Tile.p_space: Tile.p_space_h,
+    Tile.p_space_v: Tile.p_space_h,
+    Tile.p_space_h: Tile.p_space_h,
+
     # floor
-    0x3b: 0x43,
-    0x41: 0x43,
-    0x43: 0x43,
+    Tile.b_floor: Tile.b_floor_h,
+    Tile.b_floor_v: Tile.b_floor_h,
+    Tile.b_floor_h: Tile.b_floor_h,
+
+    Tile.r_light_floor: Tile.r_light_floor_h,
+    Tile.r_light_floor_h: Tile.r_light_floor_h,
+
+    Tile.r_dark_floor: Tile.r_dark_floor_h,
+    Tile.r_dark_floor_v: Tile.r_dark_floor_h,
+    Tile.r_dark_floor_h: Tile.r_dark_floor_h,
+
+    Tile.p_floor: Tile.p_floor_h,
+    Tile.p_floor_v: Tile.p_floor_h,
+    Tile.p_floor_h: Tile.p_floor_h,
 }
 
 to_none = {
     # ceiling
-    0x3a: 0x3a,
-    0x40: 0x3a,
+    Tile.b_ceiling: Tile.b_ceiling,
+    Tile.b_ceiling_v: Tile.b_ceiling,
+
+    Tile.r_light_ceiling: Tile.r_light_ceiling,
+    Tile.r_light_ceiling_v: Tile.r_light_ceiling,
+
+    Tile.p_ceiling: Tile.p_ceiling,
+    Tile.p_ceiling_v: Tile.p_ceiling,
+
     # space
-    0x39: 0x39,
-    0x3f: 0x39,
-    0x42: 0x39,
+    Tile.b_space: Tile.b_space,
+    Tile.b_space_v: Tile.b_space,
+    Tile.b_space_h: Tile.b_space,
+
+    Tile.r_light_space: Tile.r_light_space,
+    Tile.r_light_space_h: Tile.r_light_space,
+
+    Tile.r_dark_space: Tile.r_dark_space,
+    Tile.r_dark_space_v: Tile.r_dark_space,
+    Tile.r_dark_space_h: Tile.r_dark_space,
+
+    Tile.p_space: Tile.p_space,
+    Tile.p_space_v: Tile.p_space,
+    Tile.p_space_h: Tile.p_space,
+
     # floor
-    0x3b: 0x3b,
-    0x41: 0x3b,
-    0x43: 0x3b,
+    Tile.b_floor: Tile.b_floor,
+    Tile.b_floor_v: Tile.b_floor,
+    Tile.b_floor_h: Tile.b_floor,
+
+    Tile.r_light_floor: Tile.r_light_floor,
+    Tile.r_light_floor_h: Tile.r_light_floor,
+
+    Tile.r_dark_floor: Tile.r_dark_floor,
+    Tile.r_dark_floor_v: Tile.r_dark_floor,
+    Tile.r_dark_floor_h: Tile.r_dark_floor,
+
+    Tile.p_floor: Tile.p_floor,
+    Tile.p_floor_v: Tile.p_floor,
+    Tile.p_floor_h: Tile.p_floor,
 }
 
 alarm_data: Dict[int, List[Alarm]] = {
@@ -216,8 +295,33 @@ alarm_data: Dict[int, List[Alarm]] = {
         Alarm("v-mid-right", True, (2, 13), 2, False, fs(), fs(["h-bot"])),
         Alarm("v-bot-left", True, (4, 6), 2, False, fs(), fs()),
         Alarm("v-bot-right", True, (4, 13), 2, True, fs(), fs()),
-        Alarm("h-top", False, (2, 9), 2, False, fs(["v-mid-left"]), fs(["v-top-right"])),
-        Alarm("h-bot", False, (4, 9), 2, False, fs(), fs(["v-mid-left", "v-mid-right"])),
+        Alarm("h-top", False, (2, 9), 3, False, fs(["v-mid-left"]), fs(["v-top-right"])),
+        Alarm("h-bot", False, (4, 9), 4, False, fs(), fs(["v-mid-left", "v-mid-right"])),
+    ],
+    0x2d: [
+        Alarm("v-top-left", True, (0, 3), 2, False, fs(["h-top"]), fs(["h-mid-left", "v-mid-left"])),
+        Alarm("v-mid-left", True, (2, 2), 2, False, fs(), fs(["v-top-left", "h-mid-left", "h-top"])),
+        Alarm("h-top", False, (1, 1), 14, False, fs(["v-top-left"]), fs(["v-mid-left"])),
+        # h-top makes h-mid-left redundant, but I want path blockers to be less likely
+        Alarm("h-mid-left", False, (2, 1), 1, False, fs(), fs(["v-top-left", "v-mid-left"])),
+        Alarm("h-mid-right", False, (2, 3), 12, False, fs(), fs(["h-bot-right"])),
+        # These next 2 disables do not overlap,
+        # but this is imitating y variance like the (TODO: planned) x variance.
+        # Not planning to implement y variance, because it would be much more rare,
+        # so just using disable as a substitute in the few rare cases.
+        Alarm("h-bot-mid-1", False, (4, 4), 2, True, fs(["h-bot-mid-2"]), fs()),
+        Alarm("h-bot-mid-2", False, (5, 4), 2, False, fs(["h-bot-mid-1"]), fs()),
+        Alarm("h-bot-right", False, (3, 7), 8, False, fs(), fs()),
+    ],
+    0x2f: [
+        Alarm("v-top-left", True, (0, 4), 2, False, fs(), fs()),
+        Alarm("v-top-mid", True, (0, 7), 2, True, fs(), fs(["v-mid", "h-top-left", "h-top-right"])),
+        Alarm("v-top-right", True, (0, 14), 2, False, fs(), fs()),
+        Alarm("v-mid", True, (3, 9), 1, False, fs(), fs(["v-top-mid", "h-top-left", "h-top-right"])),
+        Alarm("v-right", True, (2, 12), 2, False, fs(), fs()),
+        Alarm("h-top-left", False, (2, 4), 2, False, fs(), fs(["v-top-mid", "v-mid", "h-top-right"])),
+        Alarm("h-top-right", False, (2, 9), 3, False, fs(), fs(["v-top-mid", "v-mid", "h-top-left"])),
+        Alarm("h-bot-left", False, (4, 1), 3, False, fs(), fs()),
     ],
 }
 """ map_index: list of possible `Alarm` in room """
