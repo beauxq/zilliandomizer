@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from random import randint
 from typing import Dict, FrozenSet, List, Tuple, Generator
 
 from zilliandomizer.terrain_tiles import Tile
@@ -50,14 +51,50 @@ class Alarm:
     ids of other alarms in the room
     that are less likely to be present at the same time as this one
     """
+    vary: int = 0
+    """
+    how many spaces this line
+    can be moved (perpendicular to the line - right or down) and be equivalent to the same line
+    """
+    vanilla_vary: int = 0
+    """ the varied position this alarm is present in vanilla, ignored if not vanilla """
 
-    def block_iter(self) -> Generator[int, None, None]:
-        """ yield block_index """
+    def block_iter(self) -> Generator[Tuple[int, bool], None, None]:
+        """
+        yield (block_index, erase)
+
+        if erase, this is where a vanilla line goes and it needs to be erased
+        if not erase, this is where vary chose to put the alarm line
+        """
         row, col = self.top_left
+        vary = randint(0, self.vary)
+        if self.vanilla and vary != self.vanilla_vary:
+            # need to erase vanilla
+            vanilla_row = row
+            vanilla_col = col
+            if self.vertical:
+                vanilla_col += self.vanilla_vary
+            else:
+                vanilla_row += self.vanilla_vary
+            block_index = vanilla_row * 16 + vanilla_col
+            for _ in range(self.length):
+                assert block_index < 96, f"{self.id} {block_index}"
+                yield block_index, True
+                if self.vertical:
+                    block_index += 16
+                else:
+                    block_index += 1
+            # done erasing vanilla
+
+        # now send the blocks that vary chose
+        if self.vertical:
+            col += vary
+        else:
+            row += vary
         block_index = row * 16 + col
         for _ in range(self.length):
             assert block_index < 96, f"{self.id} {block_index}"
-            yield block_index
+            yield block_index, False
             if self.vertical:
                 block_index += 16
             else:
@@ -183,37 +220,26 @@ to_none = {
 alarm_data: Dict[int, List[Alarm]] = {
     0x0b: [
         Alarm("plat1top", True, (0, 5), 3,
-              False, fs(), fs(["plat1bot", "hor-high", "hor-mid"])),
-        Alarm("plat1bot", True, (3, 5), 3,
-              True, fs(["hor-mid"]), fs(["plat1top", "hor-high"])),
+              False, fs(), fs(["plat1bot", "hor-high", "hor-mid"]), 1),
+        Alarm("plat1bot", True, (3, 4), 3,
+              True, fs(["hor-mid"]), fs(["plat1top", "hor-high"]), 2, 1),
         Alarm("hor-mid", False, (4, 1), 7,
               False, fs(["plat1bot"]), fs(["plat1top", "plat2top", "plat2bot"])),
-        Alarm("hor-high", False, (3, 1), 3,
-              False, fs(), fs(["plat1top", "plat1bot"])),
-        Alarm("plat2top", True, (0, 9), 4,
-              False, fs(), fs(["hor-mid", "plat2bot"])),
-        Alarm("plat2bot", True, (4, 9), 2,
-              False, fs(), fs(["hor-mid", "plat2top"])),
-        Alarm("plat3top", True, (0, 12), 5,
-              False, fs(), fs(["plat3bot"])),
-        Alarm("plat3bot", True, (5, 13), 1,
-              False, fs(), fs(["plat3top"]))
+        Alarm("hor-high", False, (3, 1), 3, False, fs(), fs(["plat1top", "plat1bot"])),
+        Alarm("plat2top", True, (0, 9), 4, False, fs(), fs(["hor-mid", "plat2bot"]), 1),
+        Alarm("plat2bot", True, (4, 8), 2, False, fs(), fs(["hor-mid", "plat2top"]), 2),
+        Alarm("plat3top", True, (0, 12), 5, False, fs(), fs(["plat3bot"]), 1),
+        Alarm("plat3bot", True, (5, 13), 1, False, fs(), fs(["plat3top"]))
     ],
     0x0f: [
-        Alarm("vTopLeft", True, (0, 3), 2,
-              False, fs(), fs()),
-        Alarm("vMidLeftOri", True, (2, 2), 2,
-              True, fs(), fs(["vMidLeft"])),
-        Alarm("vMidLeft", True, (2, 3), 2,
-              False, fs(["hTopLeft"]), fs(["vMidLeftOri"])),
-        Alarm("vTopMid", True, (0, 10), 2,
-              False, fs(), fs(["hTopLeft", "hMidRight"])),
-        Alarm("vBotMid", True, (4, 9), 2,
-              False, fs(["hBotRight"]), fs()),
-        Alarm("vMidRight", True, (3, 12), 2,
-              False, fs(["hBotRight", "hMidRight"]), fs()),
-        Alarm("vBotRight", True, (4, 14), 2,
-              False, fs(), fs(["hBotRight"])),
+        Alarm("vTopLeft", True, (0, 2), 2, False, fs(), fs(), 1),
+        # can't use vary on this because it changes disable
+        Alarm("vMidLeftOri", True, (2, 2), 2, True, fs(), fs(["vMidLeft"])),
+        Alarm("vMidLeft", True, (2, 3), 2, False, fs(["hTopLeft"]), fs(["vMidLeftOri"])),
+        Alarm("vTopMid", True, (0, 10), 2, False, fs(), fs(["hTopLeft", "hMidRight"]), 1),
+        Alarm("vBotMid", True, (4, 9), 2, False, fs(["hBotRight"]), fs()),
+        Alarm("vMidRight", True, (3, 12), 2, False, fs(["hBotRight", "hMidRight"]), fs()),
+        Alarm("vBotRight", True, (4, 14), 2, False, fs(), fs(["hBotRight"])),
         Alarm("hTopLeft", False, (2, 3), 7,
               False, fs(["vMidLeft"]), fs(["vMidLeftOri", "hBotLeft", "vTopMid"])),
         Alarm("hBotLeft", False, (4, 3), 3,
@@ -224,21 +250,23 @@ alarm_data: Dict[int, List[Alarm]] = {
               False, fs(["vBotMid", "vMidRight"]), fs(["hTopLeft", "vTopMid", "hBotLeft", "hMidRight"]))
     ],
     0x17: [
-        Alarm("v-top-left", True, (0, 5), 2, False, fs(), fs(["h-mid", "h-bot"])),
-        Alarm("v-top-right", True, (0, 11), 2, True, fs(), fs(["h-mid", "h-bot"])),
-        Alarm("v-left", True, (2, 4), 2, False, fs(), fs(["h-bot"])),
-        Alarm("v-right", True, (2, 12), 3, False, fs(["h-bot"]), fs(["v-bot-right"])),
-        Alarm("v-bot-left", True, (4, 7), 2, False, fs(), fs()),
+        Alarm("v-top-left", True, (0, 4), 2, False, fs(), fs(["h-mid", "h-bot"]), 2),
+        Alarm("v-top-right", True, (0, 9), 2, True, fs(), fs(["h-mid", "h-bot"]), 3, 2),
+        Alarm("v-left", True, (2, 3), 2, False, fs(), fs(["h-bot"]), 1),
+        Alarm("v-right", True, (2, 12), 3, False, fs(["h-bot"]), fs(["v-bot-right"]), 1),
+        Alarm("v-bot-left", True, (4, 6), 2, False, fs(), fs(), 4),
         Alarm("v-bot-right", True, (5, 13), 1, False, fs(), fs(["v-right", "h-bot"])),
         Alarm("h-mid", False, (2, 6), 3, False, fs(), fs(["h-bot", "v-top-left", "v-top-right"])),
         Alarm("h-bot", False, (4, 11), 3, False, fs(["v-right"]), fs(["v-bot-right"]))
     ],
     0x1a: [
-        Alarm("v-top-left", True, (0, 6), 2, False, fs(), fs(["h-top", "v-mid-left"])),
-        Alarm("v-top-mid", True, (0, 11), 3, False, fs(["h-top"]), fs(["v-mid", "v-bot", "v-mid-left"])),
+        Alarm("v-top-left", True, (0, 5), 2, False, fs(), fs(["h-top", "v-mid-left"]), 3),
+        Alarm("v-top-mid", True, (0, 10), 3, False,
+              fs(["h-top"]), fs(["v-mid", "v-bot", "v-mid-left"]), 2),
         Alarm("v-top-right", True, (0, 13), 2, False, fs(), fs(["h-top", "v-mid-left"])),
-        Alarm("v-mid-left", True, (2, 7), 2, False, fs(), fs()),  # lessened in all others because blocks computer
-        Alarm("v-mid", True, (3, 11), 2, False, fs(), fs(["v-top-mid", "v-bot", "v-mid-left"])),
+        Alarm("v-mid-left", True, (2, 5), 2, False, fs(), fs(), 2),  # lessened in all others because blocks computer
+        Alarm("v-mid", True, (3, 11), 2, False,
+              fs(), fs(["v-top-mid", "v-bot", "v-mid-left"]), 1),
         Alarm("v-mid-right", True, (2, 13), 2, True, fs(), fs(["v-mid-left"])),
         Alarm("v-bot-left", True, (4, 3), 2, False, fs(["h-left"]), fs(["v-mid-left"])),
         Alarm("v-bot", True, (5, 12), 1, False, fs(), fs(["v-top-mid", "v-mid", "v-mid-left"])),
@@ -246,17 +274,17 @@ alarm_data: Dict[int, List[Alarm]] = {
         Alarm("h-left", False, (4, 3), 2, False, fs(["v-bot-left"]), fs(["v-mid-left"])),
     ],
     0x1c: [
-        Alarm("v-top-1", True, (0, 5), 3, False, fs(["h-top"]), fs(["v-mid-1", "v-bot-1", "h-mid-1"])),
-        Alarm("v-top-2", True, (0, 8), 2, False, fs(["h-top"]), fs(["v-mid-2", "v-bot-2", "h-mid-2"])),
+        Alarm("v-top-1", True, (0, 5), 3, False, fs(["h-top"]), fs(["v-mid-1", "v-bot-1", "h-mid-1"]), 1),
+        Alarm("v-top-2", True, (0, 7), 2, False, fs(["h-top"]), fs(["v-mid-2", "v-bot-2", "h-mid-2"]), 2),
         Alarm("v-top-3", True, (0, 10), 3, False, fs(["h-top"]), fs(["v-bot-3"])),
         Alarm("v-top-4", True, (0, 14), 2, False, fs(["h-top"]), fs()),
-        Alarm("v-mid-1", True, (3, 5), 2, False, fs(["h-mid-1"]), fs(["v-top-1", "v-bot-1"])),
-        Alarm("v-mid-2", True, (2, 8), 2, True, fs(["h-mid-2"]), fs(["v-top-2", "v-bot-2", "h-top"])),
+        Alarm("v-mid-1", True, (3, 4), 2, False, fs(["h-mid-1"]), fs(["v-top-1", "v-bot-1"]), 1),
+        Alarm("v-mid-2", True, (2, 7), 2, True, fs(["h-mid-2"]), fs(["v-top-2", "v-bot-2", "h-top"]), 2, 1),
         #      v-mid-3 is not missing, it's just combined with v-bot-3
         Alarm("v-mid-4", True, (2, 14), 2, False, fs(), fs(["v-bot-3"])),
         Alarm("v-bot-1", True, (5, 6), 1, False, fs(), fs(["v-top-1", "v-mid-1", "h-mid-1"])),
         Alarm("v-bot-2", True, (4, 7), 2, False, fs(), fs(["v-top-2", "h-top", "v-mid-2", "h-mid-2"])),
-        Alarm("v-bot-3", True, (3, 11), 3, False, fs(["h-mid-3"]), fs(["v-mid-4"])),
+        Alarm("v-bot-3", True, (3, 10), 3, False, fs(["h-mid-3"]), fs(["v-mid-4"]), 1),
         Alarm("h-top", False, (1, 1), 14, False, fs(["v-top-1", "v-top-2", "v-top-3", "v-top-4"]),
               fs(["v-mid-2", "h-mid-2", "v-bot-2"])),
         Alarm("h-mid-1", False, (4, 2), 5, False, fs(["v-mid-1"]), fs(["v-top-1", "v-bot-1", "h-mid-3"])),
@@ -277,10 +305,10 @@ alarm_data: Dict[int, List[Alarm]] = {
     0x22: [
         Alarm("v-top-left", True, (0, 2), 2, False, fs(), fs()),
         Alarm("v-mid-left", True, (3, 5), 1, False, fs(["h-mid"]), fs(["v-top-mid", "h-left"])),
-        Alarm("v-top-mid", True, (0, 4), 3, False, fs(["h-top"]), fs(["v-mid-left", "h-left"])),
-        Alarm("v-top-right", True, (0, 9), 2, False, fs(), fs()),
+        Alarm("v-top-mid", True, (0, 4), 3, False, fs(["h-top"]), fs(["v-mid-left", "h-left"]), 1),
+        Alarm("v-top-right", True, (0, 8), 2, False, fs(), fs(), 2),
         Alarm("v-mid-right", True, (3, 12), 1, False, fs(["h-right"]), fs()),
-        Alarm("v-bot", True, (4, 9), 2, False, fs(), fs()),
+        Alarm("v-bot", True, (4, 7), 2, False, fs(), fs(), 5),
         Alarm("h-top", False, (2, 2), 4, False, fs(["v-top-mid"]), fs()),
         Alarm("h-left", False, (3, 1), 3, False, fs(),
               fs(["v-top-mid", "v-mid-left", "h-mid", "h-right"])),
@@ -289,36 +317,31 @@ alarm_data: Dict[int, List[Alarm]] = {
         Alarm("h-right", False, (3, 12), 3, False, fs(["v-mid-right"]), fs(["h-left", "h-mid"])),
     ],
     0x24: [
-        Alarm("v-top-left", True, (0, 3), 2, False, fs(), fs()),
+        Alarm("v-top-left", True, (0, 3), 2, False, fs(), fs(), 1),
         Alarm("v-top-right", True, (0, 12), 2, False, fs(), fs(["h-top"])),
         Alarm("v-mid-left", True, (2, 9), 2, False, fs(["h-top"]), fs(["h-bot"])),
         Alarm("v-mid-right", True, (2, 13), 2, False, fs(), fs(["h-bot"])),
-        Alarm("v-bot-left", True, (4, 6), 2, False, fs(), fs()),
+        Alarm("v-bot-left", True, (4, 5), 2, False, fs(), fs(), 3),
         Alarm("v-bot-right", True, (4, 13), 2, True, fs(), fs()),
         Alarm("h-top", False, (2, 9), 3, False, fs(["v-mid-left"]), fs(["v-top-right"])),
         Alarm("h-bot", False, (4, 9), 4, False, fs(), fs(["v-mid-left", "v-mid-right"])),
     ],
     0x2d: [
-        Alarm("v-top-left", True, (0, 3), 2, False, fs(["h-top"]), fs(["h-mid-left", "v-mid-left"])),
+        Alarm("v-top-left", True, (0, 2), 2, False, fs(["h-top"]), fs(["h-mid-left", "v-mid-left"]), 1),
         Alarm("v-mid-left", True, (2, 2), 2, False, fs(), fs(["v-top-left", "h-mid-left", "h-top"])),
         Alarm("h-top", False, (1, 1), 14, False, fs(["v-top-left"]), fs(["v-mid-left"])),
         # h-top makes h-mid-left redundant, but I want path blockers to be less likely
         Alarm("h-mid-left", False, (2, 1), 1, False, fs(), fs(["v-top-left", "v-mid-left"])),
         Alarm("h-mid-right", False, (2, 3), 12, False, fs(), fs(["h-bot-right"])),
-        # These next 2 disables do not overlap,
-        # but this is imitating y variance like the (TODO: planned) x variance.
-        # Not planning to implement y variance, because it would be much more rare,
-        # so just using disable as a substitute in the few rare cases.
-        Alarm("h-bot-mid-1", False, (4, 4), 2, True, fs(["h-bot-mid-2"]), fs()),
-        Alarm("h-bot-mid-2", False, (5, 4), 2, False, fs(["h-bot-mid-1"]), fs()),
+        Alarm("h-bot-mid", False, (4, 4), 2, True, fs(), fs(), 1, 0),
         Alarm("h-bot-right", False, (3, 7), 8, False, fs(), fs()),
     ],
     0x2f: [
         Alarm("v-top-left", True, (0, 4), 2, False, fs(), fs()),
-        Alarm("v-top-mid", True, (0, 7), 2, True, fs(), fs(["v-mid", "h-top-left", "h-top-right"])),
+        Alarm("v-top-mid", True, (0, 6), 2, True, fs(), fs(["v-mid", "h-top-left", "h-top-right"]), 3, 1),
         Alarm("v-top-right", True, (0, 14), 2, False, fs(), fs()),
         Alarm("v-mid", True, (3, 9), 1, False, fs(), fs(["v-top-mid", "h-top-left", "h-top-right"])),
-        Alarm("v-right", True, (2, 12), 2, False, fs(), fs()),
+        Alarm("v-right", True, (2, 12), 2, False, fs(), fs(), 1),
         Alarm("h-top-left", False, (2, 4), 2, False, fs(), fs(["v-top-mid", "v-mid", "h-top-right"])),
         Alarm("h-top-right", False, (2, 9), 3, False, fs(), fs(["v-top-mid", "v-mid", "h-top-left"])),
         Alarm("h-bot-left", False, (4, 1), 3, False, fs(), fs()),

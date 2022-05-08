@@ -31,8 +31,8 @@ class Alarms:
         self._space_per_room = self._space_pacer / len(ALARM_ROOMS)
         self._logger = logger
         # testing
-        # logger.spoil_stdout = True
-        # logger.debug_stdout = True
+        logger.spoil_stdout = True
+        logger.debug_stdout = True
 
     def choose_all(self) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
@@ -141,9 +141,13 @@ class Alarms:
         # gather all the blocks involved
         blocks: Dict[int, Literal["v", "h", "n"]] = {}  # key block_index
         for a in this_room:
-            for block_index in a.block_iter():
+            for block_index, erase in a.block_iter():
                 # verify
-                if a.vanilla:
+                # since this isn't the Patcher class, I don't have access to its self.verify
+                # don't know whether I need these assertions...
+                # I like them to help me find errors, but it might cause trouble
+                # if I have have a reason to turn verify off in Patcher.
+                if a.vanilla and erase:
                     if a.vertical:
                         assert _bytes[block_index] == to_vertical[_bytes[block_index]],\
                             f"vanilla vertical map {map_index} block {block_index}"
@@ -152,7 +156,7 @@ class Alarms:
                             f"vanilla horizontal map {map_index} block {block_index}"
                 # else not vanilla - can't verify because it might cross a vanilla
 
-                if a.id in chosen:
+                if a.id in chosen and not erase:
                     blocks[block_index] = "v" if a.vertical else "h"
                 else:
                     if block_index not in blocks:
