@@ -209,5 +209,15 @@ alarm_data: Dict[int, List[Alarm]] = {
               fs(["h-left", "h-right", "v-top-mid", "v-mid-left", "v-mid-right"])),
         Alarm("h-right", False, (3, 12), 3, False, fs(["v-mid-right"]), fs(["h-left", "h-mid"])),
     ],
+    0x24: [
+        Alarm("v-top-left", True, (0, 3), 2, False, fs(), fs()),
+        Alarm("v-top-right", True, (0, 12), 2, False, fs(), fs(["h-top"])),
+        Alarm("v-mid-left", True, (2, 9), 2, False, fs(["h-top"]), fs(["h-bot"])),
+        Alarm("v-mid-right", True, (2, 13), 2, False, fs(), fs(["h-bot"])),
+        Alarm("v-bot-left", True, (4, 6), 2, False, fs(), fs()),
+        Alarm("v-bot-right", True, (4, 13), 2, True, fs(), fs()),
+        Alarm("h-top", False, (2, 9), 2, False, fs(["v-mid-left"]), fs(["v-top-right"])),
+        Alarm("h-bot", False, (4, 9), 2, False, fs(), fs(["v-mid-left", "v-mid-right"])),
+    ],
 }
 """ map_index: list of possible `Alarm` in room """
