@@ -104,7 +104,7 @@ class Alarms:
             assert prob_mult < 1, f"sanity check on increasing prob_mult {prob_mult}, pace_diff {pace_diff}"
         while (len(eliminated) < len(this_room)) and random() < prob:
             choices: List[Alarm] = [a for a in this_room if a.id not in eliminated]
-            n = len(choices)  # not changing duration iteration
+            n = len(choices)  # not changing during iteration
             for i in range(n):
                 if choices[i].id not in lessened:
                     choices.append(choices[i])  # add an extra chance to choose this alarm

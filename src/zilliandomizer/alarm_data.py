@@ -393,5 +393,52 @@ alarm_data: Dict[int, List[Alarm]] = {
         Alarm("h-bot-left", False, (4, 5), 2, False, fs(), fs(["v-bot", "h-bot-right"])),
         Alarm("h-bot-right", False, (4, 8), 2, False, fs(), fs(["v-bot", "h-bot-left"])),
     ],
+    0x41: [
+        # I don't know what to do with this room.
+        # There's no way to put alarms in interesting places.
+        Alarm("h-top", False, (1, 5), 6, True, fs(), fs()),
+        Alarm("h-mid", False, (3, 5), 6, True, fs(), fs()),
+        Alarm("h-bot", False, (5, 5), 6, True, fs(), fs()),
+        Alarm("v-top-right", True, (0, 12), 2, False, fs(), fs(["v-mid-left"]), 1),
+        Alarm("v-mid-left", True, (2, 2), 2, False, fs(), fs(["v-top-right"]), 1),
+    ],
+    0x43: [
+        Alarm("v-top", True, (0, 11), 2, True, fs(), fs(), 2, 0),
+        Alarm("v-bot", True, (5, 10), 1, True, fs(), fs()),
+        Alarm("h-left", False, (4, 1), 8, False, fs(), fs()),
+        Alarm("h-right", False, (4, 11), 3, False, fs(), fs()),
+    ],
+    0x45: [
+        Alarm("v-top", True, (0, 8), 2, False, fs(), fs(["h-top-2", "h-top-3", "h-bot-2"]), 2),
+        Alarm("v-bot", True, (5, 9), 1, False, fs(), fs(["h-bot-2"])),
+        Alarm("h-top-1", False, (2, 3), 2, False, fs(), fs(["h-top-2"])),
+        Alarm("h-top-2", False, (2, 6), 2, True, fs(), fs(["h-top-1", "h-top-3", "h-bot-2", "v-top"])),
+        Alarm("h-top-3", False, (2, 10), 2, True, fs(), fs(["h-top-2", "h-top-4", "h-bot-2", "v-top"])),
+        Alarm("h-top-4", False, (2, 13), 2, True, fs(), fs(["h-top-3"])),
+        Alarm("h-bot-1", False, (4, 1), 3, False, fs(), fs(["h-bot-2"])),
+        Alarm("h-bot-2", False, (4, 6), 4, False, fs(), fs(["v-bot", "h-bot-1", "h-bot-3", "v-top"])),
+        Alarm("h-bot-3", False, (4, 12), 3, False, fs(), fs(["h-bot-2"])),
+    ],
+    0x4b: [
+        Alarm("h-top-1", False, (2, 2), 3, False, fs(), fs(["h-left", "h-top-2"])),
+        Alarm("h-top-2", False, (2, 6), 2, True, fs(), fs(["h-top-1", "h-top-3"])),
+        Alarm("h-top-3", False, (2, 9), 2, False, fs(), fs(["h-top-2"])),
+        Alarm("h-left", False, (3, 1), 2, False, fs(), fs(["h-top-1"])),
+    ],
+    0x4d: [
+        Alarm("v-bot", True, (4, 6), 2, False, fs(), fs(["h-right"])),
+        Alarm("h-right", False, (2, 13), 2, False, fs(), fs(["v-bot"]), 1),
+        Alarm("h-left-1", False, (2, 2), 1, True, fs(), fs()),
+        Alarm("h-left-2", False, (2, 4), 2, True, fs(), fs()),
+        Alarm("v-top-left", True, (0, 2), 2, False, fs(), fs()),
+    ],
+    0x4f: [
+        Alarm("v-bot", True, (4, 4), 2, True, fs(), fs(), 9, 2),
+        Alarm("v-top-left", True, (0, 3), 2, False, fs(), fs(), 6),
+        Alarm("v-top-mid", True, (0, 11), 2, False, fs(), fs()),
+        Alarm("v-top-right", True, (0, 14), 2, False, fs(), fs()),
+        Alarm("h-top", False, (2, 1), 2, False, fs(), fs()),
+        Alarm("h-bot", False, (4, 14), 1, False, fs(), fs()),
+    ],
 }
 """ map_index: list of possible `Alarm` in room """
