@@ -57,8 +57,13 @@ class Alarms:
         eliminated: Set[str] = set()  # chosen already, or conflicting with chosen
         lessened: Set[str] = set()
 
+        vanilla_alarm_count = sum(a.vanilla for a in this_room)
+        self._logger.debug(f"vanilla alarms in this room: {vanilla_alarm_count}")
+
         pace_diff = self.tc.get_space() - self._space_pacer
         self._logger.debug(f"choosing room {map_index} with pace_diff {pace_diff:.4f}")
+        pace_diff = pace_diff + 2 * (vanilla_alarm_count - 1) - 5
+        self._logger.debug(f"adjusted pace_diff from vanilla: {pace_diff:.4f}")
         prob = 1.0
         prob_mult: float = 0.5 + ((map_index // 8) ** 0.5 * 0.1)
         """
