@@ -4,6 +4,14 @@ from typing import Dict, FrozenSet, List, Tuple, Generator
 
 from zilliandomizer.terrain_tiles import Tile
 
+# TODO: go back to the places where I thought I couldn't put an alarm line
+# because the floor was lowered by 1 tile (before 0x72)
+# (The block above that floor might be empty.)
+
+# TODO: gather stats on rooms with lots of alarms in vanilla
+# to see if it needs to be adjusted
+# Those rooms look pretty empty when it rolls low.
+# (looks not bad from just eyeballing)
 
 ALARM_ROOMS: List[int] = [
     0x0b, 0x0f,
@@ -441,6 +449,8 @@ alarm_data: Dict[int, List[Alarm]] = {
         Alarm("h-bot", False, (4, 14), 1, False, fs(), fs()),
     ],
     0x51: [
+        # TODO: gather statistics on how much / how often we're behind pace after this room
+        # It seems the horizontals are likely to get disabled, costing a lot of space.
         Alarm("v-1", True, (0, 2), 4, False, fs(["h-top", "h-left"]), fs(), 1),
         Alarm("v-2", True, (0, 5), 4, False, fs(["h-top", "h-left"]), fs(), 1),
         Alarm("v-3", True, (0, 8), 2, False, fs(["h-top"]), fs(["h-left"])),
@@ -541,6 +551,67 @@ alarm_data: Dict[int, List[Alarm]] = {
               fs(["v-top-1", "v-bot-left", "v-top-3", "v-top-4", "v-bot-right", "h-2", "h-4"])),
         Alarm("h-4", False, (4, 11), 4, False, fs(["v-mid-4"]),
               fs(["v-top-1", "v-bot-left", "v-top-4", "v-bot-right", "h-3"])),
+    ],
+    0x69: [
+        Alarm("v-left-1", True, (4, 2), 2, False, fs(["h-bot-left"]), fs(["v-left-2"])),
+        Alarm("v-left-2", True, (2, 3), 4, False, fs(["h-bot-left", "h-top-left"]),
+              fs(["v-left-1"]), 2),
+        Alarm("h-bot-left", False, (4, 2), 5, True, fs(["v-left-1", "v-left-2"]),
+              fs(["h-top-left"])),
+        Alarm("h-top-left", False, (3, 1), 7, False, fs(["v-left-2"]), fs(["h-bot-left"])),
+        Alarm("v-top-1", True, (0, 9), 2, False, fs(), fs(["v-top-2"])),
+        Alarm("v-top-2", True, (0, 11), 4, False, fs(["h-top-right"]), fs(["v-top-1"])),
+        Alarm("v-bot-right", True, (4, 11), 2, False, fs(["h-bot-right"]), fs()),
+        Alarm("h-top-right", False, (2, 9), 4, False, fs(["v-top-2"]), fs(["v-top-1"])),
+        Alarm("h-bot-right", False, (4, 11), 4, False, fs(["v-bot-right"]), fs(["v-top-2"])),
+    ],
+    0x6e: [
+        Alarm("v-1", True, (0, 6), 2, False, fs(), fs(["v-2", "h-top-left", "h-top-right"])),
+        Alarm("v-2", True, (2, 4), 2, False, fs(["h-top-right"]), fs(), 2),  # would lessen everything else
+        Alarm("v-3", True, (4, 5), 2, True, fs(["h-bot-right"]), fs(["v-2"]), 1, 0),
+        Alarm("h-top-left", False, (2, 1), 3, False, fs(), fs(["v-1", "v-2"])),
+        Alarm("h-top-right", False, (2, 6), 8, False, fs(["v-2"]), fs(["v-1", "h-top-left"])),
+        Alarm("h-bot-right", False, (4, 6), 9, False, fs(["v-3"]), fs(["v-2"])),
+    ],
+    0x72: [
+        Alarm("v-top-1", True, (0, 3), 2, True, fs(["h-top"]), fs(["v-left-2"]), 1),
+        Alarm("v-top-2", True, (0, 7), 3, False, fs(["h-top"]), fs(["h-mid-1", "h-mid-2", "v-mid-2"]), 1),
+        Alarm("v-top-3", True, (0, 9), 3, True, fs(["h-top"]), fs(["h-mid-2", "h-mid-3", "v-mid-3"]), 1),
+        Alarm("v-top-4", True, (0, 12), 3, False, fs(["h-top"]), fs(["h-mid-3", "h-mid-4", "v-mid-4"]), 1),
+        Alarm("v-left-2", True, (2, 4), 1, False, fs(), fs(["v-top-1"])),
+        Alarm("v-mid-1", True, (3, 4), 2, True, fs(["h-mid-1"]), fs(["v-bot-1"]), 1),
+        Alarm("v-mid-2", True, (3, 7), 3, True, fs(), fs(["h-mid-1", "h-mid-2", "v-top-2"])),
+        Alarm("v-mid-3", True, (3, 9), 2, False, fs(),
+              fs(["h-mid-2", "h-mid-3", "v-top-3", "v-bot-3", "h-bot"])),
+        Alarm("v-mid-4", True, (3, 12), 2, True, fs(["h-mid-4"]),
+              fs(["h-mid-3", "h-mid-4", "v-top-4", "h-bot"]), 1),
+        Alarm("v-bot-1", True, (5, 5), 1, False, fs(), fs(["v-mid-1"])),
+        Alarm("v-bot-3", True, (5, 9), 1, False, fs(["h-bot"]), fs(["v-mid-3"])),
+        Alarm("h-top", False, (1, 1), 14, False,
+              fs(["v-top-1", "v-top-2", "v-top-3", "v-top-4"]), fs()),
+        Alarm("h-mid-1", False, (3, 5), 2, False, fs(["v-mid-1"]),
+              fs(["v-top-2", "v-mid-2", "h-mid-2"])),
+        Alarm("h-mid-2", False, (3, 8), 1, False, fs(),
+              fs(["v-top-2", "v-top-3", "v-mid-2", "v-mid-3", "h-mid-1", "h-mid-3"])),
+        Alarm("h-mid-3", False, (3, 10), 2, False, fs(),
+              fs(["v-top-3", "v-top-4", "v-mid-3", "v-mid-4", "h-mid-2", "h-mid-4"])),
+        Alarm("h-mid-4", False, (3, 13), 1, False, fs(["v-mid-4"]),
+              fs(["v-top-4", "v-mid-4", "h-mid-3"])),
+        Alarm("h-bot", False, (5, 9), 2, False, fs(["v-bot-3"]), fs(["v-mid-3", "v-mid-4"])),
+    ],
+    0x75: [
+        Alarm("v-top-1", True, (0, 2), 3, False, fs(), fs(["h-1"])),
+        Alarm("v-top-2", True, (0, 5), 3, False, fs(), fs(["v-bot-2", "h-1", "h-2"])),
+        Alarm("v-top-3", True, (0, 8), 3, False, fs(), fs(["v-bot-3", "h-2", "h-3"])),
+        Alarm("v-top-4", True, (0, 11), 3, False, fs(), fs(["v-bot-4", "h-3"])),
+        Alarm("v-bot-2", True, (3, 4), 3, False, fs(), fs(["v-top-2", "h-1", "h-2"])),
+        Alarm("v-bot-3", True, (3, 7), 3, True, fs(["h-3"]), fs(["v-top-3", "h-2"]), 1),
+        Alarm("v-bot-4", True, (3, 10), 3, True, fs(), fs(["v-top-4", "h-3"]), 1),
+        Alarm("v-bot-5", True, (4, 13), 2, True, fs(), fs()),
+        Alarm("v-mid", True, (2, 13), 2, False, fs(), fs()),
+        Alarm("h-1", False, (3, 2), 2, False, fs(), fs(["v-top-1", "v-top-2", "v-bot-2", "h-2"])),
+        Alarm("h-2", False, (3, 5), 2, False, fs(), fs(["v-top-2", "v-top-3", "v-bot-2", "v-bot-3", "h-1", "h-3"])),
+        Alarm("h-3", False, (3, 8), 2, False, fs(["v-bot-3"]), fs(["v-top-3", "v-top-4", "v-bot-4", "h-2"])),
     ],
 }
 """ map_index: list of possible `Alarm` in room """
