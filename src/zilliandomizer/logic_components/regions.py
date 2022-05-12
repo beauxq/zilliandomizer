@@ -1,7 +1,7 @@
 from typing import Dict, List, Any
 # some changes here for working on region connections
 # from typing_extensions import Unpack  # type: ignore
-from zilliandomizer.locations import Req, Location  # , ReqArgs
+from zilliandomizer.logic_components.locations import Req, Location  # , ReqArgs
 
 
 class Region:

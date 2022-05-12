@@ -1,5 +1,5 @@
 from typing import Set
-from zilliandomizer.locations import Req
+from zilliandomizer.logic_components.locations import Req
 
 
 def test_req() -> None:

@@ -8,10 +8,10 @@ from zilliandomizer.options import ID, Options
 from zilliandomizer.generator import some_options
 from zilliandomizer.logger import Logger
 from zilliandomizer.patch import Patcher
-from zilliandomizer.locations import Req
-from zilliandomizer.regions import Region
-from zilliandomizer.location_data import make_locations
-from zilliandomizer.region_data import make_regions
+from zilliandomizer.logic_components.locations import Req
+from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.logic_components.location_data import make_locations
+from zilliandomizer.logic_components.region_data import make_regions
 
 
 @pytest.mark.usefixtures("fake_rom")

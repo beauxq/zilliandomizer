@@ -1,8 +1,8 @@
 import os
 from random import shuffle
 from typing import Dict, Generator, List, Tuple, cast
-from zilliandomizer.items import KEYWORD, NORMAL, RESCUE
-from zilliandomizer.locations import Location
+from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
+from zilliandomizer.logic_components.locations import Location
 from zilliandomizer.low_resources import asm, rom_info
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.terrain_compressor import TerrainCompressor

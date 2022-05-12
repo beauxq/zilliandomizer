@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Literal, Optional, Set, Tuple, TypedDict
 
-from zilliandomizer.items import Item
+from zilliandomizer.logic_components.items import Item
 
 CharReq = Tuple[Literal["JJ", "Apple", "Champ"], ...]
 """ having any member of the tuple will meet requirement """

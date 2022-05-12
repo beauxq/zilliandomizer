@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from zilliandomizer.items import RESCUE
+from zilliandomizer.logic_components.items import RESCUE
 
 """
 some rom data documentation:

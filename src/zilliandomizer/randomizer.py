@@ -3,13 +3,13 @@ from random import choice, randint, randrange, seed, shuffle
 import time
 from typing import Deque, Dict, List, Optional, Set, Counter as _Counter, cast
 
-from zilliandomizer.location_data import make_locations
+from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logger import Logger
 from zilliandomizer.options import ID, Chars, Options, char_to_hp, char_to_gun, char_to_jump
-from zilliandomizer.region_data import make_regions
-from zilliandomizer.regions import Region
-from zilliandomizer.locations import Location, Req
-from zilliandomizer.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
+from zilliandomizer.logic_components.region_data import make_regions
+from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.logic_components.locations import Location, Req
+from zilliandomizer.logic_components.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
 
 # this is used in math, not just an id
 # (in case someone is tempted to change it to 0-2 to match rom value)

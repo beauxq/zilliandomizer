@@ -4,10 +4,10 @@ Most of it is outdated and will not generate the correct format for the current 
 """
 
 from typing import List, Dict, Set
-from zilliandomizer.items import KEYWORD, NORMAL, RESCUE, MAIN
+from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
 from zilliandomizer.utils import make_loc_name
 from zilliandomizer.patch import Patcher  # for access to rom data
-from zilliandomizer.location_data import make_locations
+from zilliandomizer.logic_components.location_data import make_locations
 
 
 def make_location_code() -> None:

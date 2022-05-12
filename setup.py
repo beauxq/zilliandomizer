@@ -5,5 +5,6 @@ if __name__ == "__main__":
     setup(packages=[
         "zilliandomizer",
         "zilliandomizer.options",
-        "zilliandomizer.low_resources"
+        "zilliandomizer.low_resources",
+        "zilliandomizer.logic_components",
     ])

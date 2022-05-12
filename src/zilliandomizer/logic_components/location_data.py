@@ -1,5 +1,5 @@
 from typing import Dict
-from zilliandomizer.locations import Location, Req
+from zilliandomizer.logic_components.locations import Location, Req
 
 
 def make_locations() -> Dict[str, Location]:

@@ -1,6 +1,6 @@
 from typing import Dict
-from zilliandomizer.regions import Region
-from zilliandomizer.locations import Location, Req
+from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.logic_components.locations import Location, Req
 
 
 def make_regions(locations: Dict[str, Location]) -> Region:
