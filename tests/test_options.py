@@ -1,6 +1,6 @@
 import pytest
 from zilliandomizer.options import ID, VBLR_CHOICES, chars
-from zilliandomizer.options_parsing import parse_options
+from zilliandomizer.options.parsing import parse_options
 
 
 def test_parse() -> None:

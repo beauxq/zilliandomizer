@@ -1,11 +1,13 @@
 from copy import deepcopy
 from typing import ClassVar, Dict, List, Literal
 
-from zilliandomizer import rom_info
+from zilliandomizer.low_resources import rom_info
 
 
 class TerrainCompressor:
     """
+    This class holds the terrain data and lets us change it one room at a time.
+
     The original game does not have optimal compression for the terrain data.
     With better compression, it can be stored in 77 fewer bytes.
     This gives some room to make changes to the terrain.

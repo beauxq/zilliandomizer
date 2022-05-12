@@ -2,11 +2,13 @@ import pytest
 from typing import Iterator
 import os
 
+from zilliandomizer.low_resources import asm
+
 from verified import verified
 
 from zilliandomizer.options import ID, chars, char_to_jump
 from zilliandomizer.patch import ROM_NAME
-from zilliandomizer import asm, rom_info
+from zilliandomizer.low_resources import rom_info
 
 
 def set_verified_bytes(b: bytearray) -> None:

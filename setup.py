@@ -4,5 +4,6 @@ from setuptools import setup  # type: ignore
 if __name__ == "__main__":
     setup(packages=[
         "zilliandomizer",
-        # "zilliandomizer.components",
+        "zilliandomizer.options",
+        "zilliandomizer.low_resources"
     ])

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from random import randint
 from typing import Dict, FrozenSet, List, Tuple, Generator
 
-from zilliandomizer.terrain_tiles import Tile
+from zilliandomizer.low_resources.terrain_tiles import Tile
 
 # TODO: go back to the places where I thought I couldn't put an alarm line
 # because the floor was lowered by 1 tile (before 0x72)

@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from zilliandomizer.options import ItemCounts, Options, error, ID, char_to_jump,\
     VBLR_CHOICES, chars, item_counts_factory
-from zilliandomizer.options_random_gen import choices
+from zilliandomizer.options.random_gen import choices
 
 
 def validate(op: Options) -> None:
