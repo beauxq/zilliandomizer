@@ -54,3 +54,5 @@ RET = 0xc9
 """ return from subroutine """
 DAA = 0x27
 """ adjust a for binary coded decimal """
+NOP = 0x00
+""" nop """

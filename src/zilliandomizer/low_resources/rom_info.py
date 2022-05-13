@@ -130,3 +130,6 @@ continue_dec_addr_2523 = 0x2523
 """ the address of the code that decrements the continues """
 continue_dec_code = [0x35, 0xfa, 0x1a, 0x25]
 """ the code that decrements the continues """
+
+demo_inc = 0x0bca
+""" the location of the instruction that increments which demo is played next """

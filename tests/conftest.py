@@ -2,13 +2,11 @@ import pytest
 from typing import Iterator
 import os
 
-from zilliandomizer.low_resources import asm
-
 from verified import verified
 
 from zilliandomizer.options import ID, chars, char_to_jump
 from zilliandomizer.patch import ROM_NAME
-from zilliandomizer.low_resources import rom_info
+from zilliandomizer.low_resources import asm, rom_info
 
 
 def set_verified_bytes(b: bytearray) -> None:
@@ -122,6 +120,8 @@ def set_verified_bytes(b: bytearray) -> None:
     b[rom_info.continue_count_init_0af5] = 4
     for addr, v in enumerate(rom_info.continue_dec_code, rom_info.continue_dec_addr_2523):
         b[addr] = v
+
+    b[rom_info.demo_inc] = asm.INCVHL
 
     for key in verified:
         b[key] = verified[key]

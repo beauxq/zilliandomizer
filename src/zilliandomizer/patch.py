@@ -165,6 +165,18 @@ class Patcher:
         self.writes[red_entry + 1] = banked_red_addr % 256
         self.writes[red_entry + 2] = banked_red_addr // 256
 
+    def fix_spoiling_demos(self) -> None:
+        """
+        The arcade-style demos that are played if no one presses start
+        can spoil randomized information.
+
+        This fix makes it so only the first demo plays.
+        The first demo doesn't show any rooms, only hallways.
+        """
+        if self.verify:
+            assert self.rom[rom_info.demo_inc] == asm.INCVHL
+        self.writes[rom_info.demo_inc] = asm.NOP
+
     def set_required_floppies(self, floppy_count: int) -> None:
         """ set how many floppies are required to use the main computer """
         # 01:4FAF = number of floppies required
@@ -677,6 +689,7 @@ class Patcher:
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()
+        self.fix_spoiling_demos()
         self.set_display_computer_codes_default(options.tutorial)
         self.set_start_char(options.start_char)
         self.set_required_floppies(options.floppy_req)
