@@ -74,6 +74,56 @@ def test_parse_continues() -> None:
     assert o.continues == 1
 
 
+def test_parse_alarms() -> None:
+    t = """
+    jump_levels: restrictive
+    gun_levels: low
+    opas_per_level: random
+    max_level: "random"
+    tutorial: "False"
+    randomize_alarms: "true"
+    floppy_req: random
+    continues: infinity
+    """
+
+    o = parse_options(t)
+    assert o.jump_levels == "restrictive"
+    assert o.gun_levels == "low"
+    assert o.opas_per_level < 6
+    assert 1 <= o.max_level <= 8
+    assert o.tutorial is False
+    assert o.start_char in chars
+    assert o.floppy_req < 127
+    assert o.continues == -1
+    assert o.randomize_alarms is True
+
+    t = """
+    randomize_alarms: NO
+    gun_levels: "vanilla"
+    opas_per_level: 5
+    tutorial: True
+    start_char:  random
+    floppy_req: random
+    continues: 0
+    """
+
+    o = parse_options(t)
+    assert o.randomize_alarms is False
+    assert o.gun_levels == "vanilla"
+    assert o.opas_per_level == 5
+    assert o.tutorial is True
+    assert o.start_char in chars
+    assert o.floppy_req < 127
+    assert o.continues == 0
+
+    t = """
+    randomize_alarms: yes
+    """
+
+    o = parse_options(t)
+    assert o.randomize_alarms is True
+
+
 def test_parse_item_counts() -> None:
     t = """
     max_level: 3

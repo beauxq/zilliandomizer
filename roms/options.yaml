@@ -46,3 +46,7 @@ item_counts:
 # how many times can you use "continue" after dying
 # (0-126, infinity)
 continues: infinity  # vanilla 3
+
+# whether to randomize the locations of alarm sensors
+# (true, false)
+randomize_alarms: false

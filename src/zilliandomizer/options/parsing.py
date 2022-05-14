@@ -37,6 +37,7 @@ valid_choices: Dict[str, Container[Any]] = {
     "start_char": chars,
     "floppy_req": range(127),
     "continues": range(-1, 127),
+    "randomize_alarms": (True, False),
 }
 
 sub_options = {
@@ -105,7 +106,7 @@ def parse_options(t: str) -> Options:
     fields: Dict[str, Any] = Options.__dataclass_fields__  # type: ignore
 
     def get_typed_value(option: str, value: str, opts: Options) -> Any:
-        if value == "random":
+        if value == "random" and option in choices:
             return choices[option](opts)
 
         typed_value: Any = value

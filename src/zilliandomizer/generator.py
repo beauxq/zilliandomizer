@@ -37,8 +37,9 @@ def generate(seed: int) -> None:
     r = Randomizer(options, logger)
     r.roll(seed)
 
-    a = Alarms(p.tc, logger)
-    a.choose_all()
+    if options.randomize_alarms:
+        a = Alarms(p.tc, logger)
+        a.choose_all()
 
     p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)

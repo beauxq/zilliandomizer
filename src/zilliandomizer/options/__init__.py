@@ -74,6 +74,8 @@ class Options:
     """ how many floppies are required """
     continues: int = -1
     """ number of continues before game over, -1 for infinity """
+    randomize_alarms: bool = True
+    """ whether to randomize the locations of alarm sensors """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
 
 
