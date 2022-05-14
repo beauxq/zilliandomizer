@@ -76,6 +76,8 @@ class Options:
     """ number of continues before game over, -1 for infinity """
     randomize_alarms: bool = True
     """ whether to randomize the locations of alarm sensors """
+    early_scope: bool = False
+    """ whether to make sure there is a scope available early """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
 
 

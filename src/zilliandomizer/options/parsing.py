@@ -38,6 +38,7 @@ valid_choices: Dict[str, Container[Any]] = {
     "floppy_req": range(127),
     "continues": range(-1, 127),
     "randomize_alarms": (True, False),
+    "early_scope": (True, False),
 }
 
 sub_options = {

@@ -50,3 +50,7 @@ continues: infinity  # vanilla 3
 # whether to randomize the locations of alarm sensors
 # (true, false)
 randomize_alarms: false
+
+# whether to make sure there is a scope available early
+# (true, false)
+early_scope: false

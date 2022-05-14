@@ -4,7 +4,8 @@ from collections import Counter
 import pytest
 
 from zilliandomizer.randomizer import Randomizer
-from zilliandomizer.options import ID, Options
+from zilliandomizer.options import ID, Options, char_to_gun, char_to_jump
+from zilliandomizer.options.parsing import parse_options
 from zilliandomizer.generator import some_options
 from zilliandomizer.logger import Logger
 from zilliandomizer.patch import Patcher
@@ -108,3 +109,48 @@ def test_problems() -> None:
     r = Randomizer(options)
     with pytest.raises(ValueError):
         r.roll(88)
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_early_scope() -> None:
+    op_text = "early_scope: on"
+    o = parse_options(op_text)
+
+    # randomness could make it so early scope fails, so just looking for high rate
+    success_count = 0
+
+    for test_n in range(20):
+        r = Randomizer(o)
+        r.roll(70 + test_n)
+        req1 = r.make_ability([])
+        req2 = Req(
+            gun=char_to_gun[o.start_char][o.gun_levels][0],
+            jump=char_to_jump[o.start_char][o.jump_levels][0],
+            char=(o.start_char,),
+            skill=o.skill
+        )
+        locs = r.get_locations(req1)
+        found1 = False
+        for loc in locs:
+            it = loc.item
+            assert it  # item at this location
+            if it.id == ID.scope:
+                found1 = True
+                break
+
+        locs = r.get_locations(req2)
+        found2 = False
+        for loc in locs:
+            it = loc.item
+            assert it  # item at this location
+            if it.id == ID.scope:
+                found2 = True
+                break
+
+        # test make_ability
+        assert found1 == found2
+        success_count += found1
+
+    assert success_count > 17
+
+    # TODO: do statistics to find out what success count is safe for testing no early scope

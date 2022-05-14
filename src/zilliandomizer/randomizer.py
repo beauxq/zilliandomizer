@@ -266,6 +266,21 @@ class Randomizer:
         self.place_canister_gun_reqs()
         self.locations['main'].item = MAIN_ITEM
         to_place = self.make_item_pool()
+
+        if self.options.early_scope:
+            scope_index = -1
+            for i, item in enumerate(to_place):
+                if item.id == ID.scope:
+                    scope_index = i
+                    break
+            if scope_index != -1:  # if there is a scope in the pool
+                scope = to_place[scope_index]
+                del to_place[scope_index]
+                locs = [loc for loc in self.reachable_locations([]) if self.can_put_item(loc)]
+                if len(locs) > 1:  # if len == 1, then I need progression there
+                    loc = choice(locs)
+                    loc.item = scope
+
         progressions: List[Item] = []
         non_progs: List[Item] = []
         for item in to_place:
