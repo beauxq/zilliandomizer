@@ -2,6 +2,10 @@ bank_7_free_space_1ffdb = 0x1ffdb
 """ from here to the end looks like free space """
 free_space_end_7e00 = 0x7e00
 """ before this is about 200 bytes of space that looks available """
+bank_6_free_space_end_b5e6 = 0xb5e6
+""" if i disable spoiling demos, i get the bonus of lots of extra free space in bank 6 """
+bank_6_second_demo_control_b14a = 0xb14a
+""" beginning of control data for second demo """
 
 load_blue_code_10a3 = 0x10a3
 """ code that is run when entering blue area to load tiles into vram """
@@ -133,3 +137,10 @@ continue_dec_code = [0x35, 0xfa, 0x1a, 0x25]
 
 demo_inc = 0x0bca
 """ the location of the instruction that increments which demo is played next """
+
+game_over_code_retry_24c2 = 0x24c2
+""" the game over code when the player chooses "retry" """
+game_over_code_0_continues_251a = 0x251a
+""" the game over code when there are 0 continues left """
+game_over_code = [0x3e, 0x00, 0x32]
+""" the first bytes of the vanilla code for game over """

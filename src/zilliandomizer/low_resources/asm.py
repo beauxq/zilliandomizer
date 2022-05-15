@@ -56,3 +56,7 @@ DAA = 0x27
 """ adjust a for binary coded decimal """
 NOP = 0x00
 """ nop """
+PUSHAF = 0xf5
+""" push af onto stack """
+POPAF = 0xf1
+""" pop stack into af """

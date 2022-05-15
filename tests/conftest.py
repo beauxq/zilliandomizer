@@ -123,6 +123,12 @@ def set_verified_bytes(b: bytearray) -> None:
 
     b[rom_info.demo_inc] = asm.INCVHL
 
+    for i in range(len(rom_info.game_over_code)):
+        a1 = rom_info.game_over_code_retry_24c2 + i
+        a2 = rom_info.game_over_code_0_continues_251a + i
+        b[a1] = rom_info.game_over_code[i]
+        b[a2] = rom_info.game_over_code[i]
+
     for key in verified:
         b[key] = verified[key]
 

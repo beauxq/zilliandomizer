@@ -32,6 +32,25 @@ def test_randomizer() -> None:
     print(f"generated: {filename}")
 
 
+@pytest.mark.usefixtures("fake_rom")
+def test_infinite_continues_and_not() -> None:
+    for c in range(-1, 2):
+        s = 7777
+        options: Options = some_options
+        options.continues = c
+        logger = Logger()
+        logger.spoil_stdout = True
+        r = Randomizer(options, logger)
+        r.roll(s)
+
+        p = Patcher()
+        p.write_locations(r.locations, options.start_char)
+        p.all_fixes_and_options(options)
+        filename = f"zilliandomizer-{s:016x}.sms"
+        # p.write(filename)
+        print(f"generated: {filename}")
+
+
 def test_placement() -> None:
     total_iter = 10
     total_completable = 0

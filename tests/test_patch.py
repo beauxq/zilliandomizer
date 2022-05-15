@@ -46,15 +46,25 @@ def test_patches() -> None:
     p.fix_floppy_display()
     p.fix_floppy_req()
     p.fix_rescue_tile_load()
+    p.fix_spoiling_demos()
     p.set_new_opa_level_system(1)
     p.set_jump_levels("restrictive")
     p.set_new_gun_system_and_levels("restrictive")
     p.set_required_floppies(18)
     p.set_start_char("Apple")
+    p.set_continues(-1)
+    p.set_new_game_over(3)
 
     p.write("patch_test")
     if os.path.exists("patch_test.sms"):
         os.remove("patch_test.sms")
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_disable_demo_requirement() -> None:
+    with pytest.raises(AssertionError):
+        p = Patcher()
+        p.set_new_opa_level_system(2)
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -65,11 +75,14 @@ def test_no_verify() -> None:
     p.fix_floppy_display()
     p.fix_floppy_req()
     p.fix_rescue_tile_load()
+    p.fix_spoiling_demos()
     p.set_new_opa_level_system(1, 9)
     p.set_jump_levels("low")
     p.set_new_gun_system_and_levels("balanced")
     p.set_required_floppies(180)
     p.set_start_char("Champ")
+    p.set_continues(7)
+    p.set_new_game_over(7)
 
     p.write("patch_test")
     if os.path.exists("patch_test.sms"):

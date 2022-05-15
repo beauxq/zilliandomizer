@@ -1,6 +1,6 @@
 import os
 from random import shuffle
-from typing import Dict, Generator, List, Tuple, cast
+from typing import ClassVar, Dict, Generator, List, Tuple, cast
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.locations import Location
 from zilliandomizer.low_resources import asm, rom_info
@@ -31,7 +31,17 @@ paths: List[List[str]] = [
 class Patcher:
     writes: Dict[int, int]  # address to byte
     verify: bool
-    end_of_available: int
+
+    # limited valuable memory
+    end_of_available_bank_independent: int
+
+    # if I disable spoiling demos, i get the bonus of lots more memory in bank 6
+    end_of_available_banked_6: int
+
+    demos_disabled: bool
+
+    BANK_6_OFFSET: ClassVar[int] = 0x10000
+
     rom_path: str
     rom: bytearray
     tc: TerrainCompressor
@@ -39,7 +49,10 @@ class Patcher:
     def __init__(self) -> None:
         self.writes = {}
         self.verify = True
-        self.end_of_available = rom_info.free_space_end_7e00  # 1st used byte after an unused section
+        self.end_of_available_bank_independent = rom_info.free_space_end_7e00  # 1st used byte after an unused section
+
+        self.end_of_available_banked_6 = rom_info.bank_6_free_space_end_b5e6
+        self.demos_disabled = False
 
         self.rom_path = ""
         for path_list in paths:
@@ -176,6 +189,10 @@ class Patcher:
         if self.verify:
             assert self.rom[rom_info.demo_inc] == asm.INCVHL
         self.writes[rom_info.demo_inc] = asm.NOP
+
+        # this has the side-effect of freeing up lots of space in bank 6
+        # (the data used to control the demos)
+        self.demos_disabled = True
 
     def set_required_floppies(self, floppy_count: int) -> None:
         """ set how many floppies are required to use the main computer """
@@ -401,6 +418,39 @@ class Patcher:
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(room + 1 + 8 * item_no, new_item_data)
 
+    def _use_bank_6(self, code: bytearray) -> int:
+        """ returns banked address of new code """
+        assert self.demos_disabled
+
+        length = len(code)
+
+        new_code_addr_banked = self.end_of_available_banked_6 - length  # 7e00 is 1st used byte after an unused section
+        self.end_of_available_banked_6 = new_code_addr_banked
+        new_code_addr = new_code_addr_banked + Patcher.BANK_6_OFFSET
+
+        assert new_code_addr > rom_info.bank_6_second_demo_control_b14a
+
+        print(f"programming {length} bytes for new banked code at {hex(new_code_addr)}")
+        for i in range(length):
+            write_addr = new_code_addr + i
+            # no verify in bank 6
+            self.writes[write_addr] = code[i]
+        return new_code_addr_banked
+
+    def _use_bank_independent(self, code: bytearray) -> int:
+        """ returns the address that this code was put at """
+        code_len = len(code)
+        code_addr = self.end_of_available_bank_independent - code_len
+        self.end_of_available_bank_independent = code_addr
+
+        print(f"programming {code_len} bytes for new bank independent code at {hex(code_addr)}")
+        for i in range(code_len):
+            write_addr = code_addr + i
+            if self.verify:
+                assert self.rom[write_addr] == 0xff
+            self.writes[write_addr] = code[i]
+        return code_addr
+
     def set_new_opa_level_system(self, opas_per_level: int, hp_per_level: int = 20, max_level: int = 8) -> None:
         """
         Letting the player choose who to level up has a few drawbacks:
@@ -434,26 +484,11 @@ class Patcher:
         lv_ch_lo = 0x65
         lv_ap_lo = 0x75
 
-        # new ram going to use - hope it's not already used
-        opa_hi = 0xc2
-        opa_lo = 0xee
-
-        new_code = bytearray([
-            # get opa opa
-            asm.LDAV, opa_lo, opa_hi,
-            asm.INCA,
-            asm.CP, opas_per_level,
-            asm.JRZ, 6,
-            asm.LDVA, opa_lo, opa_hi,
-            asm.JP, _4ADF_plus_lo, _4ADF_plus_hi,
-
+        # subroutine that does the work of leveling up
+        # separated because we don't want it taking space in bank independent memory
+        # hl pointing at jj's level before calling
+        lots_of_work_to_do = bytearray([
             # level up all chars
-            asm.LDAI, 0,
-            asm.LDVA, opa_lo, opa_hi,
-            asm.LDHL, lv_jj_lo, lv_hi,
-            asm.LDAVHL,
-            asm.CP, max_level - 1,  # memory values are 0 to 7
-            asm.JPNC, _4ADF_plus_lo, _4ADF_plus_hi,
             asm.INCVHL,
             asm.LDHL, lv_ch_lo, lv_hi,
             asm.INCVHL,
@@ -504,20 +539,44 @@ class Patcher:
             asm.DAA,
             asm.LDVA, 0x73, 0xc1,
 
-            # TODO: before jumping to 4adf, handle HP fill
+            asm.RET
+        ])
+
+        work_addr_banked = self._use_bank_6(lots_of_work_to_do)
+
+        # new ram going to use - hope it's not already used
+        opa_hi = 0xc2
+        opa_lo = 0xee
+
+        new_code = bytearray([
+            # get opa opa
+            asm.LDAV, opa_lo, opa_hi,
+            asm.INCA,
+            asm.CP, opas_per_level,
+            asm.JRZ, 6,
+            asm.LDVA, opa_lo, opa_hi,
+            asm.JP, _4ADF_plus_lo, _4ADF_plus_hi,
+
+            # check if max level
+            asm.LDAI, 0,
+            asm.LDVA, opa_lo, opa_hi,
+            asm.LDHL, lv_jj_lo, lv_hi,
+            asm.LDAVHL,
+            asm.CP, max_level - 1,  # memory values are 0 to 7
+            asm.JPNC, _4ADF_plus_lo, _4ADF_plus_hi,
+
+            # subroutine in bank 6 for lots of work
+            asm.LDAV, 0xff, 0xff,
+            asm.PUSHAF,
+            asm.LDAI, 0x06,
+            asm.LDVA, 0xff, 0xff,
+            asm.CALL, work_addr_banked & 0xff, work_addr_banked >> 8,
+            asm.POPAF,
+            asm.LDVA, 0xff, 0xff,
+
             asm.JP, old_lo, old_hi
         ])
-        length = len(new_code)
-
-        new_code_addr = self.end_of_available - length  # 7e00 is 1st used byte after an unused section
-        self.end_of_available = new_code_addr
-
-        print(f"programming {length} bytes for new opa code at {hex(new_code_addr)}")
-        for i in range(length):
-            write_addr = new_code_addr + i
-            if self.verify:
-                assert self.rom[write_addr] == 0xff
-            self.writes[write_addr] = new_code[i]
+        new_code_addr = self._use_bank_independent(new_code)
 
         # change jump table to point at new code
         # table at 4ABC, 2 bytes for each entry, we want entry 9 for opa-opa
@@ -574,15 +633,7 @@ class Patcher:
             for level_i in range(MAX_GUN_LEVEL_COUNT):
                 table[level_i * len(chars) + char_i] = gun_levels[level_i] - 1
         # 21 byte table
-        length = len(table)
-        table_addr = self.end_of_available - length
-        self.end_of_available = table_addr
-        print(f"programming {length} bytes for gun table at {hex(table_addr)}")
-        for i in range(length):
-            addr = table_addr + i
-            if self.verify:
-                assert self.rom[addr] == 0xff
-            self.writes[addr] = table[i]
+        table_addr = self._use_bank_independent(table)
 
         # initialization of gun data
         init_table_gun = rom_info.char_init_7b98 + 6  # gun in initialization of char data
@@ -637,16 +688,8 @@ class Patcher:
             asm.LDVA, gn_cu_lo, gn_hi,
             asm.JP, after_gun_lo, after_gun_hi
         ])
-        length = len(new_gun_code)  # 48
-        new_code_addr = self.end_of_available - length
-        self.end_of_available = new_code_addr
-        print(f"programming {length} bytes for new gun code at {hex(new_code_addr)}")
-
-        for i in range(length):
-            write_addr = new_code_addr + i
-            if self.verify:
-                assert self.rom[write_addr] == 0xff
-            self.writes[write_addr] = new_gun_code[i]
+        # length 48
+        new_code_addr = self._use_bank_independent(new_gun_code)
 
         gun_inc = rom_info.increment_gun_code_4af8
 
@@ -684,6 +727,79 @@ class Patcher:
                 assert self.rom[rom_info.continue_count_init_0af5] == 4
             self.writes[rom_info.continue_count_init_0af5] = count + 1
 
+    def set_new_game_over(self, continue_count: int) -> None:
+        """
+        game over is no fun
+
+        change to teleport back to ship on game over
+         - keep items
+         - cancel base explosion command
+         - reset continues
+
+        This feature requires `fix_spoiling_demos` (for memory space).
+        """
+        assert self.writes[rom_info.demo_inc] == asm.NOP, "set_new_game_over requires fix_spoiling_demos"
+
+        bank_of_new_code = 0x06
+
+        teleport_code = bytearray([
+            asm.LDAV, 0xff, 0xff,  # bank number
+            asm.PUSHAF,
+            asm.LDAI, 0x04,
+            asm.LDVA, 0xff, 0xff,
+            asm.LDAI, 0x00,
+            asm.LDVA, 0x29, 0xc3,  # map row
+            asm.LDAI, 0x03,
+            asm.JP, 0xeb, 0x1f,  # vanilla teleport code (used for both warp 6 and warp 7)
+        ])
+
+        teleport_addr = self._use_bank_independent(teleport_code)
+
+        new_game_over_code = bytearray([
+            asm.CALL, teleport_addr & 0xff, teleport_addr >> 8,
+            asm.LDAI, 0x50,
+            asm.LDVA, 0x05, 0xc3,  # y position
+            asm.LDAI, 0x18,
+            asm.LDVA, 0x03, 0xc3,  # x position
+            asm.CALL, 0x97, 0x20,  # cancel explosion command
+            asm.LDAI, continue_count + 1,
+            asm.LDVA, 0x12, 0xc1,  # continues in ram
+            asm.CALL, 0xcc, 0x24,  # continue code that sets hp
+            # asm.LDAI, 0x07,  # ship scene
+            # asm.CALL, 0xd3, 0x24,  # continue code that sets hp
+            asm.RET,
+        ])
+
+        new_game_over_address_banked = self._use_bank_6(new_game_over_code)
+
+        # wrapper for bank changing
+        game_over_wrapper = bytearray([
+            asm.LDAI, bank_of_new_code,
+            asm.LDVA, 0xff, 0xff,
+            asm.CALL, new_game_over_address_banked & 0xff, new_game_over_address_banked >> 8,
+            asm.RET,
+        ])
+
+        # length 9
+        new_code_addr = self._use_bank_independent(game_over_wrapper)
+
+        # now call that new code when game over happens
+        new_code = [asm.JP, new_code_addr & 0xff, new_code_addr >> 8]
+        for i in range(len(new_code)):
+            a = rom_info.game_over_code_retry_24c2 + i
+            b = rom_info.game_over_code_0_continues_251a + i
+            if self.verify:
+                assert self.rom[a] == rom_info.game_over_code[i]
+                assert self.rom[b] == rom_info.game_over_code[i]
+            self.writes[a] = new_code[i]
+            self.writes[b] = new_code[i]
+
+        # TODO: also base explode game over
+        # TODO: disable entering ship when it would lock my x velocity
+        # or stop it from locking my x velocity
+        # (I think the reason vanilla doesn't let you reenter immediately
+        #  might be because of that x velocity lock)
+
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.fix_floppy_display()
@@ -697,3 +813,4 @@ class Patcher:
         self.set_new_gun_system_and_levels(options.gun_levels)
         self.set_jump_levels(options.jump_levels)
         self.set_continues(options.continues)
+        self.set_new_game_over(options.continues)
