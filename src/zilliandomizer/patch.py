@@ -757,18 +757,24 @@ class Patcher:
 
         new_game_over_code = bytearray([
             asm.CALL, teleport_addr & 0xff, teleport_addr >> 8,
-            asm.LDAI, 0x50,
-            asm.LDVA, 0x05, 0xc3,  # y position
-            asm.LDAI, 0x18,
-            asm.LDVA, 0x03, 0xc3,  # x position
+            # position initialized by c1ad flag
+            # asm.LDAI, 0x50,
+            # asm.LDVA, 0x05, 0xc3,  # y position
+            # asm.LDAI, 0x18,
+            # asm.LDVA, 0x03, 0xc3,  # x position
+            asm.XORA,
+            # if this flag is turned off,
+            # it will think the beginning scene hasn't been initialized and initialize it
+            asm.LDVA, 0xad, 0xc1,
             asm.CALL, 0x97, 0x20,  # cancel explosion command
             asm.LDAI, continue_count + 1,
-            asm.LDVA, 0x12, 0xc1,  # continues in ram
+            asm.LDVA, 0x12, 0xc1,  # numbers of continues in ram
             asm.CALL, 0xcc, 0x24,  # continue code that sets hp
             # asm.LDAI, 0x07,  # ship scene
             # asm.CALL, 0xd3, 0x24,  # continue code that sets hp
             asm.RET,
         ])
+        # TODO: barrier  sound doesn't turn off with game over
 
         new_game_over_address_banked = self._use_bank_6(new_game_over_code)
 
@@ -794,11 +800,30 @@ class Patcher:
             self.writes[a] = new_code[i]
             self.writes[b] = new_code[i]
 
-        # TODO: also base explode game over
-        # TODO: disable entering ship when it would lock my x velocity
-        # or stop it from locking my x velocity
-        # (I think the reason vanilla doesn't let you reenter immediately
-        #  might be because of that x velocity lock)
+        explode_jump_lo = 0x89
+        explode_jump_hi = 0x06
+
+        # in base explosion, change number of continues to 0
+        explode_game_over_code = bytearray([
+            asm.XORA,  # 0 into a
+            asm.LDVA, 0x12, 0xc1,  # continues
+            asm.LDAI, 0xa3,  # code that was going to be executed in vanilla
+            asm.JP, explode_jump_lo, explode_jump_hi,
+        ])
+
+        explode_addr = self._use_bank_independent(explode_game_over_code)
+
+        # change jump location to that code
+        if self.verify:
+            assert self.rom[rom_info.base_explosion_jump_2112] == explode_jump_lo
+            assert self.rom[rom_info.base_explosion_jump_2112 + 1] == explode_jump_hi
+        self.writes[rom_info.base_explosion_jump_2112] = explode_addr & 0xff
+        self.writes[rom_info.base_explosion_jump_2112 + 1] = explode_addr >> 8
+
+        # go to scene with continues instead of scene without continues
+        if self.verify:
+            assert self.rom[rom_info.base_explosion_scene_210b] == 0x06
+        self.writes[rom_info.base_explosion_scene_210b] = 0x07
 
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())

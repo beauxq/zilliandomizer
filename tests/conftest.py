@@ -129,6 +129,10 @@ def set_verified_bytes(b: bytearray) -> None:
         b[a1] = rom_info.game_over_code[i]
         b[a2] = rom_info.game_over_code[i]
 
+    b[rom_info.base_explosion_jump_2112] = 0x89
+    b[rom_info.base_explosion_jump_2112 + 1] = 0x06
+    b[rom_info.base_explosion_scene_210b] = 0x06
+
     for key in verified:
         b[key] = verified[key]
 

@@ -32,6 +32,8 @@ ADDAI = 0xc6
 """ add immediate value to a """
 ADDHLBC = 0x09
 """ add bc to hl """
+XORA = 0xaf
+""" xor a with itself (putting 0 in a) """
 CP = 0xfe
 """ compare """
 BIT_B_HL_LO = 0xcb

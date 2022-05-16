@@ -144,3 +144,8 @@ game_over_code_0_continues_251a = 0x251a
 """ the game over code when there are 0 continues left """
 game_over_code = [0x3e, 0x00, 0x32]
 """ the first bytes of the vanilla code for game over """
+
+base_explosion_scene_210b = 0x210b
+""" the scene that the base explosion leads to """
+base_explosion_jump_2112 = 0x2112
+""" the parameter of the jump instruction in the base explosion """
