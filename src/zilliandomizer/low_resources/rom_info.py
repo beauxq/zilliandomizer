@@ -149,3 +149,6 @@ base_explosion_scene_210b = 0x210b
 """ the scene that the base explosion leads to """
 base_explosion_jump_2112 = 0x2112
 """ the parameter of the jump instruction in the base explosion """
+
+zillion_men_1ae99_1af22 = (0x1ae99, 0x1af22)
+""" the two places that say '"zillion" men' """

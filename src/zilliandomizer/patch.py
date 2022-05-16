@@ -825,12 +825,24 @@ class Patcher:
             assert self.rom[rom_info.base_explosion_scene_210b] == 0x06
         self.writes[rom_info.base_explosion_scene_210b] = 0x07
 
+    def fix_white_knights(self) -> None:
+        original = b'=ZILLION= MEN'
+        better = b'WHITE KNIGHTS'
+        assert len(original) == len(better)
+        for i in range(len(original)):
+            for t_i in rom_info.zillion_men_1ae99_1af22:
+                addr = t_i + i
+                if self.verify:
+                    assert self.rom[addr] == original[i]
+                self.writes[addr] = better[i]
+
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()
         self.fix_spoiling_demos()
+        self.fix_white_knights()
         self.set_display_computer_codes_default(options.tutorial)
         self.set_start_char(options.start_char)
         self.set_required_floppies(options.floppy_req)

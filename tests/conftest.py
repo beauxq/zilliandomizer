@@ -133,6 +133,10 @@ def set_verified_bytes(b: bytearray) -> None:
     b[rom_info.base_explosion_jump_2112 + 1] = 0x06
     b[rom_info.base_explosion_scene_210b] = 0x06
 
+    text = b'=ZILLION= MEN'
+    for addr in rom_info.zillion_men_1ae99_1af22:
+        b[addr:addr + len(text)] = text
+
     for key in verified:
         b[key] = verified[key]
 
