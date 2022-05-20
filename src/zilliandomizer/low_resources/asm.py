@@ -4,6 +4,8 @@ LDHL = 0x21
 """ load into hl these 2 bytes """
 LDAVHL = 0x7e
 """ load into a the value at memory address hl """
+LDVHLI = 0x36
+""" load into address at hl, the immediate byte value """
 LDAV = 0x3a
 """ load into a, value at memory """
 LDVA = 0x32
@@ -34,14 +36,24 @@ ADDHLBC = 0x09
 """ add bc to hl """
 XORA = 0xaf
 """ xor a with itself (putting 0 in a) """
+ORA = 0xb7
+""" or a with itself (setting zero flag if zero) """
 CP = 0xfe
 """ compare """
 BIT_B_HL_LO = 0xcb
 """ test bit b of value in address hl, low byte """
 BIT_2_HL_HI = 0x46 | (2 << 3)
 """ test bit 2 of value in address hl, high byte """
+SET_B_HL_LO = 0xcb
+""" set bit b of value in address hl, low byte """
+SET_0_HL_HI = 0xc6 | (0 << 3)
+""" set bit 0 of value in address hl, high byte """
 JRZ = 0x28
 """ jump relative if zero """
+JRC = 0x38
+""" jump relative if carry """
+JR = 0x18
+""" jump relative """
 JP = 0xc3
 """ jump """
 JPNZ = 0xc2
@@ -54,6 +66,10 @@ CALL = 0xcd
 """ subroutine call """
 RET = 0xc9
 """ return from subroutine """
+RETZ = 0xc8
+""" return from subroutine if zero flag is set """
+RETNZ = 0xc0
+""" return from subroutine if zero flag not set """
 DAA = 0x27
 """ adjust a for binary coded decimal """
 NOP = 0x00

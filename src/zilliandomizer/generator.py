@@ -43,6 +43,7 @@ def generate(seed: int) -> None:
 
     p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)
+    # p.set_external_item_interface(options.start_char)
     filename = f"zilliandomizer-{seed_str}.sms"
     p.write(filename)
     # TODO: abstract out the spoiler writer (handling directory in a better way)

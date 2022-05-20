@@ -218,6 +218,14 @@ class Patcher:
                 assert self.rom[addr + i] == original_text[i]
             self.writes[addr + i] = replacement_bytes[i]
 
+        # In vanilla, if you have exactly 4 floppies,
+        # you can use "continue" after you die one extra time.
+        # (Normally, you can only use "continue" 3 times,
+        #  but if you have 4 floppies, you can use "continue" a 4th time.)
+        # I'm not changing this. No matter how many floppies are required
+        # to win, 4 is still the number of floppies that gives an extra
+        # continue.
+
         # TODO: Investigate: I think there's another place in the code that checks the floppy requirement.
         # maybe something happens at the ship if you have them?
         # I don't see anything special happening if I go to the ship with 5 floppies.
@@ -267,8 +275,8 @@ class Patcher:
         # TODO: important!!! change the color of the tiny sprite that comes out of the ship
 
         # c150 is whether jj is "rescued"
-        # c160 for Apple
-        # c170 for champ
+        # c160 for Champ
+        # c170 for Apple
         # whether they are rescued is initialized by _DATA_7B98_
         jj_rescue = rom_info.char_init_7b98
         champ_rescue = rom_info.char_init_7b98 + 16
@@ -375,14 +383,14 @@ class Patcher:
         for i in range(136):
             yield self.get_item_index_for_room(i)
 
-    def item_count(self, ram_index: int) -> int:
+    def item_count(self, rom_index: int) -> int:
         """ parameter is from `get_item_index_for_room` or `get_item_rooms` """
-        return self.rom[ram_index]
+        return self.rom[rom_index]
 
-    def get_items(self, ram_index: int) -> Generator[ItemData, None, None]:
+    def get_items(self, rom_index: int) -> Generator[ItemData, None, None]:
         """ parameter is from `get_item_index_for_room` or `get_item_rooms` """
-        start = ram_index + 1
-        for _ in range(self.item_count(ram_index)):
+        start = rom_index + 1
+        for _ in range(self.item_count(rom_index)):
             this_item: ItemData = cast(ItemData, tuple(self.rom[v] for v in range(start, start + 8)))
             yield this_item
             start += 8
@@ -393,7 +401,7 @@ class Patcher:
                 if item_from_rom[0] in {KEYWORD, NORMAL, RESCUE}:
                     name = make_loc_name(room_no, item_from_rom)
                     loc = locations[name]
-                    assert not (loc.item is None)
+                    assert loc.item, "There should be an item placed in every location before writing locations."
                     y = item_from_rom[1]
                     if loc.item.code == RESCUE:
                         y -= 8
@@ -496,16 +504,16 @@ class Patcher:
             asm.INCVHL,
 
             # load jumps into pause screen data so we can see them
-            asm.LDAVHL,
+            asm.LDAVHL,  # (Apple's) level into a
             asm.ADDAA,
-            asm.ADDAA,
-            asm.LDCA,
+            asm.ADDAA,  # multiply by 4
+            asm.LDCA,  # put it in c
             asm.LDBI, 0x00,
             asm.LDHL, 0xc9, 0x7c,  # jj level 0 jump
-            asm.ADDHLBC,
+            asm.ADDHLBC,  # jj current level jump
             asm.LDAVHL,
             asm.LDVA, 0x58, 0xc1,
-            asm.LDCI, 0x20,
+            asm.LDCI, 0x20,  # difference between each character
             asm.ADDHLBC,  # move to Champ's data
             asm.LDAVHL,
             asm.LDVA, 0x68, 0xc1,
@@ -558,7 +566,7 @@ class Patcher:
             asm.JP, _4ADF_plus_lo, _4ADF_plus_hi,
 
             # check if max level
-            asm.LDAI, 0,
+            asm.XORA,
             asm.LDVA, opa_lo, opa_hi,
             asm.LDHL, lv_jj_lo, lv_hi,
             asm.LDAVHL,
@@ -576,6 +584,8 @@ class Patcher:
 
             asm.JP, old_lo, old_hi
         ])
+        # this has to use bank independent memory because
+        # it jumps to different places that depend on the bank
         new_code_addr = self._use_bank_independent(new_code)
 
         # change jump table to point at new code
@@ -633,6 +643,8 @@ class Patcher:
             for level_i in range(MAX_GUN_LEVEL_COUNT):
                 table[level_i * len(chars) + char_i] = gun_levels[level_i] - 1
         # 21 byte table
+        # I haven't looked at moving gun code out of bank independent yet.
+        # It probably can be moved if I need more space.
         table_addr = self._use_bank_independent(table)
 
         # initialization of gun data
@@ -753,6 +765,7 @@ class Patcher:
             asm.JP, 0xeb, 0x1f,  # vanilla teleport code (used for both warp 6 and warp 7)
         ])
 
+        # jumps to code that depends on bank
         teleport_addr = self._use_bank_independent(teleport_code)
 
         new_game_over_code = bytearray([
@@ -811,6 +824,7 @@ class Patcher:
             asm.JP, explode_jump_lo, explode_jump_hi,
         ])
 
+        # too short to be worth a wrapper to bank 6
         explode_addr = self._use_bank_independent(explode_game_over_code)
 
         # change jump location to that code
@@ -835,6 +849,124 @@ class Patcher:
                 if self.verify:
                     assert self.rom[addr] == original[i]
                 self.writes[addr] = better[i]
+
+    def set_external_item_interface(self, start_char: Chars) -> None:
+        """
+        If another program can read and write the ram of this game,
+        (RetroArch READ_CORE_RAM and WRITE_CORE_RAM)
+        it can give items to the player.
+
+        ram address c2ea
+         - put an item id 5 or higher to give the player that item
+         - put a 3 there to rescue apple (or jj if apple is the starting character)
+         - put a 4 there to rescue champ (or jj if champ is the starting character)
+
+        The game will set that address to 0 when it has finished processing that item.
+        """
+        # new ram going to use - hope it's not already used
+        item_flag_hi = 0xc2
+        item_flag_lo = 0xea
+
+        # 3 into this interface is the apple rescue scene
+        # 4 into this interface is the champ rescue scene
+        # (These are normally keyword 4 and empty, which won't be sent.)
+        rescue = {
+            3: 0x70,
+            4: 0x60,
+        }
+        if start_char == "Apple":
+            rescue[3] = 0x50
+        elif start_char == "Champ":
+            rescue[4] = 0x50
+
+        check_interface_code = bytearray([
+            asm.LDAV, 0x1f, 0xc1,  # current scene
+            asm.CP, 0x8b,
+            asm.RETNZ,  # return if not in scene b (gameplay scene)
+
+            asm.LDHL, item_flag_lo, item_flag_hi,
+            asm.LDAVHL,
+            asm.ORA,
+            asm.RETZ,  # no external item
+
+            # check if item or rescue
+            asm.CP, 0x04,
+            asm.JRZ, 14,  # champ
+            asm.JRC, 19,  # apple
+
+            # item
+            # TODO: instead of canister sound, make a new cutscene for scene 6
+            # for telling which item and who it came from
+            # (based on cutscene 0 because that's a short cutscene that goes back to gameplay)
+            # Maybe that should be optional because of the extra time it takes.
+            asm.LDAI, 0x97,  # get canister sound
+            asm.LDVA, 0x05, 0xc0,  # sound trigger ram
+            asm.LDAVHL,  # item id to get
+            asm.LDVHLI, 0x00,  # done processing this item
+            # could save space, but use extra clock cycles to jump to where these next 2 lines are
+            asm.LDHL, 0xbc, 0x4a,
+            asm.JP, 0x20, 0x00,  # This jump leads to something with with `ret` instruction.
+
+            # champ
+            asm.LDHL, rescue[4], 0xc1,
+            asm.JR, 0x03,  # after_apple
+            # apple
+            asm.LDHL, rescue[3], 0xc1,
+            # after_apple
+            asm.SET_B_HL_LO, asm.SET_0_HL_HI,
+
+            asm.LDVA, 0x83, 0xc1,  # scene selector
+
+            # set music
+            # if c005 doesn't work well, can try this:
+            # ld a, $84
+            # call _SET_MUSIC_LABEL_689_
+            asm.LDAI, 0x84,  # rescue music
+            asm.LDVA, 0x05, 0xc0,  # sound trigger
+
+            asm.LDAI, 0x06,  # cutscene
+            asm.LDVA, 0x1e, 0xc1,  # scene trigger
+
+            # done processing item
+            asm.XORA,
+            asm.LDVA, item_flag_lo, item_flag_hi,
+            asm.RET,
+
+            # copied from 4a1a, don't understand what this does
+            # something to do with facing the canister and/or showing text box
+            # 0xfd, 0x36, 0x16, 0x13,  # ld (iy+22), $13
+            # 0xfd, 0xcb, 0x08, 0xde,  # set 3, (iy+8)
+            # 0xfd, 0xcb, 0x08, 0xee,  # set 5, (iy+8)
+            # set 3, (ix+8)  # this is for the local room, so not here
+        ])
+
+        check_address_banked = self._use_bank_6(check_interface_code)
+
+        # I might want to move this after some of the other checks in this area.
+        # I'm not sure what all of them do.
+        # It's important that this points to a 3 byte instruction.
+        common_gameplay_0x0c71 = 0x0c71
+        splice = common_gameplay_0x0c71
+
+        # don't know if I need to save current bank
+        bank_wrapper = bytearray([
+            asm.LDAI, 0x06,
+            asm.LDVA, 0xff, 0xff,
+            asm.CALL, check_address_banked & 0xff, check_address_banked >> 8,
+            self.rom[splice], self.rom[splice + 1], self.rom[splice + 2],  # code replaced by jump here
+            asm.JP, (splice + 3) & 0xff, (splice + 3) >> 8,
+        ])
+
+        # length 14
+        new_code_addr = self._use_bank_independent(bank_wrapper)
+
+        if self.verify:
+            assert self.rom[splice] == bank_wrapper[-6]
+            assert self.rom[splice + 1] == bank_wrapper[-5]
+            assert self.rom[splice + 2] == bank_wrapper[-4]
+        self.writes[splice] = asm.JP
+        self.writes[splice + 1] = new_code_addr & 0xff
+        self.writes[splice + 2] = new_code_addr >> 8
 
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
