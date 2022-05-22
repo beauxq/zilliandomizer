@@ -1,6 +1,6 @@
 import os
 from random import shuffle
-from typing import ClassVar, Dict, Generator, List, Tuple, cast
+from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.locations import Location
 from zilliandomizer.low_resources import asm, rom_info
@@ -67,6 +67,7 @@ class Patcher:
 
         with open(f"{self.rom_path}{os.sep}{ROM_NAME}", "rb") as file:
             self.rom = bytearray(file.read())
+        assert Patcher.checksum(self.rom), "incorrect data in rom - invalid checksum"
 
         self.tc = TerrainCompressor(self.rom)
 
@@ -361,12 +362,33 @@ class Patcher:
                 print(f"item index {i} trying to write {v}")
             self.writes[address + i] = v
 
+    @staticmethod
+    def checksum(rom: Union[bytes, bytearray], update: bool = False) -> bool:
+        """
+        checks or updates (depending on `update`)
+
+        (rom needs to be mutable for update)
+        """
+        total = sum(rom[:0x7ff0]) + sum(rom[0x8000:0x20000])
+        checksum_lo = total & 0xff
+        checksum_hi = (total >> 8) & 0xff
+        if update:
+            assert isinstance(rom, bytearray)
+            rom[rom_info.checksum_7ffa] = checksum_lo
+            rom[rom_info.checksum_7ffa + 1] = checksum_hi
+            return True
+        # else check
+        return (rom[0x7ffa] == checksum_lo) and (rom[0x7ffb] == checksum_hi)
+
     def write(self, filename: str) -> None:
         if not filename.endswith(".sms"):
             filename += ".sms"
         new_rom = bytearray(self.rom)  # copy
         for address in self.writes:
             new_rom[address] = self.writes[address]
+
+        Patcher.checksum(new_rom, True)
+
         with open(f"{self.rom_path}{os.sep}{filename}", "wb") as file:
             file.write(new_rom)
 

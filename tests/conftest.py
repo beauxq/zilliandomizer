@@ -5,7 +5,7 @@ import os
 from verified import verified
 
 from zilliandomizer.options import ID, chars, char_to_jump
-from zilliandomizer.patch import ROM_NAME
+from zilliandomizer.patch import ROM_NAME, Patcher
 from zilliandomizer.low_resources import asm, rom_info
 
 
@@ -149,6 +149,7 @@ def fake_rom() -> Iterator[None]:
         created = True
         b = bytearray(0x20000)
         set_verified_bytes(b)
+        Patcher.checksum(b, True)
         with open(path, "wb") as file:
             file.write(b)
     yield

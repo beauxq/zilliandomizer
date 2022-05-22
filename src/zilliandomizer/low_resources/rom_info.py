@@ -7,6 +7,13 @@ bank_6_free_space_end_b5e6 = 0xb5e6
 bank_6_second_demo_control_b14a = 0xb14a
 """ beginning of control data for second demo """
 
+checksum_7ffa = 0x7ffa
+"""
+The checksum is stored at 0x7FFA, 2 bytes, little endian,
+and is the sum of all bytes from 0x0000-0x7FEF and 0x8000-0x1FFFF.
+"""
+# Thanks to CaitSith2 for the checksum info
+
 load_blue_code_10a3 = 0x10a3
 """ code that is run when entering blue area to load tiles into vram """
 load_red_code_10cd = 0x10cd
