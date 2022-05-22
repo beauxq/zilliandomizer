@@ -13,7 +13,7 @@ def validate(op: Options) -> None:
         error("invalid item_counts - The maximumm total is 144.")
 
     opa_count = op.item_counts[ID.opa]
-    max_from_opas = opa_count // op.opas_per_level
+    max_from_opas = 1 + opa_count // op.opas_per_level
     max_level = op.max_level
     max_level_source = f"max_level ({op.max_level})"
     if max_from_opas < max_level:

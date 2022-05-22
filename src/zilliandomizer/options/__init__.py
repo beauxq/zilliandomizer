@@ -66,10 +66,13 @@ class Options:
     jump_levels: VBLR = "balanced"
     gun_levels: VBLR = "balanced"
     opas_per_level: int = 2
+    """ how many opa-opas are required to level up """
     max_level: int = 8
+    """ the highest level you can get """
     tutorial: bool = False
     skill: int = 2
     start_char: Chars = field(default_factory=start_char_factory)
+    """ which character you start with """
     floppy_req: int = 5
     """ how many floppies are required """
     continues: int = -1
