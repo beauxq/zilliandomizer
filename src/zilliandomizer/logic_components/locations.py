@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Literal, Optional, Set, Tuple, TypedDict
+from typing import Any, List, Literal, Optional, Set, Tuple, TypedDict
 
 from zilliandomizer.logic_components.items import Item
 
@@ -84,6 +84,17 @@ class Req:
             self.floppy >= other.floppy and
             self.red >= other.red
         )
+
+    def __repr__(self) -> str:
+        names: List[str] = []
+        for name in dir(self):
+            if not (name.startswith('_') or name == "have_doors"):
+                names.append(name)
+        names_and_values: List[str] = []
+        for name in names:
+            value = getattr(self, name)
+            names_and_values.append(f"{name}={repr(value)}")
+        return f'Req({", ".join(names_and_values)})'
 
 
 class ReqArgs(TypedDict, total=False):

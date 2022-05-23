@@ -124,10 +124,17 @@ class Randomizer:
                     locs[i].req.gun = randint(MIN_GUN, gun_reqs[region.door])
                     locs[i].item = items[i]
                     i += 1
-            # other canisters random gun reqs
+            # other canisters random gun reqs weighted by row
+            base_choices = [1, 1, 2, 3]
             while i < len(locs):
                 if locs[i] != self.locations['main']:  # location_data might set gun reqs on main for final boss
-                    locs[i].req.gun = randint(MIN_GUN, MAX_GUN)
+                    choices = base_choices[:]
+                    row = int(region_name[1:3])
+                    if row > 4:
+                        choices.append(2)
+                    if row > 9:
+                        choices.append(3)
+                    locs[i].req.gun = choice(choices)
                 i += 1
 
     def _get_locations_inner(self, have: Req) -> List[Location]:
@@ -191,7 +198,7 @@ class Randomizer:
             for loc in locs:
                 if not (locations_found[loc] or loc.item is None):
                     items.append(loc.item)
-                    if loc.item.is_progression and loc.item.code != KEYWORD:
+                    if (loc.item.is_progression or loc.item.required) and loc.item.code != KEYWORD:
                         if checking:
                             self.logger.spoil(f"get {loc.item.name} from {loc.name}")
                 locations_found[loc] = True
@@ -257,6 +264,7 @@ class Randomizer:
         floppy = counts[ID.floppy]
         return Req(gun=gun,
                    jump=jump,
+                   char=tuple(have_chars),
                    hp=(base_hp + added_hp),
                    skill=self.options.skill,
                    red=red,
