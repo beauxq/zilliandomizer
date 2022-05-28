@@ -213,6 +213,9 @@ class Randomizer:
         tr: List[Item] = []
 
         # normal items
+        # If there are empties in the options, they are ignored.
+        # (Archipelago uses a different options.validate
+        #  that puts the empties in the options.)
         for i in range(5, 12):
             i = cast(ID, i)
             for _ in range(self.options.item_counts[i]):

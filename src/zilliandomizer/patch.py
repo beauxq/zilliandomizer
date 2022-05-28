@@ -11,7 +11,7 @@ from zilliandomizer.utils import ItemData, make_loc_name
 ROM_NAME = "Zillion (UE) [!].sms"
 
 paths: List[List[str]] = [
-    ["."],
+    ["."],  # important that this is first because empty string might be passed to Patcher for cwd
     ["roms"],
     ["src"],
     ["src", "roms"],
@@ -43,10 +43,10 @@ class Patcher:
     BANK_6_OFFSET: ClassVar[int] = 0x10000
 
     rom_path: str
-    rom: bytearray
+    rom: bytes
     tc: TerrainCompressor
 
-    def __init__(self) -> None:
+    def __init__(self, path_to_rom: str = "") -> None:
         self.writes = {}
         self.verify = True
         self.end_of_available_bank_independent = rom_info.free_space_end_7e00  # 1st used byte after an unused section
@@ -54,13 +54,18 @@ class Patcher:
         self.end_of_available_banked_6 = rom_info.bank_6_free_space_end_b5e6
         self.demos_disabled = False
 
-        self.rom_path = ""
-        for path_list in paths:
-            assert len(path_list)  # use "." for current directory
-            path = os.sep.join(path_list)
-            if os.path.exists(path + os.sep + ROM_NAME):
-                self.rom_path = path
-                break
+        self.rom_path = path_to_rom
+        if self.rom_path == "":
+            for path_list in paths:
+                assert len(path_list)  # use "." for current directory
+                path = os.sep.join(path_list)
+                if os.path.exists(path + os.sep + ROM_NAME):
+                    self.rom_path = path
+                    break
+        else:
+            # rom path came from caller
+            if not os.path.exists(os.path.join(self.rom_path, ROM_NAME)):
+                self.rom_path = ""
         if self.rom_path == "":
             raise FileNotFoundError(f'unable to find original rom "{ROM_NAME}"')
         print(f"found rom at {self.rom_path}{os.sep}{ROM_NAME}")
@@ -380,14 +385,19 @@ class Patcher:
         # else check
         return (rom[0x7ffa] == checksum_lo) and (rom[0x7ffb] == checksum_hi)
 
-    def write(self, filename: str) -> None:
-        if not filename.endswith(".sms"):
-            filename += ".sms"
+    def get_patched_bytes(self) -> bytearray:
         new_rom = bytearray(self.rom)  # copy
         for address in self.writes:
             new_rom[address] = self.writes[address]
 
         Patcher.checksum(new_rom, True)
+
+        return new_rom
+
+    def write(self, filename: str) -> None:
+        if not filename.endswith(".sms"):
+            filename += ".sms"
+        new_rom = self.get_patched_bytes()
 
         with open(f"{self.rom_path}{os.sep}{filename}", "wb") as file:
             file.write(new_rom)
