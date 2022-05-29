@@ -32,15 +32,21 @@ class Patcher:
     writes: Dict[int, int]  # address to byte
     verify: bool
 
-    # limited valuable memory
-    end_of_available_bank_independent: int
-
-    # if I disable spoiling demos, i get the bonus of lots more memory in bank 6
-    end_of_available_banked_6: int
+    end_of_available_banked: Dict[int, int]
+    """ 0 for bank independent """
 
     demos_disabled: bool
+    """ needed for bank 6 space """
 
-    BANK_6_OFFSET: ClassVar[int] = 0x10000
+    BANK_OFFSETS: ClassVar[Dict[int, int]] = {
+        0: 0,  # bank independent 0x0000 - 0x7fdf
+        2: 0,  # bank 2 if I use (unbanked) 0x8000 through 0xbfff
+        3: 0x4000,
+        4: 0x8000,
+        5: 0xc000,
+        6: 0x10000,
+        7: 0x14000,
+    }
 
     rom_path: str
     rom: bytes
@@ -49,9 +55,13 @@ class Patcher:
     def __init__(self, path_to_rom: str = "") -> None:
         self.writes = {}
         self.verify = True
-        self.end_of_available_bank_independent = rom_info.free_space_end_7e00  # 1st used byte after an unused section
 
-        self.end_of_available_banked_6 = rom_info.bank_6_free_space_end_b5e6
+        # 1st used byte after an unused section
+        self.end_of_available_banked = {
+            0: rom_info.free_space_end_7e00,
+            5: rom_info.bank_5_free_space_end_bfdf,
+            6: rom_info.bank_6_free_space_end_b5e6,
+        }
         self.demos_disabled = False
 
         self.rom_path = path_to_rom
@@ -120,7 +130,7 @@ class Patcher:
 
     def fix_rescue_tile_load(self) -> None:
         """ load apple and champ rescue tiles when entering blue area and red area """
-        bank_offset = 0x14000  # I hope this bank is always loaded when this code runs
+        bank_offset = Patcher.BANK_OFFSETS[7]  # I hope this bank is always loaded when this code runs
 
         vram_load_lo = 0xae
         vram_load_hi = 0x03
@@ -458,38 +468,37 @@ class Patcher:
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(room + 1 + 8 * item_no, new_item_data)
 
-    def _use_bank_6(self, code: bytearray) -> int:
-        """ returns banked address of new code """
-        assert self.demos_disabled
+    def _use_bank(self, bank_no: int, code: bytearray) -> int:
+        """
+        put `code` into rom in bank `bank_no`
 
-        length = len(code)
+        returns banked address of new code
 
-        new_code_addr_banked = self.end_of_available_banked_6 - length  # 7e00 is 1st used byte after an unused section
-        self.end_of_available_banked_6 = new_code_addr_banked
-        new_code_addr = new_code_addr_banked + Patcher.BANK_6_OFFSET
+        bank 0 is limited, only use it if really needed
+        """
+        if bank_no == 6:
+            assert self.demos_disabled, "using this memory bank requires `fix_spoiling_demos`"
+        assert bank_no in Patcher.BANK_OFFSETS, f"invalid bank number {bank_no}"
+        assert bank_no in self.end_of_available_banked, f"no known free space in bank {bank_no}"
 
-        assert new_code_addr > rom_info.bank_6_second_demo_control_b14a
+        code_len = len(code)
 
-        print(f"programming {length} bytes for new banked code at {hex(new_code_addr)}")
-        for i in range(length):
+        new_code_addr_banked = self.end_of_available_banked[bank_no] - code_len
+        self.end_of_available_banked[bank_no] = new_code_addr_banked
+        new_code_addr = new_code_addr_banked + Patcher.BANK_OFFSETS[bank_no]
+
+        if bank_no == 6:
+            # in bank 6, we're replacing demo control data,
+            # so instead of verifying it, just make sure it's doesn't overflow
+            assert new_code_addr_banked > rom_info.bank_6_second_demo_control_b14a, "overflow bank 6"
+
+        print(f"programming {code_len} bytes for new bank {bank_no} code at {hex(new_code_addr)}")
+        for i in range(code_len):
             write_addr = new_code_addr + i
-            # no verify in bank 6
+            if self.verify and (bank_no != 6):
+                assert self.rom[write_addr] == 0xff, "overflow"
             self.writes[write_addr] = code[i]
         return new_code_addr_banked
-
-    def _use_bank_independent(self, code: bytearray) -> int:
-        """ returns the address that this code was put at """
-        code_len = len(code)
-        code_addr = self.end_of_available_bank_independent - code_len
-        self.end_of_available_bank_independent = code_addr
-
-        print(f"programming {code_len} bytes for new bank independent code at {hex(code_addr)}")
-        for i in range(code_len):
-            write_addr = code_addr + i
-            if self.verify:
-                assert self.rom[write_addr] == 0xff
-            self.writes[write_addr] = code[i]
-        return code_addr
 
     def set_new_opa_level_system(self, opas_per_level: int, hp_per_level: int = 20, max_level: int = 8) -> None:
         """
@@ -582,7 +591,7 @@ class Patcher:
             asm.RET
         ])
 
-        work_addr_banked = self._use_bank_6(lots_of_work_to_do)
+        work_addr_banked = self._use_bank(6, lots_of_work_to_do)
 
         # new ram going to use - hope it's not already used
         opa_hi = 0xc2
@@ -618,7 +627,7 @@ class Patcher:
         ])
         # this has to use bank independent memory because
         # it jumps to different places that depend on the bank
-        new_code_addr = self._use_bank_independent(new_code)
+        new_code_addr = self._use_bank(0, new_code)
 
         # change jump table to point at new code
         # table at 4ABC, 2 bytes for each entry, we want entry 9 for opa-opa
@@ -677,7 +686,7 @@ class Patcher:
         # 21 byte table
         # I haven't looked at moving gun code out of bank independent yet.
         # It probably can be moved if I need more space.
-        table_addr = self._use_bank_independent(table)
+        table_addr = self._use_bank(0, table)
 
         # initialization of gun data
         init_table_gun = rom_info.char_init_7b98 + 6  # gun in initialization of char data
@@ -733,7 +742,7 @@ class Patcher:
             asm.JP, after_gun_lo, after_gun_hi
         ])
         # length 48
-        new_code_addr = self._use_bank_independent(new_gun_code)
+        new_code_addr = self._use_bank(0, new_gun_code)
 
         gun_inc = rom_info.increment_gun_code_4af8
 
@@ -798,7 +807,7 @@ class Patcher:
         ])
 
         # jumps to code that depends on bank
-        teleport_addr = self._use_bank_independent(teleport_code)
+        teleport_addr = self._use_bank(0, teleport_code)
 
         new_game_over_code = bytearray([
             asm.CALL, teleport_addr & 0xff, teleport_addr >> 8,
@@ -821,7 +830,7 @@ class Patcher:
         ])
         # TODO: barrier  sound doesn't turn off with game over
 
-        new_game_over_address_banked = self._use_bank_6(new_game_over_code)
+        new_game_over_address_banked = self._use_bank(bank_of_new_code, new_game_over_code)
 
         # wrapper for bank changing
         game_over_wrapper = bytearray([
@@ -832,7 +841,7 @@ class Patcher:
         ])
 
         # length 9
-        new_code_addr = self._use_bank_independent(game_over_wrapper)
+        new_code_addr = self._use_bank(0, game_over_wrapper)
 
         # now call that new code when game over happens
         new_code = [asm.JP, new_code_addr & 0xff, new_code_addr >> 8]
@@ -856,8 +865,8 @@ class Patcher:
             asm.JP, explode_jump_lo, explode_jump_hi,
         ])
 
-        # too short to be worth a wrapper to bank 6
-        explode_addr = self._use_bank_independent(explode_game_over_code)
+        # too short to be worth a wrapper to different bank
+        explode_addr = self._use_bank(0, explode_game_over_code)
 
         # change jump location to that code
         if self.verify:
@@ -972,11 +981,12 @@ class Patcher:
             # set 3, (ix+8)  # this is for the local room, so not here
         ])
 
-        check_address_banked = self._use_bank_6(check_interface_code)
+        check_address_banked = self._use_bank(6, check_interface_code)
 
         # I might want to move this after some of the other checks in this area.
         # I'm not sure what all of them do.
         # It's important that this points to a 3 byte instruction.
+        # TODO: move to rom_info after well tested
         common_gameplay_0x0c71 = 0x0c71
         splice = common_gameplay_0x0c71
 
@@ -990,7 +1000,7 @@ class Patcher:
         ])
 
         # length 14
-        new_code_addr = self._use_bank_independent(bank_wrapper)
+        new_code_addr = self._use_bank(0, bank_wrapper)
 
         if self.verify:
             assert self.rom[splice] == bank_wrapper[-6]

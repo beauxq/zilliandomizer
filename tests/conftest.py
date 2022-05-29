@@ -24,6 +24,11 @@ def set_verified_bytes(b: bytearray) -> None:
     for i, char in enumerate(floppy_text):
         b[rom_info.floppy_intro_text_1a771 + i] = char
 
+    # bank 5 free space
+    for a in range(rom_info.bank_5_free_space_begin_b8c4 + 0xc000,
+                   rom_info.bank_5_free_space_end_bfdf + 0xc001):
+        b[a] = 0xff
+
     # rescue sprite code
     for a in range(rom_info.bank_7_free_space_1ffdb, len(b)):
         b[a] = 0xff

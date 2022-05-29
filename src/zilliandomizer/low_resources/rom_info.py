@@ -6,6 +6,9 @@ bank_6_free_space_end_b5e6 = 0xb5e6
 """ if i disable spoiling demos, i get the bonus of lots of extra free space in bank 6 """
 bank_6_second_demo_control_b14a = 0xb14a
 """ beginning of control data for second demo """
+bank_5_free_space_end_bfdf = 0xbfdf
+""" lots of space in bank 5 filled with 0xff """
+bank_5_free_space_begin_b8c4 = 0xb8c4
 
 checksum_7ffa = 0x7ffa
 """
