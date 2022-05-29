@@ -162,3 +162,11 @@ base_explosion_jump_2112 = 0x2112
 
 zillion_men_1ae99_1af22 = (0x1ae99, 0x1af22)
 """ the two places that say '"zillion" men' """
+
+font_tiles = {
+    chr(ord('A') + i): 0x14110 + (i * 0x10)
+    for i in range(26)
+}
+font_tiles[' '] = 0x14000
+""" the graphic tile data for each character that can be displayed """
+# TODO: find tiles for punctuation and digits

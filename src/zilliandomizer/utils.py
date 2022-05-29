@@ -79,3 +79,15 @@ def make_loc_name(room_no: int, item: ItemData) -> str:
     y = item[1] + 8 if item[0] == RESCUE else item[1]
     name = f"{room_location}y{hex(y)[-2:]}x{hex(item[2])[-2:]}"
     return name
+
+
+def parse_loc_name(name: str) -> Tuple[int, int, int, int]:
+    """ return row, col, y, x """
+    room_str, coord_str = name.split('y')
+    row_str, col_str = room_str.strip('r').split('c')
+    y_str, x_str = coord_str.split('x')
+    row = int(row_str)
+    col = int(col_str)
+    y = int(y_str, 16)
+    x = int(x_str, 16)
+    return row, col, y, x

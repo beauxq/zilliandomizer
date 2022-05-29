@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 from random import shuffle
 from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
@@ -6,7 +7,7 @@ from zilliandomizer.logic_components.locations import Location
 from zilliandomizer.low_resources import asm, rom_info
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.terrain_compressor import TerrainCompressor
-from zilliandomizer.utils import ItemData, make_loc_name
+from zilliandomizer.utils import ItemData, make_loc_name, parse_loc_name
 
 ROM_NAME = "Zillion (UE) [!].sms"
 
@@ -1009,6 +1010,208 @@ class Patcher:
         self.writes[splice] = asm.JP
         self.writes[splice + 1] = new_code_addr & 0xff
         self.writes[splice + 2] = new_code_addr >> 8
+
+    def set_multiworld_items(self, loc_to_names: Dict[str, Tuple[str, str]]) -> None:
+        """ loc_to_names is { location_name: (item_name, player_name)} """
+
+        # everything here happens with bank 5 already loaded (I hope)
+        bank = 5
+
+        # to match "EMPTY" in rom
+        name_length = 5
+
+        player_names = {p for _, p in loc_to_names.values()}
+
+        # make table of names:
+        # 0x05 - 5 letters - 0x05 - 5 letters - 0x05 - 5 letters - ...
+        # so the table looks the same as entries from 77d2 - 11 bytes for each name
+        name_tile_table = bytearray()
+
+        # enumeration of player names
+        name_tile_indexes: Dict[str, int] = {}
+
+        for i, player_name in enumerate(player_names):
+            name_tile_indexes[player_name] = i
+
+            cleaned = ""
+            for char in player_name:
+                char = char.upper()
+                if 'A' <= char <= 'Z':
+                    cleaned += char
+                # TODO: get available digits
+                if len(cleaned) >= name_length:
+                    break
+            while len(cleaned) < name_length:
+                cleaned += ' '
+
+            name_tile_table.append(name_length)
+            for char in cleaned:
+                address = rom_info.font_tiles[char]
+                banked = address - Patcher.BANK_OFFSETS[bank]
+                assert 0x8000 <= banked <= 0xbfff
+                lo = banked & 0xff
+                hi = banked >> 8
+                name_tile_table.append(lo)
+                name_tile_table.append(hi)
+
+        banked_name_tile_table_addr = self._use_bank(bank, name_tile_table)
+
+        # make a table like 75fe - 2 bytes for each name
+        # address pointing to entry in name_tile_table
+        name_table = bytearray(2 * len(name_tile_indexes))
+
+        tile_entry_length = 1 + 2 * name_length
+        for table_index in name_tile_indexes.values():
+            tile_addr = banked_name_tile_table_addr + table_index * tile_entry_length
+            name_table[table_index * 2] = tile_addr & 0xff
+            name_table[table_index * 2 + 1] = tile_addr >> 8
+
+        banked_name_table_addr = self._use_bank(bank, name_table)
+
+        # except instead of moving a register to point to entries in this table,
+        # we move the base hl pointer so that an index 0x04 points where we want
+        # so calculate what hl needs to be for each name to be at index 4
+
+        # the address of 4 entries behind the entry
+        entry_to_hl: Dict[int, int] = {
+            i: banked_name_table_addr + (i - 4) * 2
+            for i in range(len(name_tile_indexes))
+        }
+
+        # identify a canister with 2 bytes: room and coord (y hi nybble and x hi nybble)
+        # pack multi items:
+        # group_count - room coord l h - room coord l h - ... - group_count - ...
+        # group based on hi nybble of room
+
+        location_groups: Dict[int, bytearray] = defaultdict(bytearray)
+
+        for location_name in loc_to_names:
+            _, player_name = loc_to_names[location_name]
+            row, col, y, x = parse_loc_name(location_name)
+            room = row * 8 + col
+            coord = (y & 0xf0) | (x >> 4)
+
+            group_id = room >> 4
+
+            hl = entry_to_hl[name_tile_indexes[player_name]]
+            hl_lo = hl & 0xff
+            hl_hi = hl >> 8
+
+            location_groups[group_id].append(room)
+            location_groups[group_id].append(coord)
+            location_groups[group_id].append(hl_lo)
+            location_groups[group_id].append(hl_hi)
+
+        # save location of each group_count
+        group_id_to_offset: Dict[int, int] = {}
+
+        canister_list = bytearray()
+
+        for group_id in range(9):
+            group = location_groups[group_id]
+            group_count = len(group) // 4
+
+            group_id_to_offset[group_id] = len(canister_list)
+
+            canister_list.append(group_count)
+            canister_list.extend(group)
+
+        banked_canister_list_addr = self._use_bank(bank, canister_list)
+
+        group_id_to_addr = {
+            group_id: banked_canister_list_addr + offset
+            for group_id, offset in group_id_to_offset.items()
+        }
+
+        group_addr_table = bytearray(2 * 9)
+
+        for group_id in range(9):
+            addr = group_id_to_addr[group_id]
+            addr_lo = addr & 0xff
+            addr_hi = addr >> 8
+
+            group_addr_table[group_id * 2] = addr_lo
+            group_addr_table[group_id * 2 + 1] = addr_hi
+
+        banked_group_addr_table_addr = self._use_bank(bank, group_addr_table)
+        gat_lo = banked_group_addr_table_addr & 0xff
+        gat_hi = banked_group_addr_table_addr >> 8
+
+        map_index_ram_lo = 0x98
+        map_index_ram_hi = 0xc1
+        y_coord_ram_lo = 0x05
+        x_coord_ram_lo = 0x03
+        coord_ram_hi = 0xc3
+
+        code = bytearray([
+            asm.LDHL, 0xfe, 0x75,  # instruction that was replaced with jump to here
+            asm.CP, 0x04,  # not empty canister?
+            asm.JPNZ, 0xee, 0x73,  # back where we came from
+
+            asm.LDAV, map_index_ram_lo, map_index_ram_hi,
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.LDHL, gat_lo, gat_hi,
+            asm.RST10,  # now hl is in group of canister list
+            # are there any multi items in this group
+            asm.LDAVHL,
+            asm.ORA,
+            asm.JRZ, 46,  # end_of_group,  # nothing in this group
+            asm.LDBA,
+            # next_canister:
+            asm.INCHL,  # map index
+            asm.LDAV, map_index_ram_lo, map_index_ram_hi,
+            asm.SUBVHL,
+            asm.JRZ, 3,  # room_match,
+            # room didn't match
+            asm.INCHL,  # coord
+            asm.JR, 31,  # no_match,
+            # room_match:
+            # check coord
+            asm.LDAV, y_coord_ram_lo, coord_ram_hi,
+            asm.ANDN, 0xf0,
+            asm.LDCA,
+            asm.LDAV, x_coord_ram_lo, coord_ram_hi,
+            asm.ADDAI, 0x07,  # this is the rounding the game does to match player x with canister
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.SRL_LO, asm.SRL_A_HI,  # shift right
+            asm.ORC,
+            asm.INCHL,  # coord
+            asm.SUBVHL,
+            asm.JRNZ, 7,  # no_match,  # 24 bytes since room_match
+            # match:
+            asm.INCHL,  # new hl lo
+            asm.LDAVHL,
+            asm.INCHL,  # new hl hi
+            asm.LDHVHL,
+            asm.LDLA,
+            asm.JR, 7,  # done,  # 7 bytes since match
+            # no_match:
+            asm.INCHL,  # l
+            asm.INCHL,  # h
+            asm.DJNZ, 0xd3,  # -45 next_canister,
+            # end_of_group:
+            asm.LDHL, 0xfe, 0x75,  # original tile table for "EMPTY"
+            # done:
+            asm.LDAI, 0x04,  # still needs to think this is empty canister
+            asm.JP, 0xee, 0x73,  # back where we came from
+        ])
+
+        banked_code_addr = self._use_bank(bank, code)
+        code_lo = banked_code_addr & 0xff
+        code_hi = banked_code_addr >> 8
+
+        if self.verify:
+            assert self.rom[0x73eb] == asm.LDHL
+            assert self.rom[0x73ec] == 0xfe
+            assert self.rom[0x73ed] == 0x75
+        self.writes[0x73eb] = asm.JP
+        self.writes[0x73ec] = code_lo
+        self.writes[0x73ed] = code_hi
 
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())

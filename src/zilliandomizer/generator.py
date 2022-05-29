@@ -1,4 +1,5 @@
 import os
+# from typing import Dict, Tuple
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import Options, ID
@@ -43,7 +44,20 @@ def generate(seed: int) -> None:
 
     p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)
+
+    # testing
     # p.set_external_item_interface(options.start_char)
+    # empties: Dict[str, Tuple[str, str]] = {}
+    # letter = 0
+    # for loc in r.locations:
+    #     item = r.locations[loc].item
+    #     if item and item.id == ID.empty:
+    #         name = f"{chr(ord('A') + letter)}"
+    #         empties[loc] = ("", name)
+    #         letter = (letter + 1) % 26
+    #         print(f"{loc}: {name}")
+    # p.set_multiworld_items(empties)
+
     filename = f"zilliandomizer-{seed_str}.sms"
     p.write(filename)
     # TODO: abstract out the spoiler writer (handling directory in a better way)

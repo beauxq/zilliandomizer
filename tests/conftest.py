@@ -142,6 +142,11 @@ def set_verified_bytes(b: bytearray) -> None:
     for addr in rom_info.zillion_men_1ae99_1af22:
         b[addr:addr + len(text)] = text
 
+    # splice point for multiworld items
+    b[0x73eb] = asm.LDHL
+    b[0x73ec] = 0xfe
+    b[0x73ed] = 0x75
+
     for key in verified:
         b[key] = verified[key]
 
