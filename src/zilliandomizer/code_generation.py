@@ -102,5 +102,33 @@ def add_doors_to_regions() -> None:
         file.writelines(lines)
 
 
+def location_ids() -> None:
+    p = Patcher()
+    loc_to_id: List[str] = []
+    id_to_loc: List[str] = []
+    room_no = 0
+    for room in p.get_item_rooms():
+        for item in p.get_items(room):
+            if item[0] in {KEYWORD, NORMAL, RESCUE, MAIN}:
+                name = make_loc_name(room_no, item)
+                # item[3] is even number for each room that has items
+                # 0 in both r01c2 and main,
+                # but main has 0 in item[4] so still unique
+                loc_id = (item[3] << 7) | (item[4])
+                loc_to_id.append(f'    "{name}": {loc_id},')
+                id_to_loc.append(f'    {loc_id}: "{name}",')
+        room_no += 1
+
+    print('loc_to_id: Dict[str, int] = {')
+    for loc in loc_to_id:
+        print(loc)
+    print('}\n')
+
+    print('id_to_loc: Dict[int, str] = {')
+    for loc in id_to_loc:
+        print(loc)
+    print('}\n')
+
+
 if __name__ == "__main__":
-    region_code_maker()
+    location_ids()

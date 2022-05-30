@@ -52,7 +52,7 @@ def generate(seed: int) -> None:
     # for loc in r.locations:
     #     item = r.locations[loc].item
     #     if item and item.id == ID.empty:
-    #         name = f"{chr(ord('A') + letter)}"
+    #         name = f"{chr(ord('A') + letter)}kq"
     #         empties[loc] = ("", name)
     #         letter = (letter + 1) % 26
     #         print(f"{loc}: {name}")
