@@ -33,7 +33,6 @@ items = [
     Item("Key Word", "keyword_3", True, False, False, KEYWORD, 0x03),
     Item("Empty", "empty", False, False, True, NORMAL, 0x04),
     Item("ID Card", "card", False, False, True, NORMAL, 0x05),
-    # TODO: skip in progression balancing - doesn't do any good to push these forward
     Item("Red ID Card", "red", False, True, True, NORMAL, 0x06),
     Item("Floppy Disk", "floppy", False, True, True, NORMAL, 0x07),
 
@@ -41,7 +40,7 @@ items = [
     Item("Opa-Opa", "opa", True, True, True, NORMAL, 0x09),
     Item("Zillion", "gun", True, True, True, NORMAL, 0x0A),
     Item("Scope", "scope", False, False, True, NORMAL, 0x0B),
-    # custom items here
+    # custom items here?
 
     # rescue
     Item("Apple", "rescue_0", True, True, True, RESCUE, 0x00),
@@ -49,3 +48,25 @@ items = [
 ]
 
 MAIN_ITEM = Item("Main Computer", "main", False, True, False, MAIN, 0x00)
+
+item_name_to_item = {
+    item.debug_name: item
+    for item in items
+}
+item_name_to_item[MAIN_ITEM.debug_name] = MAIN_ITEM
+
+
+def _make_item_id(item: Item) -> int:
+    return (item.code << 8) | (item.id)
+
+
+item_name_to_id = {
+    item.debug_name: _make_item_id(item)
+    for item in items
+}
+item_name_to_id[MAIN_ITEM.debug_name] = _make_item_id(MAIN_ITEM)
+
+id_to_item = {
+    _id: item_name_to_item[item_name]
+    for item_name, _id in item_name_to_id.items()
+}

@@ -7,4 +7,5 @@ if __name__ == "__main__":
         "zilliandomizer.options",
         "zilliandomizer.low_resources",
         "zilliandomizer.logic_components",
+        "zilliandomizer.zri",
     ])
