@@ -802,6 +802,10 @@ class Patcher:
 
         This feature requires `fix_spoiling_demos` (for memory space).
         """
+        # TODO: FIXME: If I get a game over in a gradually scrolling area
+        # (hallway), it can bug an elevator and/or the ship
+        # and make the game impossible.
+        # (Can reset if using zri memory.)
         assert self.writes[rom_info.demo_inc] == asm.NOP, "set_new_game_over requires fix_spoiling_demos"
 
         bank_of_new_code = 0x06

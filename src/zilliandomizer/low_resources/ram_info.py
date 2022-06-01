@@ -25,6 +25,9 @@ main game scene selector
 """
 
 current_char_c127 = 0xc127
+red_c12a = 0xc12a
+floppy_c12b = 0xc12b
+
 current_hp_c143 = 0xc143
 level_c145 = 0xc145
 curr_scope_c149 = 0xc149

@@ -82,12 +82,22 @@ class Acquires:
     gun: int
     level: int
     opa: int
+    floppy: int
+    red: int
     scopes: Tuple[int, int, int]
 
-    def __init__(self, gun: int, level: int, opa: int, scopes: Tuple[int, int, int]) -> None:
+    def __init__(self,
+                 gun: int,
+                 level: int,
+                 opa: int,
+                 floppy: int,
+                 red: int,
+                 scopes: Tuple[int, int, int]) -> None:
         self.gun = gun
         self.level = level
         self.opa = opa
+        self.floppy = floppy
+        self.red = red
         self.scopes = scopes
 
         # If someone grabs 2 opas fast between memory polls
@@ -107,9 +117,15 @@ class Acquires:
             self.level < Acquires.max_level and
             self.opa < old.opa
         )
+        lost_floppy = self.floppy < old.floppy
+        lost_red = self.red < old.red
         lost_scope = any(self.scopes[i] < old.scopes[i] for i in range(3))
+        # TODO: allow c150+ scope to be missing if it's in current char?
+        # I don't know if this is what triggered a restore when I picked up a scope.
+        # Maybe it was because I paused and switched chars fast
+        # before and after picking up scope?
 
-        return lost_gun or lost_opa or lost_scope
+        return lost_gun or lost_opa or lost_floppy or lost_red or lost_scope
 
     def print_new(self, old: "Acquires") -> None:
         if self.gun > old.gun:
@@ -118,6 +134,10 @@ class Acquires:
             self.level == old.level and self.level < Acquires.max_level and self.opa > old.opa
         ):
             print(f"acquired level: {self.level + 1}  opa: {self.opa}")
+        if self.floppy > old.floppy:
+            print(f"acquired floppy: {self.floppy}")
+        if self.red > old.red:
+            print(f"acquired red: {self.red}")
         for i in range(3):
             if self.scopes[i] > old.scopes[i]:
                 print(f"{chars[i]} acquired scope")
@@ -165,7 +185,7 @@ class State:
         self.doors = bytes(0 for _ in range(DOOR_BYTE_COUNT))
         self.canisters = bytes(0 for _ in range(CANISTER_ROOM_COUNT))
         self.char_state = CharState(0, 0, 0)
-        self.acquires = Acquires(0, 0, 0, (0, 0, 0))
+        self.acquires = Acquires(0, 0, 0, 0, 0, (0, 0, 0))
 
     def anything_lost(self, old: "State") -> bool:
         door_change, door_lost, door_int = State.get_changed_lost(self.doors, old.doors)
@@ -454,6 +474,12 @@ class Memory:
                 else:  # highest level seen is 0, just missing opas
                     level_write(self.restore_target.acquires.level, self.restore_target.acquires.opa)
 
+            # restore floppies and reds
+            restore_floppy = self.restore_target.acquires.floppy
+            restore_red = self.restore_target.acquires.red
+            # floppy count is in the byte after red count
+            self.rai.write(ram_info.red_c12a, [restore_red, restore_floppy])
+
             # restore scopes
             scopes = self.restore_target.acquires.scopes
             self.rai.write(ram_info.jj_scope_c159, [scopes[0]])
@@ -503,6 +529,8 @@ class Memory:
         gun_l = self.rai.read(ram_info.guns_c2ec)
         level_l = self.rai.read(ram_info.level_c145)
         opa_l = self.rai.read(ram_info.opas_c2ee)
+        red_l = self.rai.read(ram_info.red_c12a)
+        floppy_l = self.rai.read(ram_info.floppy_c12b)
         curr_l = self.rai.read(ram_info.current_char_c127)
         scopes_4_l = tuple(
             self.rai.read(a)
@@ -518,6 +546,8 @@ class Memory:
         if len(gun_l) == 1 and \
                 len(level_l) == 1 and \
                 len(opa_l) == 1 and \
+                len(red_l) == 1 and \
+                len(floppy_l) == 1 and \
                 len(curr_l) == 1 and \
                 all([len(a) == 1 for a in scopes_4_l]) and \
                 len(max_level_l) == 1 and \
@@ -538,6 +568,8 @@ class Memory:
                 gun_l[0],
                 level_l[0],
                 opa_l[0],
+                floppy_l[0],
+                red_l[0],
                 cast(Tuple[int, int, int], tuple(scopes))
             )
             these_acquires.scopes[curr_l[0]]
