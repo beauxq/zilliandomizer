@@ -46,7 +46,7 @@ def generate(seed: int) -> None:
 
     # testing
     # from typing import Dict, Tuple
-    # p.set_external_item_interface(options.start_char)
+    # p.set_external_item_interface(options.start_char, options.max_level)
     # empties: Dict[str, Tuple[str, str]] = {}
     # letter = 0
     # for loc in r.locations:

@@ -132,6 +132,9 @@ class Patcher:
     def fix_rescue_tile_load(self) -> None:
         """ load apple and champ rescue tiles when entering blue area and red area """
         bank_offset = Patcher.BANK_OFFSETS[7]  # I hope this bank is always loaded when this code runs
+        # I don't _use_bank(7, code)
+        # because this uses all of that space,
+        # no room for anything else
 
         vram_load_lo = 0xae
         vram_load_hi = 0x03
@@ -153,6 +156,11 @@ class Patcher:
             asm.LDHL, blue_lo, blue_hi,  # blue area canisters
             asm.RET
         ]
+        # TODO: To fix the issue where this isn't loaded on unpause
+        # (and death / continue), find where that 2nd to last line is
+        # (asm.LDHL, blue_lo, blue_hi)
+        # somewhere else in code when leaving pause screen or other scene.
+        # Replace it with call to this.
 
         blue_code_addr = rom_info.bank_7_free_space_1ffdb
         banked_blue_addr = blue_code_addr - bank_offset
@@ -588,15 +596,6 @@ class Patcher:
             asm.ADDAI, rom_hp_per_level,
             asm.DAA,
             asm.LDVA, 0x73, 0xc1,
-
-            # I need to be able to communicate to the external interface
-            # whether I'm at the max level.
-            # Every time I level up, I write the max level (-1) to ram.
-            # (If I never level up, it's because (max_level - 1) == 0,
-            #  so the 0 in memory communicates that I'm at the max level.)
-            asm.LDAI, max_level - 1,
-            asm.LDVA, ram_info.max_level & 0xff, ram_info.max_level >> 8,
-
             asm.RET
         ])
 
@@ -752,6 +751,9 @@ class Patcher:
         ])
         # length 48
         new_code_addr = self._use_bank(0, new_gun_code)
+        # TODO: This looks like it can be moved to a different bank.
+        # just a jump at the end - It can RET to somewhere in bank 0
+        # that resets bank and does that jump.
 
         gun_inc = rom_info.increment_gun_code_4af8
 
@@ -837,7 +839,7 @@ class Patcher:
             # asm.CALL, 0xd3, 0x24,  # continue code that sets hp
             asm.RET,
         ])
-        # TODO: barrier  sound doesn't turn off with game over
+        # TODO: barrier sound doesn't turn off with game over
 
         new_game_over_address_banked = self._use_bank(bank_of_new_code, new_game_over_code)
 
@@ -900,7 +902,7 @@ class Patcher:
                     assert self.rom[addr] == original[i]
                 self.writes[addr] = better[i]
 
-    def set_external_item_interface(self, start_char: Chars) -> None:
+    def set_external_item_interface(self, start_char: Chars, max_level: int) -> None:
         """
         If another program can read and write the ram of this game,
         (RetroArch READ_CORE_RAM and WRITE_CORE_RAM)
@@ -933,6 +935,14 @@ class Patcher:
             asm.LDAV, 0x1f, 0xc1,  # current scene
             asm.CP, 0x8b,
             asm.RETNZ,  # return if not in scene b (gameplay scene)
+
+            # I need to be able to communicate to the external interface
+            # whether I'm at the max level.
+            # Every frame, I write the max level (-1) to ram.
+            # (I thought about putting it in opa get code,
+            #  to not run every frame, but that uses limited bank 0 space.)
+            asm.LDAI, max_level - 1,
+            asm.LDVA, ram_info.max_level & 0xff, ram_info.max_level >> 8,
 
             asm.LDHL, item_flag_lo, item_flag_hi,
             asm.LDAVHL,

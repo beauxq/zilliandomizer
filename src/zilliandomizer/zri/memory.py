@@ -240,6 +240,8 @@ class Memory:
     puts in from_game_queue when sees events in game
 
     and puts in to_game_queue when sees losses in game
+
+    mixing this with save states can corrupt game and is not supported
     """
 
     rai: RAInterface
@@ -431,13 +433,10 @@ class Memory:
             # restore opas
             opas = current.acquires.opa
             level = current.acquires.level
-            if self.restore_target.acquires.level > level or (
-                self.restore_target.acquires.level == level and
-                level < Acquires.max_level and
-                self.restore_target.acquires.opa > opas
-            ):
+            if self.restore_target.acquires.level != level or \
+                    self.restore_target.acquires.opa != opas:
 
-                def write(lev: int, op: int) -> None:
+                def level_write(lev: int, op: int) -> None:
                     for level_addr in (
                         ram_info.level_c145 + i * 16
                         for i in range(4)
@@ -451,17 +450,19 @@ class Memory:
                         self.restore_queue.put_nowait(ItemEventToGame(
                             (NORMAL << 8) | ID.opa
                         ))
-                    write(self.restore_target.acquires.level - 1, Acquires.highest_opa)
+                    level_write(self.restore_target.acquires.level - 1, Acquires.highest_opa)
                 else:  # highest level seen is 0, just missing opas
-                    write(self.restore_target.acquires.level, self.restore_target.acquires.opa)
+                    level_write(self.restore_target.acquires.level, self.restore_target.acquires.opa)
 
             # restore scopes
-            # TODO: restore scope to current char doesn't work
-            # need current char ram
             scopes = self.restore_target.acquires.scopes
             self.rai.write(ram_info.jj_scope_c159, [scopes[0]])
             self.rai.write(ram_info.champ_scope_c169, [scopes[1]])
             self.rai.write(ram_info.apple_scope_c179, [scopes[2]])
+            curr_l = self.rai.read(ram_info.current_char_c127)
+            if len(curr_l) == 1:
+                current_char = curr_l[0]
+                self.rai.write(ram_info.curr_scope_c149, [scopes[current_char]])
 
             # restore canisters (opened same acquired)
             restoring_canisters: List[int] = []
@@ -502,9 +503,11 @@ class Memory:
         gun_l = self.rai.read(ram_info.guns_c2ec)
         level_l = self.rai.read(ram_info.level_c145)
         opa_l = self.rai.read(ram_info.opas_c2ee)
-        scopes_l = tuple(
+        curr_l = self.rai.read(ram_info.current_char_c127)
+        scopes_4_l = tuple(
             self.rai.read(a)
             for a in (
+                ram_info.curr_scope_c149,
                 ram_info.jj_scope_c159,
                 ram_info.champ_scope_c169,
                 ram_info.apple_scope_c179
@@ -515,7 +518,8 @@ class Memory:
         if len(gun_l) == 1 and \
                 len(level_l) == 1 and \
                 len(opa_l) == 1 and \
-                all([len(a) == 1 for a in scopes_l]) and \
+                len(curr_l) == 1 and \
+                all([len(a) == 1 for a in scopes_4_l]) and \
                 len(max_level_l) == 1 and \
                 len(canisters) == CANISTER_ROOM_COUNT and \
                 len(doors) == DOOR_BYTE_COUNT and \
@@ -526,12 +530,18 @@ class Memory:
             current.canisters = canisters
             current.doors = doors
             current.char_state = CharState(jj[0], ch[0], ap[0])
+
+            scopes = [s[0] for s in scopes_4_l[1:]]
+            # the current character's scope might not be written to c150+ yet
+            scopes[curr_l[0]] = max(scopes[curr_l[0]], scopes_4_l[0][0])
             these_acquires = Acquires(
                 gun_l[0],
                 level_l[0],
                 opa_l[0],
-                cast(Tuple[int, int, int], tuple(s[0] for s in scopes_l))
+                cast(Tuple[int, int, int], tuple(scopes))
             )
+            these_acquires.scopes[curr_l[0]]
             current.acquires = these_acquires
+
             return current
         return self.state

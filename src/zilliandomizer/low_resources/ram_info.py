@@ -24,8 +24,10 @@ main game scene selector
 - 0e curtain call
 """
 
+current_char_c127 = 0xc127
 current_hp_c143 = 0xc143
 level_c145 = 0xc145
+curr_scope_c149 = 0xc149
 
 jj_status_c150 = 0xc150
 jj_hp_c153 = 0xc153
