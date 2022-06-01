@@ -4,7 +4,7 @@ from random import shuffle
 from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.locations import Location
-from zilliandomizer.low_resources import asm, rom_info
+from zilliandomizer.low_resources import asm, ram_info, rom_info
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import ItemData, make_loc_name, parse_loc_name
@@ -589,14 +589,22 @@ class Patcher:
             asm.DAA,
             asm.LDVA, 0x73, 0xc1,
 
+            # I need to be able to communicate to the external interface
+            # whether I'm at the max level.
+            # Every time I level up, I write the max level (-1) to ram.
+            # (If I never level up, it's because (max_level - 1) == 0,
+            #  so the 0 in memory communicates that I'm at the max level.)
+            asm.LDAI, max_level - 1,
+            asm.LDVA, ram_info.max_level & 0xff, ram_info.max_level >> 8,
+
             asm.RET
         ])
 
         work_addr_banked = self._use_bank(6, lots_of_work_to_do)
 
         # new ram going to use - hope it's not already used
-        opa_hi = 0xc2
-        opa_lo = 0xee
+        opa_hi = ram_info.opas_c2ee >> 8
+        opa_lo = ram_info.opas_c2ee & 0xff
 
         new_code = bytearray([
             # get opa opa
@@ -697,8 +705,8 @@ class Patcher:
             self.writes[addr] = table[table_i]
 
         # new ram going to use - hope it's not already used
-        new_gun_hi = 0xc2
-        new_gun_lo = 0xec
+        new_gun_hi = ram_info.guns_c2ec >> 8
+        new_gun_lo = ram_info.guns_c2ec & 0xff
 
         # ram locations for each char's gun level
         gn_hi = 0xc1

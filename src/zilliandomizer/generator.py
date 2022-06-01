@@ -1,5 +1,4 @@
 import os
-# from typing import Dict, Tuple
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import Options, ID
@@ -46,6 +45,7 @@ def generate(seed: int) -> None:
     p.all_fixes_and_options(options)
 
     # testing
+    # from typing import Dict, Tuple
     # p.set_external_item_interface(options.start_char)
     # empties: Dict[str, Tuple[str, str]] = {}
     # letter = 0

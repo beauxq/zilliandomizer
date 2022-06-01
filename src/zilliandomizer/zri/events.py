@@ -21,19 +21,9 @@ class EventToGame(abc.ABC):
 
 
 @dataclass
-class DoorEventToGame(EventToGame):
-    doors: bytes
-
-
-@dataclass
 class ItemEventToGame(EventToGame):
     id: int
 
 
 class DeathEventToGame(EventToGame):
     pass
-
-
-@dataclass
-class LocationRestoreEventToGame(EventToGame):
-    locations: bytes

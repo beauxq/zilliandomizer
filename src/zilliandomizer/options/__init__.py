@@ -8,7 +8,8 @@ VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator i
 """ `"vanilla"` `"balanced"` `"low"` `"restrictive"` """
 
 VBLR_CHOICES: Tuple[VBLR, ...] = ("vanilla", "balanced", "low", "restrictive")
-chars: Tuple[Chars, Chars, Chars] = ("JJ", "Champ", "Apple")  # order in rom data
+chars: Tuple[Chars, Chars, Chars] = ("JJ", "Champ", "Apple")
+""" order in rom data """
 
 options_filename = "options.yaml"
 
