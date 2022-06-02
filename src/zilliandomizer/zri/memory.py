@@ -13,13 +13,6 @@ from zilliandomizer.zri.events import DeathEventToGame, EventFromGame, EventToGa
 BYTE_ORDER: ClassVar[Literal['little', 'big']] = sys.byteorder  # type: ignore
 # mypy doesn't see literal types of byteorder
 
-# TODO: I want memory to handle both to and from,
-# because I don't want anything coming in while restoring lost state.
-
-# also check item trigger ram before read
-# only do read if no write in progress,
-# only do write if no read and restore in progress
-
 
 def bits(n: int) -> Iterator[int]:
     """ yield each activated bit of n """
@@ -109,6 +102,21 @@ class Acquires:
         # This seems like it would be pretty rare,
         # so I'm not worried about it.
         Acquires.highest_opa = max(Acquires.highest_opa, opa)
+
+        # I don't want to support save states with this memory,
+        # but I want Archipelago to work with save states
+        # because people won't like it if they can't use save states
+        # TODO: find out why restore involving save state
+        # wasn't able to get opas right
+        # I think it was something to do with this highest opa
+        # because memory didn't see the highest opa when I was leveling up
+        # before making the save state
+
+        # but it should be able to still see higher opas
+        # when I put the opas in the restore queue
+
+        # maybe I to see the empty item trigger for a few seconds
+        # before sending the next
 
     def lost_from(self, old: "Acquires") -> bool:
         lost_gun = self.gun < old.gun
@@ -414,7 +422,9 @@ class Memory:
                 lost = current.anything_lost(self.state)
 
                 if lost:
-                    self.restore_target = self.state
+                    map_l = self.rai.read(ram_info.map_current_index_c198)
+                    if len(map_l) == 1 and map_l[0] < 8:  # outside of base
+                        self.restore_target = self.state
                 else:
                     current.process_change(self.state, self.from_game_queue)
                     self.state = current
