@@ -8,4 +8,4 @@ if __name__ == "__main__":
         "zilliandomizer.low_resources",
         "zilliandomizer.logic_components",
         "zilliandomizer.zri",
-    ])
+    ], use_scm_version=True)
