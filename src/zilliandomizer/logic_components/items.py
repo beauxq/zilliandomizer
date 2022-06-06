@@ -7,7 +7,7 @@ NORMAL = 0x26
 MAIN = 0x0D
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Item:
     name: str
     """ for display """
@@ -24,6 +24,9 @@ class Item:
     # Archipelago uses `code` property, so I might want to rename this
     id: int
     """ sixth byte in rom item data structure (not unique) """
+
+    def __hash__(self) -> int:
+        return self.code + self.id
 
 
 items = [

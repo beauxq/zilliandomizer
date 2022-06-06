@@ -113,7 +113,6 @@ class ReqArgs(TypedDict, total=False):
 
 @dataclass
 class Location:
-    """ unique - don't try to copy """
     name: str
     """ unique """
     req: Req
@@ -127,4 +126,4 @@ class Location:
         return hash(self.name)
 
     def __eq__(self, other: Any) -> bool:
-        return self is other
+        return isinstance(other, Location) and self.name == other.name
