@@ -1,65 +1,149 @@
-import socket
-import time
-from typing import Dict, List, Tuple, ClassVar, Literal, Union, Iterable
+import asyncio
+import bisect
+from dataclasses import dataclass
+from typing import Dict, List, Tuple, ClassVar, Literal, Union, Iterable, Optional, overload
 
 from zilliandomizer.low_resources import ram_info
+from zilliandomizer.zri import asyncudp
 
 OP = Literal["READ_CORE_RAM", "WRITE_CORE_RAM"]
 DOOR_BYTE_COUNT = 62
 CANISTER_ROOM_COUNT = 74
 
-# read messages for single bytes will be cached so no creating message each time
-_common_byte_reads = [
-    ram_info.current_scene_c11f,
-    ram_info.current_hp_c143,
-    ram_info.jj_status_c150,
-    ram_info.jj_hp_c153,
-    ram_info.champ_status_c160,
-    ram_info.champ_hp_c163,
-    ram_info.apple_status_c170,
-    ram_info.apple_hp_c173,
-    ram_info.cutscene_selector_c183,
-    ram_info.external_item_trigger_c2ea,
-    ram_info.guns_c2ec,
-    ram_info.opas_c2ee,
-    ram_info.game_started_flag_c300,
-]
+RangeName = Literal["basic", "new_ram", "door_can"]
+
+_range_reads: Dict[RangeName, Tuple[int, int]] = {
+    "basic": (
+        ram_info.current_scene_c11f,
+        ram_info.map_current_index_c198 + 1
+    ),
+    "new_ram": (
+        ram_info.external_item_trigger_c2ea,
+        ram_info.opas_c2ee + 1
+    ),
+    "door_can": (
+        ram_info.door_state_d600,
+        ram_info.canister_state_d700 + CANISTER_ROOM_COUNT * 2
+    )
+}
+""" name: (first address, last address + 1) """
+
+
+def bcd_decode(x: int) -> int:
+    """ from bcd hex to int """
+    lo_n = x & 0x0f
+    hi_n = x >> 4
+    return hi_n * 10 + lo_n
+
+
+def bcd_encode(x: int) -> int:
+    """ from int to bcd hex (2 decimal digits only) """
+    lo = x % 10
+    hi = x // 10
+    return (hi << 4) | lo
+
+
+@dataclass
+class RamData:
+    data: List[bytes]
+    base_addr: List[int]
+    """ sorted list of the beginning of each range """
+
+    @overload
+    def __getitem__(self, addr: int) -> int: ...
+    @overload
+    def __getitem__(self, addr: slice) -> bytes: ...
+
+    def __getitem__(self, addr: Union[int, slice]) -> Union[int, bytes]:
+        slc = slice(addr, addr + 1, 1) if isinstance(addr, int) else addr
+        chunk_index = bisect.bisect_right(self.base_addr, slc.start) - 1
+        if chunk_index == -1:
+            raise IndexError(f"{hex(slc.start)} below bottom range ({self.base_addr[0]})")
+
+        chunk_length = len(self.data[chunk_index])
+        chunk_start = self.base_addr[chunk_index]
+        chunk_stop = chunk_start + chunk_length
+
+        if slc.start >= chunk_stop:
+            # out of range
+
+            def range_str(start: int, stop: int) -> str:
+                return f"[{hex(start)}, {hex(stop)})"
+
+            this_range_str = range_str(chunk_start, chunk_stop)
+            if chunk_index == len(self.base_addr) - 1:
+                # last range
+                message = f"above top range {this_range_str}"
+            else:  # between ranges
+                next_start = self.base_addr[chunk_index + 1]
+                next_stop = next_start + len(self.data[chunk_index + 1])
+                message = f"between {this_range_str} and {range_str(next_start, next_stop)}"
+            raise IndexError(f"{hex(slc.start)} {message}")
+
+        local_start = slc.start - chunk_start
+        local_stop = slc.stop - chunk_start
+
+        result = self.data[chunk_index][local_start: local_stop: slc.step]
+
+        if isinstance(addr, int):
+            return result[0]
+        return result
+
+    def all_present(self) -> bool:
+        return all(len(each_data) for each_data in self.data)
+
+    def in_win(self) -> bool:
+        scene_selector = self[ram_info.cutscene_selector_c183]
+        current_scene = self[ram_info.current_scene_c11f]
+
+        # TODO: decide: currently end credits and curtain call are not
+        # possible to detect because they're not in in_game set
+        # should I consider end credits and curtain call in game?
+        # or is it enough to just detect the 3 cutscenes before curtain call?
+        #                   end credits               curtain call
+        return (current_scene == 0x8d) or (current_scene == 0x8e) or (
+            #               cutscene          oh great, ...., end text
+            (current_scene == 0x86) and (scene_selector in (1, 8, 9))
+        )
+
+    def in_game_play(self) -> bool:
+        """ in the state where can move/jump/shoot """
+        return self[ram_info.current_scene_c11f] == 0x8b
+
+    def current_hp(self) -> int:
+        c143 = self[ram_info.current_hp_c143]
+        # binary coded decimal / 10
+        return bcd_decode(c143) * 10
+
+    def check_item_trigger(self) -> bool:
+        """ True if ram value 0 (available for sending an item) """
+        return self[ram_info.external_item_trigger_c2ea] == 0
+
+    def safe_to_write(self) -> bool:
+        """ in game play and current hp > 0 and item trigger ready """
+        return self.in_game_play() and \
+            bool(self.current_hp()) and \
+            self.check_item_trigger()
 
 
 class RAInterface:
-    sock: socket.socket
+    sock: Optional[asyncudp.Socket]
 
-    # cached messages so we don't create them on every read
-    _door_read_message: Tuple[bytes, bytes]
-    _canister_read_message: Tuple[bytes, bytes]
-    _byte_read_messages: Dict[int, Tuple[bytes, bytes]]
+    _read_messages: Dict[RangeName, Tuple[bytes, bytes]]
 
-    RETROARCH: ClassVar[Tuple[str, int]] = ("127.0.0.1", 55355)
+    RETROARCH: ClassVar[asyncudp.Address] = ("127.0.0.1", 55355)
     SMS_RAM_OFFSET: ClassVar[int] = 0xc000
     READ: ClassVar[OP] = "READ_CORE_RAM"
     WRITE: ClassVar[OP] = "WRITE_CORE_RAM"
 
     def __init__(self) -> None:
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.settimeout(0.125)
+        self.sock = None
+        self.lock = asyncio.Lock()
 
-        self._build_cached_messages()
-
-    def _build_cached_messages(self) -> None:
-        # door data is in 62 bytes starting from d600
-        self._door_read_message = self._build_message(RAInterface.READ,
-                                                      ram_info.door_state_d600,
-                                                      DOOR_BYTE_COUNT)
-        # canister data is in 2 * 74 bytes starting from d700
-        self._canister_read_message = self._build_message(RAInterface.READ,
-                                                          ram_info.canister_state_d700,
-                                                          2 * CANISTER_ROOM_COUNT)
-
-        self._byte_read_messages = {}
-        for addr in _common_byte_reads:
-            self._byte_read_messages[addr] = self._build_message(
-                RAInterface.READ, addr, 1
-            )
+        self._read_messages = {
+            name: RAInterface._build_message(RAInterface.READ, r[0], r[1] - r[0])
+            for name, r in _range_reads.items()
+        }
 
     @staticmethod
     def _build_message(op: OP, addr: int, params: Union[int, Iterable[int]]) -> Tuple[bytes, bytes]:
@@ -77,7 +161,7 @@ class RAInterface:
 
         return prefix.encode(), params_str.encode()
 
-    def _message(self, prefix: bytes, params: bytes) -> bytes:
+    async def _message(self, prefix: bytes, params: bytes) -> bytes:
         """ parameters from `_build_message` """
         res = b''
         write = prefix.startswith(b'W')
@@ -85,39 +169,43 @@ class RAInterface:
         message = prefix + params
         # gun_message = message.find(b" 0a") != -1
         # t = 0.0
-        while True:
-            # if gun_message:
-            #     print(f"rai message {message}")
-            #     t = time.perf_counter()
-            self.sock.sendto(message, RAInterface.RETROARCH)
-            # if gun_message:
-            #     t1 = time.perf_counter()
-            #     print(f"sendto time {t1 - t}")
-            if write:
-                break
-            # else need response
-            try:
+        if not self.sock:
+            self.sock = await asyncudp.create_socket(remote_addr=RAInterface.RETROARCH)
+        async with self.lock:
+            while True:
                 # if gun_message:
+                #     print(f"rai message {message}")
                 #     t = time.perf_counter()
-                res = self.sock.recv(1024)
+                self.sock.sendto(message, RAInterface.RETROARCH)
                 # if gun_message:
                 #     t1 = time.perf_counter()
-                #     print(f" got res {res}  recv time {t1 - t}")
-            except socket.timeout:
-                # if gun_message:
-                #     t1 = time.perf_counter()
-                #     print(f"timed out  time {t1 - t}")
-                res = b''
+                #     print(f"sendto time {t1 - t}")
+                if write:
+                    break
+                # else need response
+                try:
+                    # if gun_message:
+                    #     t = time.perf_counter()
+                    res, _ = await self.sock.recvfrom()
+                    # if gun_message:
+                    #     t1 = time.perf_counter()
+                    #     print(f" got res {res}  recv time {t1 - t}")
+                except asyncudp.ClosedError as e:
+                    # if gun_message:
+                    #     t1 = time.perf_counter()
+                    #     print(f"timed out  time {t1 - t}")
+                    print(e)
+                    res = b''
 
-            # if gun_message:
-            #     print(f" res later {res}")
-            if res.startswith(prefix):
-                break
-            attempt_count += 1
-            if attempt_count >= 3:
-                res = b''
-                break
-            time.sleep(0.0625)
+                # if gun_message:
+                #     print(f" res later {res}")
+                if res.startswith(prefix):
+                    break
+                attempt_count += 1
+                if attempt_count >= 3:
+                    res = b''
+                    break
+                await asyncio.sleep(0.0625)
 
         if res == b'':
             return res
@@ -128,48 +216,18 @@ class RAInterface:
         except ValueError:
             return b''
 
-    def write(self, addr: int, b: Union[bytes, List[int]]) -> None:
+    async def write(self, addr: int, b: Union[bytes, List[int]]) -> None:
         prefix, params = self._build_message(RAInterface.WRITE, addr, b)
-        self._message(prefix, params)
+        await self._message(prefix, params)
         # print(f"write response: {list(res)}")
 
-    def read(self, addr: int, n_bytes: int = 1) -> bytes:
-        """
-        this takes extra time to build the message,
-        so don't use it for doors and canisters
-
-        single byte read messages are cached
-        """
-        if n_bytes == 1 and addr in self._byte_read_messages:
-            prefix, params = self._byte_read_messages[addr]
-        else:
-            prefix, params = self._build_message(RAInterface.READ, addr, n_bytes)
-            if n_bytes == 1:
-                self._byte_read_messages[addr] = (prefix, params)
-        res = self._message(prefix, params)
-        # print(f"read {hex(addr)} response: {list(res)}")
-        return res
-
-    def read_doors(self) -> bytes:
-        """ d600 """
-        prefix, params = self._door_read_message
-        res = self._message(prefix, params)
-        # print(f"read doors response: {list(res)}")
-        return res
-
-    def read_canisters(self) -> bytes:
-        """ d700 """
-        prefix, params = self._canister_read_message
-        res = self._message(prefix, params)
-        # print(f"read canisters response: {list(res)}")
-        return res
-
-    def read_char_status(self) -> Tuple[bytes, bytes, bytes]:
-        """ return jj c150, ch c160, ap c170 """
-        prefix, params = self._byte_read_messages[ram_info.jj_status_c150]
-        jj_res = self._message(prefix, params)
-        prefix, params = self._byte_read_messages[ram_info.champ_status_c160]
-        ch_res = self._message(prefix, params)
-        prefix, params = self._byte_read_messages[ram_info.apple_status_c170]
-        ap_res = self._message(prefix, params)
-        return jj_res, ch_res, ap_res
+    async def read(self) -> RamData:
+        """ returns the ram that I have registered to read """
+        data_tr: List[bytes] = []
+        bases_tr: List[int] = []
+        for name in _range_reads:
+            prefix, params = self._read_messages[name]
+            res = await self._message(prefix, params)
+            data_tr.append(res)
+            bases_tr.append(_range_reads[name][0])
+        return RamData(data_tr, bases_tr)
