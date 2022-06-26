@@ -81,13 +81,19 @@ def make_loc_name(room_no: int, item: ItemData) -> str:
     return name
 
 
+def parse_reg_name(name: str) -> Tuple[int, int]:
+    """ row and col from region name """
+    assert name[0] == 'r' and name[3] == 'c'
+    row = int(name[1:3])
+    col = int(name[4])
+    return row, col
+
+
 def parse_loc_name(name: str) -> Tuple[int, int, int, int]:
     """ return row, col, y, x """
     room_str, coord_str = name.split('y')
-    row_str, col_str = room_str.strip('r').split('c')
     y_str, x_str = coord_str.split('x')
-    row = int(row_str)
-    col = int(col_str)
+    row, col = parse_reg_name(room_str)
     y = int(y_str, 16)
     x = int(x_str, 16)
     return row, col, y, x

@@ -26,7 +26,7 @@ class Item:
     """ sixth byte in rom item data structure (not unique) """
 
     def __hash__(self) -> int:
-        return self.code + self.id
+        return (self.code * 16) | self.id
 
 
 items = [
@@ -38,12 +38,10 @@ items = [
     Item("ID Card", "card", False, False, True, NORMAL, 0x05),
     Item("Red ID Card", "red", False, True, True, NORMAL, 0x06),
     Item("Floppy Disk", "floppy", False, True, True, NORMAL, 0x07),
-
     Item("Bread", "bread", False, False, False, NORMAL, 0x08),
     Item("Opa-Opa", "opa", True, True, True, NORMAL, 0x09),
     Item("Zillion", "gun", True, True, True, NORMAL, 0x0A),
     Item("Scope", "scope", False, False, True, NORMAL, 0x0B),
-    # custom items here?
 
     # rescue
     Item("Apple", "rescue_0", True, True, True, RESCUE, 0x00),

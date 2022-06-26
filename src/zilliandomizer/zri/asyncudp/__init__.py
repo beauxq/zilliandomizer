@@ -25,6 +25,9 @@ class _SocketProtocol(asyncio.BaseProtocol):
     def datagram_received(self, data: bytes, addr: Address) -> None:
         self._packets.put_nowait((data, addr))
 
+    def error_received(self, exc: Exception) -> None:
+        raise exc
+
     async def recvfrom(self) -> Optional[Tuple[bytes, Address]]:
         return await self._packets.get()
 

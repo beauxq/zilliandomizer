@@ -12,6 +12,7 @@ CANISTER_ROOM_COUNT = 74
 
 RangeName = Literal["basic", "new_ram", "door_can"]
 
+# important that this is sorted by address
 _range_reads: Dict[RangeName, Tuple[int, int]] = {
     "basic": (
         ram_info.current_scene_c11f,
@@ -190,7 +191,7 @@ class RAInterface:
                     # if gun_message:
                     #     t1 = time.perf_counter()
                     #     print(f" got res {res}  recv time {t1 - t}")
-                except asyncudp.ClosedError as e:
+                except (asyncudp.ClosedError, ConnectionRefusedError) as e:
                     # if gun_message:
                     #     t1 = time.perf_counter()
                     #     print(f"timed out  time {t1 - t}")
