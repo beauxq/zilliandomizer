@@ -115,12 +115,18 @@ def set_verified_bytes(b: bytearray) -> None:
         "Champ": [0, 0, 0, 0, 1, 1, 2, 2],
         "Apple": [2, 2, 2, 2, 3, 3, 3, 3]
     }
+    damage_taken_values = {
+        "JJ": [3, 3, 3, 3, 2, 2, 2, 1],
+        "Champ": [2, 2, 2, 2, 1, 1, 1, 1],
+        "Apple": [4, 4, 4, 4, 2, 2, 2, 1]
+    }
     jump_base = rom_info.stats_per_level_table_7cc8 + 1
     for char_i, character in enumerate(chars):
         for level_i in range(8):
-            addr = jump_base + char_i * 32 + level_i * 4
-            b[addr] = char_to_jump[character]["vanilla"][level_i] - 1
-            b[addr + 1] = speed_values[character][level_i]
+            jump_addr = jump_base + char_i * 32 + level_i * 4
+            b[jump_addr] = char_to_jump[character]["vanilla"][level_i] - 1
+            b[jump_addr + 1] = speed_values[character][level_i]
+            b[jump_addr + 2] = damage_taken_values[character][level_i]
 
     b[rom_info.continue_count_init_0af5] = 4
     for addr, v in enumerate(rom_info.continue_dec_code, rom_info.continue_dec_addr_2523):

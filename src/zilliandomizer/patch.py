@@ -1235,6 +1235,36 @@ class Patcher:
         self.writes[0x73ec] = code_lo
         self.writes[0x73ed] = code_hi
 
+    def set_defense(self, skill: int) -> None:
+        """ change the defense (damage taken) of the characters according to skill level """
+        # damage taken
+        vanilla: Dict[Chars, List[int]] = {
+            "JJ": [3, 3, 3, 3, 2, 2, 2, 1],
+            "Champ": [2, 2, 2, 2, 1, 1, 1, 1],
+            "Apple": [4, 4, 4, 4, 2, 2, 2, 1]
+        }
+        harder: Dict[Chars, List[int]] = {
+            "JJ": [4, 3, 3, 3, 2, 2, 2, 1],
+            "Champ": [3, 3, 2, 2, 2, 1, 1, 1],
+            "Apple": [4, 4, 4, 4, 3, 3, 2, 1]
+        }
+        easier: Dict[Chars, List[int]] = {
+            "JJ": [3, 3, 2, 2, 2, 1, 1, 1],
+            "Champ": [2, 2, 2, 2, 1, 1, 1, 1],
+            "Apple": [3, 3, 3, 2, 2, 2, 2, 1]
+        }
+        for_skill = [easier, easier, vanilla, vanilla, harder, harder][skill]
+
+        if for_skill is vanilla:
+            return
+
+        for level in range(8):
+            for char_i, char in enumerate(chars):
+                address = rom_info.stats_per_level_table_7cc8 + char_i * 32 + level * 4 + 3
+                if self.verify:
+                    assert self.rom[address] == vanilla[char][level]
+                self.writes[address] = for_skill[char][level]
+
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.fix_floppy_display()
@@ -1250,3 +1280,4 @@ class Patcher:
         self.set_jump_levels(options.jump_levels)
         self.set_continues(options.continues)
         self.set_new_game_over(options.continues)
+        self.set_defense(options.skill)
