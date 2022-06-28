@@ -806,6 +806,8 @@ class Patcher:
         # (likely in base explosion)
         # I get stuck with the vertical movement,
         # and crash the game when I go too high
+        # ram c1a8 ?  c311 ?
+        # c316 to 01 - partial fix, puts in frozen state ( that happens when I get hit while looking in canister )
         # TODO: FIXME: If I get a game over in a gradually scrolling area
         # (hallway), it can bug an elevator and/or the ship
         # and make the game impossible.
@@ -842,6 +844,11 @@ class Patcher:
             asm.CALL, 0x97, 0x20,  # cancel explosion command
             asm.LDAI, continue_count + 1,
             asm.LDVA, 0x12, 0xc1,  # numbers of continues in ram
+
+            # unlock char movement, in case it was locked when base exploded
+            asm.LDAI, 0x01,
+            asm.LDVA, 0x16, 0xc3,
+
             asm.CALL, 0xcc, 0x24,  # continue code that sets hp
             # asm.LDAI, 0x07,  # ship scene
             # asm.CALL, 0xd3, 0x24,  # continue code that sets hp
@@ -1285,7 +1292,7 @@ class Patcher:
         tens = (time % 100) // 10
         ones = time % 10
         lo = (tens << 4) | ones
-        print("time", time, hex(hundreds), hex(lo))
+        # print("time", time, hex(hundreds), hex(lo))
         self.writes[rom_info.base_explosion_timer_init_207b] = lo
         self.writes[rom_info.base_explosion_timer_init_207b + 1] = hundreds
         self.writes[rom_info.base_explosion_timer_text_6044] = ord("0") + hundreds
