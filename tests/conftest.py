@@ -156,6 +156,12 @@ def set_verified_bytes(b: bytearray) -> None:
     for key in verified:
         b[key] = verified[key]
 
+    b[rom_info.base_explosion_timer_init_207b] = 0x00
+    b[rom_info.base_explosion_timer_init_207b + 1] = 0x03
+    b[rom_info.base_explosion_timer_text_6044] = ord("3")
+    b[rom_info.base_explosion_timer_text_6044 + 1] = ord("0")
+    b[rom_info.base_explosion_timer_text_6044 + 2] = ord("0")
+
 
 @pytest.fixture
 def fake_rom() -> Iterator[None]:
