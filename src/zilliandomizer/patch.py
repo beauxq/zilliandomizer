@@ -849,6 +849,10 @@ class Patcher:
             asm.LDAI, 0x01,
             asm.LDVA, 0x16, 0xc3,
 
+            # set not in room transition
+            asm.XORA,
+            asm.LDVA, 0x86, 0xc1,
+
             asm.CALL, 0xcc, 0x24,  # continue code that sets hp
             # asm.LDAI, 0x07,  # ship scene
             # asm.CALL, 0xd3, 0x24,  # continue code that sets hp
