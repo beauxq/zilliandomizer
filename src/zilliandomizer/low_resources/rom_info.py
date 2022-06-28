@@ -160,6 +160,11 @@ base_explosion_scene_210b = 0x210b
 base_explosion_jump_2112 = 0x2112
 """ the parameter of the jump instruction in the base explosion """
 
+base_explosion_timer_init_207b = 0x207b
+""" 2 bytes bcd value of base explosion timer (0x00, 0x03) """
+base_explosion_timer_text_6044 = 0x6044
+""" 3 bytes of text for base explosion timer """
+
 zillion_men_1ae99_1af22 = (0x1ae99, 0x1af22)
 """ the two places that say '"zillion" men' """
 

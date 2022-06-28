@@ -1,6 +1,6 @@
 from collections import defaultdict
 import os
-from random import shuffle
+from random import randrange, shuffle
 from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.locations import Location
@@ -802,6 +802,10 @@ class Patcher:
 
         This feature requires `fix_spoiling_demos` (for memory space).
         """
+        # TODO: FIXME: If I get a game over while elevator moving,
+        # (likely in base explosion)
+        # I get stuck with the vertical movement,
+        # and crash the game when I go too high
         # TODO: FIXME: If I get a game over in a gradually scrolling area
         # (hallway), it can bug an elevator and/or the ship
         # and make the game impossible.
@@ -1265,6 +1269,29 @@ class Patcher:
                     assert self.rom[address] == vanilla[char][level]
                 self.writes[address] = for_skill[char][level]
 
+    def set_explode_timer(self, skill: int) -> None:
+        """ set the amount of time to escape based on skill """
+        # WR did in 160
+        low = 300 - (skill * 27)
+        time = randrange(low, low + 30)
+        if self.verify:
+            assert self.rom[rom_info.base_explosion_timer_init_207b] == 0x00
+            assert self.rom[rom_info.base_explosion_timer_init_207b + 1] == 0x03
+            assert self.rom[rom_info.base_explosion_timer_text_6044] == ord("3")
+            assert self.rom[rom_info.base_explosion_timer_text_6044 + 1] == ord("0")
+            assert self.rom[rom_info.base_explosion_timer_text_6044 + 2] == ord("0")
+        # bcd
+        hundreds = time // 100
+        tens = (time % 100) // 10
+        ones = time % 10
+        lo = (tens << 4) | ones
+        print("time", time, hex(hundreds), hex(lo))
+        self.writes[rom_info.base_explosion_timer_init_207b] = lo
+        self.writes[rom_info.base_explosion_timer_init_207b + 1] = hundreds
+        self.writes[rom_info.base_explosion_timer_text_6044] = ord("0") + hundreds
+        self.writes[rom_info.base_explosion_timer_text_6044 + 1] = ord("0") + tens
+        self.writes[rom_info.base_explosion_timer_text_6044 + 2] = ord("0") + ones
+
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.fix_floppy_display()
@@ -1281,3 +1308,4 @@ class Patcher:
         self.set_continues(options.continues)
         self.set_new_game_over(options.continues)
         self.set_defense(options.skill)
+        self.set_explode_timer(options.skill)
