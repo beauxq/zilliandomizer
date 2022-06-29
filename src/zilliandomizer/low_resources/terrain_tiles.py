@@ -51,7 +51,7 @@ blue    red     paperclip
 """
 
 
-# was going to use IntEnum, but I just want them to be see as int
+# was going to use IntEnum, but I just want them to be seen as int
 class Tile:
     # ceiling
     b_ceiling = 0x3a
@@ -92,3 +92,14 @@ class Tile:
     r_light_floor_h = 0x1d
     r_dark_floor_h = 0x22
     p_floor_h = 0x63
+
+    # double vertical walls
+    b_walls = 0x30
+    r_walls = 0x01
+    p_walls = 0x50
+
+    # floor and ceiling in same tile
+    b_floor_ceiling = 0x3c
+    r_light_floor_ceiling = 0x14
+    r_dark_floor_ceiling = 0x15
+    p_floor_ceiling = 0x5c

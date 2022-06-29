@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple, Union, overload
 
 from zilliandomizer.logic_components.items import RESCUE
 
@@ -72,12 +72,28 @@ ItemData = Tuple[int, int, int, int, int, int, int, int]
 """ C Y X R M I S G (see above) """
 
 
-def make_loc_name(room_no: int, item: ItemData) -> str:
-    row = room_no // 8
-    room_location = f"r{row if row > 9 else ('0' + str(row))}c{room_no % 8}"
-    # adjust height of rescues so they match with other items
-    y = item[1] + 8 if item[0] == RESCUE else item[1]
-    name = f"{room_location}y{hex(y)[-2:]}x{hex(item[2])[-2:]}"
+def make_reg_name(map_index: int) -> str:
+    """ without divisions """
+    row = map_index // 8
+    return f"r{row if row > 9 else ('0' + str(row))}c{map_index % 8}"
+
+
+@overload
+def make_loc_name(map_index: int, item_or_y: int, x: int) -> str: ...
+@overload
+def make_loc_name(map_index: int, item_or_y: ItemData) -> str: ...
+
+
+def make_loc_name(map_index: int, item_or_y: Union[ItemData, int], x: Optional[int] = None) -> str:
+    if isinstance(item_or_y, int):
+        assert not (x is None)
+        y = item_or_y
+    else:
+        # adjust height of rescues so they match with other items
+        y = item_or_y[1] + 8 if item_or_y[0] == RESCUE else item_or_y[1]
+        x = item_or_y[2]
+
+    name = f"{make_reg_name(map_index)}y{hex(y)[-2:]}x{hex(x)[-2:]}"
     return name
 
 

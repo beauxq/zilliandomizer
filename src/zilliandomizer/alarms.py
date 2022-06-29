@@ -36,7 +36,6 @@ class Alarms:
 
     def choose_all(self) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
-        # (because I don't have enough alarm data yet to use all the space)
         self.tc.save_state()
         success = False  # chose all alarm lines without going over the byte limit
         while not success:

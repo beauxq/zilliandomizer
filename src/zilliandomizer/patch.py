@@ -429,7 +429,7 @@ class Patcher:
 
     def get_item_rooms(self) -> Generator[int, None, None]:
         """
-        bytes indexes for the data structures of the items of each room
+        bytes indexes for the data structures of the items of each map index
         """
         for i in range(136):
             yield self.get_item_index_for_room(i)
@@ -447,10 +447,10 @@ class Patcher:
             start += 8
 
     def write_locations(self, locations: Dict[str, Location], start_char: Chars) -> None:
-        for room_no, room in enumerate(self.get_item_rooms()):
+        for map_index, room in enumerate(self.get_item_rooms()):
             for item_no, item_from_rom in enumerate(self.get_items(room)):
                 if item_from_rom[0] in {KEYWORD, NORMAL, RESCUE}:
-                    name = make_loc_name(room_no, item_from_rom)
+                    name = make_loc_name(map_index, item_from_rom)
                     loc = locations[name]
                     assert loc.item, "There should be an item placed in every location before writing locations."
                     y = item_from_rom[1]
@@ -459,14 +459,14 @@ class Patcher:
                     if item_from_rom[0] == RESCUE:
                         y += 8
                     x = item_from_rom[2]
-                    r = item_from_rom[3]  # not changing room code (different from room number)
+                    r = item_from_rom[3]  # not changing room code (different from map index)
                     m = item_from_rom[4]  # not changing bit mask to id item within room
                     i = loc.item.id
                     s = loc.req.gun * 2
                     # different sprite for red and paperclip
-                    if room_no >= 80:
+                    if map_index >= 80:
                         s += 12
-                    elif room_no >= 40:
+                    elif map_index >= 40:
                         s += 6
                     if loc.item.code == RESCUE:
                         if start_char == "Apple":

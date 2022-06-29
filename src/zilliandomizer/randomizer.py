@@ -10,6 +10,7 @@ from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
+from zilliandomizer.room_gen.room_gen import RoomGen
 
 # this is used in math, not just an id
 # (in case someone is tempted to change it to 0-2 to match rom value)
@@ -22,6 +23,7 @@ class Randomizer:
     logger: Logger
     start: Region
     locations: Dict[str, Location]
+    room_gen: Optional[RoomGen] = None
 
     class RollFail(RuntimeError):
         """ randomizing algorithm failed """
@@ -36,8 +38,10 @@ class Randomizer:
 
         self.reset()
 
-    def reset(self) -> None:
-        locations = make_locations()
+    def reset(self, room_gen: Optional[RoomGen] = None) -> None:
+        if room_gen:
+            self.room_gen = room_gen
+        locations = self.room_gen.make_locations() if self.room_gen else make_locations()
         start = make_regions(locations)
         self.start = start
         self.locations = locations

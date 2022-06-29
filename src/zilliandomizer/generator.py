@@ -35,6 +35,13 @@ def generate(seed: int) -> None:
     logger.spoil(str(options))
     logger.spoil(f"seed {seed_str}")
     r = Randomizer(options, logger)
+
+    # testing
+    # from zilliandomizer.room_gen.room_gen import RoomGen
+    # room_gen = RoomGen(p.tc, logger)
+    # room_gen.choose_all()
+    # r.reset(room_gen)
+
     r.roll(seed)
 
     if options.randomize_alarms:
