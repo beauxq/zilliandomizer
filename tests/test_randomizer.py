@@ -25,7 +25,7 @@ def test_randomizer() -> None:
     r.roll(s)
 
     p = Patcher()
-    p.write_locations(r.locations, options.start_char)
+    p.write_locations(r.start, options.start_char)
     p.all_fixes_and_options(options)
     filename = f"zilliandomizer-{s:016x}.sms"
     # p.write(filename)
@@ -44,7 +44,7 @@ def test_infinite_continues_and_not() -> None:
         r.roll(s)
 
         p = Patcher()
-        p.write_locations(r.locations, options.start_char)
+        p.write_locations(r.start, options.start_char)
         p.all_fixes_and_options(options)
         filename = f"zilliandomizer-{s:016x}.sms"
         # p.write(filename)

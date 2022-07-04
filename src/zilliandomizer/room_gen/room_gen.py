@@ -66,7 +66,7 @@ class RoomGen:
             self._logger.spoil("generating rooms...")
             # self._space_pacer = self._space_pacer_init
             for i, map_index in enumerate(GEN_ROOMS):
-                if map_index > 0x18:
+                if map_index > 0x28:
                     continue  # testing
                 print(f"generating room {i + 1} / {len(GEN_ROOMS)}")
                 jump_block_ability = 2  # TODO: progressive jump requirements
@@ -99,6 +99,8 @@ class RoomGen:
                 g.make(jump_blocks)
                 g.fix_crawl_fall()
                 g.optimize_encoding()
+                g.optimize_encoding()
+                g.optimize_encoding()
                 softlock = g.softlock_exists(2) or g.softlock_exists(3)
                 if not softlock:
                     # TODO: keep track of which canisters require jump 3
@@ -110,6 +112,8 @@ class RoomGen:
                     placeable_count = len(region.locations)
                     if len(placeables) > placeable_count + 1:
                         placed = sample(placeables, placeable_count)
+                        # TODO: possible uncompletable seed: Make sure I can get to 2 places
+                        # in the height of the lowest canister.
                         self._canisters[map_index] = placed
             except MakeFailure:
                 print(".", end="")

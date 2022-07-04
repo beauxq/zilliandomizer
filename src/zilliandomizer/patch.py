@@ -3,11 +3,11 @@ import os
 from random import randrange, shuffle
 from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
-from zilliandomizer.logic_components.locations import Location
+from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.terrain_compressor import TerrainCompressor
-from zilliandomizer.utils import ItemData, make_loc_name, parse_loc_name
+from zilliandomizer.utils import ItemData, parse_loc_name
 
 ROM_NAME = "Zillion (UE) [!].sms"
 
@@ -421,46 +421,53 @@ class Patcher:
         with open(f"{self.rom_path}{os.sep}{filename}", "wb") as file:
             file.write(new_rom)
 
-    def get_item_index_for_room(self, room: int) -> int:
-        index = rom_info.room_table_91c2 + 2 * room
+    def get_address_for_room(self, map_index: int) -> int:
+        index = rom_info.room_table_91c2 + 2 * map_index
         low = self.rom[index]
         high = self.rom[index + 1]
         return (high << 8) | low
 
     def get_item_rooms(self) -> Generator[int, None, None]:
         """
-        bytes indexes for the data structures of the items of each map index
+        addresses for the data structures of the items of each map index
         """
         for i in range(136):
-            yield self.get_item_index_for_room(i)
+            yield self.get_address_for_room(i)
 
     def item_count(self, rom_index: int) -> int:
-        """ parameter is from `get_item_index_for_room` or `get_item_rooms` """
+        """ parameter is from `get_address_for_room` or `get_item_rooms` """
         return self.rom[rom_index]
 
     def get_items(self, rom_index: int) -> Generator[ItemData, None, None]:
-        """ parameter is from `get_item_index_for_room` or `get_item_rooms` """
+        """ parameter is from `get_address_for_room` or `get_item_rooms` """
         start = rom_index + 1
         for _ in range(self.item_count(rom_index)):
             this_item: ItemData = cast(ItemData, tuple(self.rom[v] for v in range(start, start + 8)))
             yield this_item
             start += 8
 
-    def write_locations(self, locations: Dict[str, Location], start_char: Chars) -> None:
-        for map_index, room in enumerate(self.get_item_rooms()):
-            for item_no, item_from_rom in enumerate(self.get_items(room)):
-                if item_from_rom[0] in {KEYWORD, NORMAL, RESCUE}:
-                    name = make_loc_name(map_index, item_from_rom)
-                    loc = locations[name]
-                    assert loc.item, "There should be an item placed in every location before writing locations."
-                    y = item_from_rom[1]
+    def write_locations(self, start_region: Region, start_char: Chars) -> None:
+        items_placed_in_map_index: Dict[int, int] = defaultdict(int)
+        for region in start_region.all.values():
+            for loc in region.locations:
+                assert loc.item, "There should be an item placed in every location before " \
+                                 f"writing locations. {loc.name} is missing item."
+                if loc.item.code in {KEYWORD, NORMAL, RESCUE}:
+                    row, col, y, x = parse_loc_name(loc.name)
+                    map_index = row * 8 + col
+                    rom_room = self.get_address_for_room(map_index)
+                    item_no = items_placed_in_map_index[map_index]
+                    try:
+                        room_code = next(self.get_items(rom_room))[3]  # different from map index
+                    except StopIteration:
+                        # This is to keep unit tests from failing with no rom data
+                        print(f"ERROR: no item data for rom room {rom_room} at map index {map_index}")
+                        room_code = 0
+
                     if loc.item.code == RESCUE:
                         y -= 8
-                    if item_from_rom[0] == RESCUE:
-                        y += 8
-                    x = item_from_rom[2]
-                    r = item_from_rom[3]  # not changing room code (different from map index)
-                    m = item_from_rom[4]  # not changing bit mask to id item within room
+                    r = room_code
+                    m = 1 << item_no
                     i = loc.item.id
                     s = loc.req.gun * 2
                     # different sprite for red and paperclip
@@ -475,7 +482,8 @@ class Patcher:
                             s = loc.item.id * 2 + 0x14
                     g = max(0, loc.req.gun - 1)
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
-                    self.set_item(room + 1 + 8 * item_no, new_item_data)
+                    self.set_item(rom_room + 1 + 8 * item_no, new_item_data)
+                    items_placed_in_map_index[map_index] += 1
 
     def _use_bank(self, bank_no: int, code: bytearray) -> int:
         """

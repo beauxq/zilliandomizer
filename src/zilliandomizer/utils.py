@@ -65,7 +65,23 @@ room item data structure:
         I - item code (see list above)
         S - Sprite (see list above)
         G - gun required to open (Apple 01, Champ 00 - guessing it doesn't matter, but...)
-    then after the list of items is complete, 2 more bytes, unknown purpose
+    then after the list of items is complete:
+        either 1 byte 0xff for no computer
+        or 2 bytes to tell the location of the computer:
+            00000vvv vvhhhhh0
+            little endian (vvhhhhh0 first)
+
+            vvvvv and hhhhh are counting small tiles
+
+            vvvvv is vertical position (1-19)
+                (0 puts a hole in the ceiling, 20 puts a hole in the floor)
+                canister position 18 = computer position 00011
+                                  38 = 00111
+                                  58 = 01011
+                                  78 = 01111
+                                  98 = 10011
+            hhhhh is horizontal position (2-29)
+                (0, 1, 30, 31 put holes in the walls)
 """
 
 ItemData = Tuple[int, int, int, int, int, int, int, int]

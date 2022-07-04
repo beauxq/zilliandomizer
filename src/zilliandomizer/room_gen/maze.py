@@ -162,11 +162,11 @@ class Grid:
                 start: Coord,
                 highest_jump: int,
                 standing: bool = True,
-                target_end: Optional[Coord] = None) -> Set[Tuple[int, int, bool]]:
+                target_end: Optional[Tuple[int, int, bool]] = None) -> Set[Tuple[int, int, bool]]:
         """
         returns the set of all (row, col, standing) where I can go
 
-        stops search early if target_end is found
+        stops search early if target_end (y, x, standing) is found
         """
         row, col = start
         been: Set[Tuple[int, int, bool]] = set()
@@ -175,7 +175,7 @@ class Grid:
             here = to_move_from.pop()
             if here not in been:
                 been.add(here)
-                if (here[0], here[1]) == target_end:
+                if here == target_end:
                     return been
                 for adj in self._adj_moves(here, highest_jump):
                     to_move_from.append(adj)
@@ -190,8 +190,10 @@ class Grid:
         if len(self.ends) == 2:
             # can stop search early if only 1 other end to look for
             a, b = self.ends
-            return (a[0], a[1], True) in self._search(b, highest_jump, True, a) \
-                and (b[0], b[1], True) in self._search(a, highest_jump, True, b)
+            a_state = (a[0], a[1], True)
+            b_state = (b[0], b[1], True)
+            return a_state in self._search(b, highest_jump, True, a_state) \
+                and b_state in self._search(a, highest_jump, True, b_state)
 
         start = self.ends[0]
         start_state = (start[0], start[1], True)
@@ -200,7 +202,7 @@ class Grid:
         for end in self.ends[1:]:
             all_ends = all_ends and ((end[0], end[1], True) in start_goables)
             all_ends = all_ends and (start_state in self._search(
-                end, highest_jump, True, start
+                end, highest_jump, True, start_state
             ))
         return all_ends
 
@@ -315,11 +317,11 @@ class Grid:
                                     for y_r, x_r in to_restore:
                                         value = to_restore[y_r, x_r]
                                         self.data[y_r][x_r] = value
-                                else:
-                                    # debug
-                                    self._logger.debug(
-                                        f"eliminated crawl fall at row {y}, col {target_col}"
-                                    )
+                                # else:
+                                #     # debug
+                                #     self._logger.debug(
+                                #         f"eliminated crawl fall at row {y}, col {target_col}"
+                                #     )
 
     def optimize_encoding(self, jump_blocks: int = 3) -> None:
         """ try to save space in run-length encoding """
@@ -370,7 +372,9 @@ class Grid:
         start_goables = self._search(start, jump_blocks)
         for y, x, standing in start_goables:
             here = (y, x)
-            if start_state not in self._search(here, jump_blocks, standing, start):
-                print(f"softlock at row {y} col {x}")
+            here_goables = self._search(here, jump_blocks, standing, start_state)
+            if start_state not in here_goables:
+                self._logger.debug(f"softlock at row {y} col {x}")
+                self._logger.debug(self.map_str())
                 return True
         return False
