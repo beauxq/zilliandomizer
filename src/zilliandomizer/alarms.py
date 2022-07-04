@@ -1,5 +1,5 @@
 from random import random, choice
-from typing import Dict, Final, List, Literal, Set
+from typing import Dict, Final, FrozenSet, List, Literal, Set
 from zilliandomizer.alarm_data import ALARM_ROOMS, Alarm, alarm_data, to_horizontal, to_vertical, to_none
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.logger import Logger
@@ -34,7 +34,7 @@ class Alarms:
         # logger.spoil_stdout = True
         # logger.debug_stdout = True
 
-    def choose_all(self) -> None:
+    def choose_all(self, skip_map_index: FrozenSet[int]) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
         success = False  # chose all alarm lines without going over the byte limit
@@ -42,7 +42,7 @@ class Alarms:
             self._logger.spoil("choosing alarm lines...")
             self._space_pacer = self._space_pacer_init
             for map_index in ALARM_ROOMS:
-                if map_index in alarm_data:
+                if map_index in alarm_data and map_index not in skip_map_index:
                     self._choose_for_room(map_index)
                 self._space_pacer -= self._space_per_room
             if self.tc.get_space() >= 0:
@@ -140,7 +140,7 @@ class Alarms:
 
         self._logger.spoil(f"room: {map_index}  chosen: {chosen}")
         _bytes = TerrainCompressor.decompress(self.tc.get_room(map_index))
-        assert len(_bytes) == 96
+        assert len(_bytes) == 96, f"room {map_index} doesn't have the right number of bytes: {len(_bytes)}"
 
         # gather all the blocks involved
         blocks: Dict[int, Literal["v", "h", "n"]] = {}  # key block_index

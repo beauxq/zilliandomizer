@@ -36,6 +36,7 @@ class TerrainCompressor:
 
     @staticmethod
     def compress(_bytes: List[int]) -> List[int]:
+        assert len(_bytes) == 96
         tr: List[int] = []
         current_state: Literal["length", "copy"] = "length"
         cursor = 0

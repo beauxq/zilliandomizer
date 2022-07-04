@@ -130,5 +130,31 @@ def location_ids() -> None:
     print('}\n')
 
 
+def region_file_edit() -> None:
+    lines: List[str] = []
+    with open("src/zilliandomizer/logic_components/region_data.py", "r") as file:
+        reg_name = ""
+        loc_count = 0
+        for line in file:
+            split = line.strip().split(' = Region("')
+            if len(split) == 2 and len(split[0]) == 5:
+                reg_name = split[0]
+                loc_count = 0
+
+            if line.startswith(f'    {reg_name}.locations.append(locations["r'):
+                loc_count += 1
+            else:  # not adding a location to a region
+                if loc_count > 0:
+                    lines.append(f'    assert len(reg_name_to_loc_name["{reg_name}"]) == {loc_count}\n')
+                    lines.append(f'    for loc_name in reg_name_to_loc_name["{reg_name}"]:\n')
+                    lines.append(f'        {reg_name}.locations.append(locations[loc_name])\n')
+
+                    loc_count = 0
+                lines.append(line)
+
+    with open("src/zilliandomizer/logic_components/region_data_new.py", "x") as file:
+        file.writelines(lines)
+
+
 if __name__ == "__main__":
-    location_ids()
+    region_file_edit()

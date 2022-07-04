@@ -1,5 +1,5 @@
 from random import choice, sample
-from typing import Dict, List, Set
+from typing import Dict, FrozenSet, List, Set
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
@@ -28,7 +28,10 @@ class RoomGen:
     _logger: Logger
 
     _canisters: Dict[int, List[Coord]]
-    """ placed canisters """
+    """ placed canisters { map_index: [Coord, ...] } """
+
+    _rooms: Set[int]
+    """ rooms generated (map_index) """
 
     def __init__(self, tc: TerrainCompressor, logger: Logger) -> None:
         self.tc = tc
@@ -44,11 +47,12 @@ class RoomGen:
 
         self._logger = logger
         self._canisters = {}
+        self._rooms = set()
         # testing
         logger.spoil_stdout = True
         logger.debug_stdout = True
 
-    def choose_all(self) -> None:
+    def generate_all(self) -> None:
         if len(Region.all) == 0:
             locations = make_locations()
             make_regions(locations)
@@ -56,23 +60,28 @@ class RoomGen:
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
         self._canisters = {}
+        self._rooms = set()
         success = False  # generated all rooms without going over the byte limit
         while not success:
             self._logger.spoil("generating rooms...")
             # self._space_pacer = self._space_pacer_init
             for i, map_index in enumerate(GEN_ROOMS):
+                if map_index > 0x18:
+                    continue  # testing
                 print(f"generating room {i + 1} / {len(GEN_ROOMS)}")
                 jump_block_ability = 2  # TODO: progressive jump requirements
-                self._choose_for_room(map_index, jump_block_ability)
+                self._generate_room(map_index, jump_block_ability)
                 # self._space_pacer -= self._space_per_room
+                self._rooms.add(map_index)
             if self.tc.get_space() >= 0:
                 success = True
             else:
                 self._logger.debug(f"overused terrain memory by {-self.tc.get_space()} bytes")
                 self.tc.load_state()
                 self._canisters = {}
+                self._rooms = set()
 
-    def _choose_for_room(self, map_index: int, jump_blocks: int) -> None:
+    def _generate_room(self, map_index: int, jump_blocks: int) -> None:
         this_room = GEN_ROOMS[map_index]
         exits = this_room.exits[:]
         if len(exits) < 2:
@@ -84,7 +93,7 @@ class RoomGen:
         g = Grid(exits, self._logger)
         placed: List[Coord] = []
 
-        while len(placed) == 0:
+        while len(placed) == 0:  # TODO: not a good condition (some rooms don't have anything - r08c1)
             g.reset()
             try:
                 g.make(jump_blocks)
@@ -93,8 +102,8 @@ class RoomGen:
                 softlock = g.softlock_exists(2) or g.softlock_exists(3)
                 if not softlock:
                     # TODO: keep track of which canisters require jump 3
-                    goables = g.get_goables(jump_blocks, True)
-                    placeables = [c for c, _ in goables if not g.in_exit(c[0], c[1])]
+                    goables = g.get_standing_goables(jump_blocks)
+                    placeables = [(y, x) for y, x, _ in goables if not g.in_exit(y, x)]
                     reg_name = make_reg_name(map_index)
                     assert reg_name in Region.all, f"generated terrain for non-region {reg_name}"
                     region = Region.all[reg_name]
@@ -106,10 +115,9 @@ class RoomGen:
                 print(".", end="")
         self._logger.debug(g.map_str(placed))
 
-        self.tc.set_room(map_index, RoomGen.grid_to_room_data(g, map_index))
+        self.tc.set_room(map_index, self._grid_to_room_data(g, map_index))
 
-    @staticmethod
-    def grid_to_room_data(g: Grid, map_index: int) -> List[int]:
+    def _grid_to_room_data(self, g: Grid, map_index: int) -> List[int]:
         """ to compressed """
         if map_index < 0x28:  # blue
             wall = Tile.b_walls
@@ -142,8 +150,14 @@ class RoomGen:
             floor_ceiling_even = Tile.p_floor_ceiling
             floor_ceiling_odd = floor_ceiling_even
 
+        original_data = TerrainCompressor.decompress(self.tc.get_room(map_index))
+
         tr: List[int] = []
         for row in range(len(g.data)):
+
+            # left wall
+            tr.append(original_data[len(tr)])
+
             for col in range(len(g.data[0])):
                 if g.data[row][col] == Cell.wall:
                     tr.append(wall)
@@ -159,6 +173,10 @@ class RoomGen:
                             tr.append(ceiling_odd if (row & 1) else ceiling_even)
                         else:  # floor with no ceiling
                             tr.append(floor_ceiling_odd if (row & 1) else floor_ceiling_even)
+
+            # right wall
+            tr.append(original_data[len(tr)])
+
         return TerrainCompressor.compress(tr)
 
     def make_locations(self) -> Dict[str, Location]:
@@ -180,3 +198,6 @@ class RoomGen:
                     locations[original_loc.name] = original_loc
         locations["main"] = locations["r10c5y98x18"]  # alias
         return locations
+
+    def get_modified_rooms(self) -> FrozenSet[int]:
+        return frozenset(self._rooms)

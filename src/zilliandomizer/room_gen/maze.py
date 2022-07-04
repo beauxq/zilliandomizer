@@ -1,6 +1,7 @@
+from collections import deque
 from copy import deepcopy
 import random
-from typing import Dict, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from zilliandomizer.logger import Logger
 from zilliandomizer.room_gen.common import Coord
 
@@ -41,141 +42,144 @@ class Grid:
             self.data[row - 1][col] = Cell.space
             self.data[row - 1][col + 1] = Cell.space
 
-    def _can_arrive(self, target_end: Coord, start: Coord, highest_jump: int, standing: bool = True) -> bool:
+    def _adj_moves(self, state: Tuple[int, int, bool], highest_jump: int) -> Iterator[Tuple[int, int, bool]]:
+        """
+        yield all the places I can move in one step
 
-        def dfs(target_end: Coord, row: int, col: int, standing: bool, been: Set[Tuple[int, int, bool]]) -> bool:
-            # self.print((((row, col), True),))
-            # input()
-            if row == target_end[0] and col == target_end[1]:
-                return True
-            if (row, col, standing) in been:
-                return False
-            been_here = been.copy()
-            been_here.add((row, col, standing))
+        state is (row, col, standing)
+        """
 
-            if not standing:
-                # check standing
-                if self.data[row - 1][col] == Cell.space:
-                    if dfs(target_end, row, col, True, been_here):
-                        return True
+        row, col, standing = state
 
-                if col > LEFT and self.data[row][col - 1] == Cell.floor:
-                    if dfs(target_end, row, col - 1, standing, been_here):
-                        return True
-                if col < RIGHT and self.data[row][col + 1] == Cell.floor:
-                    if dfs(target_end, row, col + 1, standing, been_here):
-                        return True
-            else:  # standing
-                # check not standing
-                if dfs(target_end, row, col, False, been_here):
-                    return True
+        if not standing:
+            # can change to standing
+            if self.data[row - 1][col] == Cell.space:
+                yield row, col, True
 
-                # jump around ledge
-                # TODO: don't jump around ledges at low skill levels
-                left_col = col - 1
-                right_col = col + 1
-                if highest_jump >= 2 and row > 2 and \
-                        self.data[row - 2][col] == Cell.floor and \
-                        self.data[row - 3][col] == Cell.space and ((
-                            left_col >= LEFT and
-                            self.data[row][left_col] == Cell.space and
-                            self.data[row - 1][left_col] == Cell.space and
-                            self.data[row - 2][left_col] == Cell.space and
-                            self.data[row - 3][left_col] == Cell.space
-                        ) or (
-                            right_col <= RIGHT and
-                            self.data[row][right_col] == Cell.space and
-                            self.data[row - 1][right_col] == Cell.space and
-                            self.data[row - 2][right_col] == Cell.space and
-                            self.data[row - 3][right_col] == Cell.space
-                        )):
-                    if dfs(target_end, row - 2, col, True, been_here):
-                        return True
-                if highest_jump >= 3 and row > 3 and \
-                        self.data[row - 3][col] == Cell.floor and \
-                        self.data[row - 4][col] == Cell.space and ((
-                            left_col >= LEFT and
-                            self.data[row][left_col] == Cell.space and
-                            self.data[row - 1][left_col] == Cell.space and
-                            self.data[row - 2][left_col] == Cell.space and
-                            self.data[row - 3][left_col] == Cell.space and
-                            self.data[row - 4][left_col] == Cell.space
-                        ) or (
-                            right_col <= RIGHT and
-                            self.data[row][right_col] == Cell.space and
-                            self.data[row - 1][right_col] == Cell.space and
-                            self.data[row - 2][right_col] == Cell.space and
-                            self.data[row - 3][right_col] == Cell.space and
-                            self.data[row - 4][right_col] == Cell.space
-                        )):
-                    if dfs(target_end, row - 3, col, True, been_here):
-                        return True
+            if col > LEFT and self.data[row][col - 1] == Cell.floor:
+                yield row, col - 1, standing
+            if col < RIGHT and self.data[row][col + 1] == Cell.floor:
+                yield row, col + 1, standing
+        else:  # standing
+            # can change to not standing
+            yield row, col, False
 
-                # check jump and move left or right
-                for jump_height in range(1, highest_jump + 1):  # grid spaces, not jump levels
-                    if all(row > j and self.data[row - (j+1)][col] == Cell.space
-                            for j in range(1, jump_height + 1)):
-                        if col > LEFT and \
-                                self.data[row - (jump_height + 1)][col - 1] == Cell.space and \
-                                self.data[row - jump_height][col - 1] == Cell.floor:
-                            if dfs(target_end, row - jump_height, col - 1, True, been_here):
-                                return True
-                        if col < RIGHT and \
-                                self.data[row - (jump_height + 1)][col + 1] == Cell.space and \
-                                self.data[row - jump_height][col + 1] == Cell.floor:
-                            if dfs(target_end, row - jump_height, col + 1, True, been_here):
-                                return True
-                        if col > 1 and \
-                                self.data[row - (jump_height + 1)][col - 1] == Cell.space and \
-                                self.data[row - jump_height][col - 1] == Cell.space and \
-                                self.data[row - (jump_height + 1)][col - 2] == Cell.space and \
-                                self.data[row - jump_height][col - 2] == Cell.floor:
-                            if dfs(target_end, row - jump_height, col - 2, True, been_here):
-                                return True
-                        if col < 12 and \
-                                self.data[row - (jump_height + 1)][col + 1] == Cell.space and \
-                                self.data[row - jump_height][col + 1] == Cell.space and \
-                                self.data[row - (jump_height + 1)][col + 2] == Cell.space and \
-                                self.data[row - jump_height][col + 2] == Cell.floor:
-                            if dfs(target_end, row - jump_height, col + 2, True, been_here):
-                                return True
+            # jump around ledge
+            # TODO: don't jump around ledges at low skill levels
+            left_col = col - 1
+            right_col = col + 1
+            if highest_jump >= 2 and row > 2 and \
+                    self.data[row - 2][col] == Cell.floor and \
+                    self.data[row - 3][col] == Cell.space and ((
+                        left_col >= LEFT and
+                        self.data[row][left_col] == Cell.space and
+                        self.data[row - 1][left_col] == Cell.space and
+                        self.data[row - 2][left_col] == Cell.space and
+                        self.data[row - 3][left_col] == Cell.space
+                    ) or (
+                        right_col <= RIGHT and
+                        self.data[row][right_col] == Cell.space and
+                        self.data[row - 1][right_col] == Cell.space and
+                        self.data[row - 2][right_col] == Cell.space and
+                        self.data[row - 3][right_col] == Cell.space
+                    )):
+                yield row - 2, col, True
+            if highest_jump >= 3 and row > 3 and \
+                    self.data[row - 3][col] == Cell.floor and \
+                    self.data[row - 4][col] == Cell.space and ((
+                        left_col >= LEFT and
+                        self.data[row][left_col] == Cell.space and
+                        self.data[row - 1][left_col] == Cell.space and
+                        self.data[row - 2][left_col] == Cell.space and
+                        self.data[row - 3][left_col] == Cell.space and
+                        self.data[row - 4][left_col] == Cell.space
+                    ) or (
+                        right_col <= RIGHT and
+                        self.data[row][right_col] == Cell.space and
+                        self.data[row - 1][right_col] == Cell.space and
+                        self.data[row - 2][right_col] == Cell.space and
+                        self.data[row - 3][right_col] == Cell.space and
+                        self.data[row - 4][right_col] == Cell.space
+                    )):
+                yield row - 3, col, True
 
-                for dir in (-1, 1):
-                    # check move
-                    next_col = col + dir
-                    if next_col >= LEFT and next_col <= RIGHT and \
-                            self.data[row - 1][next_col] == Cell.space:
-                        if self.data[row][next_col] == Cell.floor:
-                            if dfs(target_end, row, next_col, True, been_here):
-                                return True
-                        # or jump
-                        next_next_col = next_col + dir
-                        if next_next_col >= LEFT and next_next_col <= RIGHT and \
-                                self.data[row][next_col] == Cell.space and \
-                                self.data[row - 1][next_next_col] == Cell.space and \
-                                self.data[row][next_next_col] == Cell.floor:
-                            if dfs(target_end, row, next_next_col, True, been_here):
-                                return True
-                        nnn_col = next_next_col + dir
-                        if nnn_col >= LEFT and nnn_col <= RIGHT and \
-                                self.data[row][next_col] == Cell.space and \
-                                self.data[row - 1][next_next_col] == Cell.space and \
-                                self.data[row][next_next_col] == Cell.space and \
-                                self.data[row - 1][nnn_col] == Cell.space and \
-                                self.data[row][nnn_col] == Cell.floor:
-                            if dfs(target_end, row, nnn_col, True, been_here):
-                                return True
-                        # or fall
-                        if self.data[row][next_col] == Cell.space:
-                            target_row = row
-                            while self.data[target_row][next_col] == Cell.space:
-                                target_row += 1
-                            if dfs(target_end, target_row, next_col, True, been_here):
-                                return True
+            # check jump and move left or right
+            for jump_height in range(1, highest_jump + 1):  # grid spaces, not jump levels
+                if all(row > j and self.data[row - (j+1)][col] == Cell.space
+                       for j in range(1, jump_height + 1)):
+                    if col > LEFT and \
+                            self.data[row - (jump_height + 1)][col - 1] == Cell.space and \
+                            self.data[row - jump_height][col - 1] == Cell.floor:
+                        yield row - jump_height, col - 1, True
+                    if col < RIGHT and \
+                            self.data[row - (jump_height + 1)][col + 1] == Cell.space and \
+                            self.data[row - jump_height][col + 1] == Cell.floor:
+                        yield row - jump_height, col + 1, True
+                    if col > 1 and \
+                            self.data[row - (jump_height + 1)][col - 1] == Cell.space and \
+                            self.data[row - jump_height][col - 1] == Cell.space and \
+                            self.data[row - (jump_height + 1)][col - 2] == Cell.space and \
+                            self.data[row - jump_height][col - 2] == Cell.floor:
+                        yield row - jump_height, col - 2, True
+                    if col < 12 and \
+                            self.data[row - (jump_height + 1)][col + 1] == Cell.space and \
+                            self.data[row - jump_height][col + 1] == Cell.space and \
+                            self.data[row - (jump_height + 1)][col + 2] == Cell.space and \
+                            self.data[row - jump_height][col + 2] == Cell.floor:
+                        yield row - jump_height, col + 2, True
 
-            return False
+            for dir in (-1, 1):
+                # check move
+                next_col = col + dir
+                if next_col >= LEFT and next_col <= RIGHT and \
+                        self.data[row - 1][next_col] == Cell.space:
+                    if self.data[row][next_col] == Cell.floor:
+                        yield row, next_col, True
+                    # horizontal jump over gap of 1
+                    next_next_col = next_col + dir
+                    if next_next_col >= LEFT and next_next_col <= RIGHT and \
+                            self.data[row][next_col] == Cell.space and \
+                            self.data[row - 1][next_next_col] == Cell.space and \
+                            self.data[row][next_next_col] == Cell.floor:
+                        yield row, next_next_col, True
+                    # horizontal jump over gap of 2
+                    nnn_col = next_next_col + dir
+                    if nnn_col >= LEFT and nnn_col <= RIGHT and \
+                            self.data[row][next_col] == Cell.space and \
+                            self.data[row - 1][next_next_col] == Cell.space and \
+                            self.data[row][next_next_col] == Cell.space and \
+                            self.data[row - 1][nnn_col] == Cell.space and \
+                            self.data[row][nnn_col] == Cell.floor:
+                        yield row, nnn_col, True
+                    # or fall
+                    if self.data[row][next_col] == Cell.space:
+                        target_row = row
+                        while self.data[target_row][next_col] == Cell.space:
+                            target_row += 1
+                        yield target_row, next_col, True
 
-        return dfs(target_end, start[0], start[1], standing, set())
+    def _search(self,
+                start: Coord,
+                highest_jump: int,
+                standing: bool = True,
+                target_end: Optional[Coord] = None) -> Set[Tuple[int, int, bool]]:
+        """
+        returns the set of all (row, col, standing) where I can go
+
+        stops search early if target_end is found
+        """
+        row, col = start
+        been: Set[Tuple[int, int, bool]] = set()
+        to_move_from = deque([(row, col, standing)])
+        while len(to_move_from):
+            here = to_move_from.pop()
+            if here not in been:
+                been.add(here)
+                if (here[0], here[1]) == target_end:
+                    return been
+                for adj in self._adj_moves(here, highest_jump):
+                    to_move_from.append(adj)
+        return been
 
     def solve(self, highest_jump: int) -> bool:
         """
@@ -183,11 +187,21 @@ class Grid:
 
         highest_jump is number of grid blocks, not jump level
         """
+        if len(self.ends) == 2:
+            # can stop search early if only 1 other end to look for
+            a, b = self.ends
+            return (a[0], a[1], True) in self._search(b, highest_jump, True, a) \
+                and (b[0], b[1], True) in self._search(a, highest_jump, True, b)
+
         start = self.ends[0]
+        start_state = (start[0], start[1], True)
+        start_goables = self._search(start, highest_jump)
         all_ends = True
         for end in self.ends[1:]:
-            all_ends = all_ends and self._can_arrive(end, start, highest_jump, True)
-            all_ends = all_ends and self._can_arrive(start, end, highest_jump, True)
+            all_ends = all_ends and ((end[0], end[1], True) in start_goables)
+            all_ends = all_ends and (start_state in self._search(
+                end, highest_jump, True, start
+            ))
         return all_ends
 
     def map_str(self, marks: Union[None, Iterable[Coord]] = None) -> str:
@@ -255,20 +269,16 @@ class Grid:
             if not self.sparsify():
                 raise MakeFailure("make terrain failed")
 
-    def get_goables(self, jump_blocks: int, standing_only: bool) -> List[Tuple[Coord, bool]]:
-        """ coordinates can go to (and whether I can stand there) """
-        tr: List[Tuple[Coord, bool]] = []
-        start = self.ends[0]
-        for y, row in enumerate(self.data):
-            for x, col in enumerate(row):
-                if col == Cell.floor:
-                    here = (y, x)
-                    if self._can_arrive(here, start, jump_blocks) and \
-                            self._can_arrive(start, here, jump_blocks, False):
-                        can_stand = self.data[y - 1][x] == Cell.space
-                        if can_stand or not standing_only:
-                            tr.append((here, can_stand))
-        return tr
+    def get_goables(self, jump_blocks: int) -> Set[Tuple[int, int, bool]]:
+        """ coordinates can go to, and whether I can stand there """
+        return self._search(self.ends[0], jump_blocks)
+
+    def get_standing_goables(self, jump_blocks: int) -> List[Tuple[int, int, bool]]:
+        return [
+            goable
+            for goable in self.get_goables(jump_blocks)
+            if goable[2]
+        ]
 
     def copy(self) -> "Grid":
         tr = Grid(self.ends, self._logger)
@@ -277,7 +287,7 @@ class Grid:
 
     def fix_crawl_fall(self, jump_blocks: int = 3) -> None:
         """ eliminate softlocks from crawling into falling holes """
-        base_goables = self.get_goables(jump_blocks, True)
+        base_goables = self.get_standing_goables(jump_blocks)
         for y, row in enumerate(self.data):
             if y > 0:
                 for x, col in enumerate(row):
@@ -299,7 +309,7 @@ class Grid:
                                 if self.data[y - 1][target_col] == Cell.space:
                                     to_restore[y - 1, target_col] = self.data[y - 1][target_col]
                                     self.data[y - 1][target_col] = Cell.floor
-                                new_goables = self.get_goables(jump_blocks, True)
+                                new_goables = self.get_standing_goables(jump_blocks)
                                 if new_goables != base_goables:
                                     # restore
                                     for y_r, x_r in to_restore:
@@ -313,7 +323,7 @@ class Grid:
 
     def optimize_encoding(self, jump_blocks: int = 3) -> None:
         """ try to save space in run-length encoding """
-        base_goables = self.get_goables(jump_blocks, False)
+        base_goables = self.get_goables(jump_blocks)
 
         def try_change(y: int, x: int, value: str) -> bool:
             """ returns whether change was good """
@@ -326,7 +336,7 @@ class Grid:
             if value == Cell.wall and y > 0 and self.data[y - 1][x] == Cell.space:
                 above_saved = self.data[y - 1][x]
                 self.data[y - 1][x] = Cell.floor
-            new_goables = self.get_goables(jump_blocks, False)
+            new_goables = self.get_goables(jump_blocks)
             if new_goables != base_goables:
                 self.data[y][x] = saved
                 if above_saved:
@@ -355,11 +365,12 @@ class Grid:
         # TODO: another pass on the top row? (often ends up with small useless platforms)
 
     def softlock_exists(self, jump_blocks: int) -> bool:
-        for y in range(1, 6):
-            for x in range(14):
-                here = (y, x)
-                if self._can_arrive(here, self.ends[0], jump_blocks) and \
-                        not self._can_arrive(self.ends[0], here, jump_blocks, False):
-                    print(f"softlock at row {y} col {x}")
-                    return True
+        start = self.ends[0]
+        start_state = (start[0], start[1], True)
+        start_goables = self._search(start, jump_blocks)
+        for y, x, standing in start_goables:
+            here = (y, x)
+            if start_state not in self._search(here, jump_blocks, standing, start):
+                print(f"softlock at row {y} col {x}")
+                return True
         return False

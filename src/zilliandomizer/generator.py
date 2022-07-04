@@ -1,4 +1,5 @@
 import os
+from typing import FrozenSet
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import Options, ID
@@ -37,16 +38,18 @@ def generate(seed: int) -> None:
     r = Randomizer(options, logger)
 
     # testing
+    modified_rooms: FrozenSet[int] = frozenset()
     # from zilliandomizer.room_gen.room_gen import RoomGen
     # room_gen = RoomGen(p.tc, logger)
-    # room_gen.choose_all()
+    # room_gen.generate_all()
     # r.reset(room_gen)
+    # modified_rooms = room_gen.get_modified_rooms()
 
     r.roll(seed)
 
     if options.randomize_alarms:
         a = Alarms(p.tc, logger)
-        a.choose_all()
+        a.choose_all(modified_rooms)
 
     p.write_locations(r.locations, options.start_char)
     p.all_fixes_and_options(options)
