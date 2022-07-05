@@ -172,6 +172,49 @@ font_tiles = {
     chr(ord('A') + i): 0x14110 + (i * 0x10)
     for i in range(26)
 }
-font_tiles[' '] = 0x14000
 """ the graphic tile data for each character that can be displayed """
+font_tiles[' '] = 0x14000
 # TODO: find tiles for punctuation and digits
+
+np_sprites_80b6 = 0x80b6
+"""
+2 bytes for each map index, pointer to data for non-player sprites in each room
+
+at each pointer location:
+1 byte for the number of sprites in this room,
+then 6 bytes for each sprite
+
+rr rr xx yy tt tt
+
+rr rr: ram address where this sprite goes
+xx: x coord in room
+yy: y coord in room
+tt tt: type of thing
+
+```
+09 00, 0c 00 unknown outside
+0e 00 ship entrance
+10 00 hallway elevator
+34 0x hallway bread
+39 80 shoot trigger to open door (room 0d)
+32 00 mine    y a8 is where y 98 canister sits
+14 00-03 enemy
+37 00-03 falling enemy
+21 ss auto gun
+   22 down, moving
+   23 right, moving
+   24 left, moving
+   38 down, not moving
+   3a right, not moving
+   3b left, not moving
+1f ss barrier
+   00 horizontal length 1
+   01 horizontal length 2
+   02 vertical   length 1
+   03 vertical   length 1 + small tile (unused?)
+   04 vertical   length 2
+   05 vertical   length 2 + small tile
+   06 horizontal length 1.5
+   07 vertical   length 2 - small tile
+```
+"""
