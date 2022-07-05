@@ -15,6 +15,7 @@ FOUR_CORNERS = [TOP_LEFT, BOT_LEFT, TOP_RIGHT, BOT_RIGHT]
 @dataclass
 class RoomData:
     exits: List[Coord]
+    computer: bool
 
 
 def coord_to_pixel(coord: Coord) -> Tuple[int, int]:

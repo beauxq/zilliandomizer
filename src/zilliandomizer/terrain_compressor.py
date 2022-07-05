@@ -78,12 +78,13 @@ class TerrainCompressor:
     _size: int
     """ total """
 
-    # need to be able to save state this class, to try choosing alarms multiple times
-    _saved_rooms: Dict[int, List[int]] = {}
-    _saved_size: int = 0
+    # need to be able to save state this class, to try generating things multiple times
+    _saved_rooms: Dict[int, List[int]]
+    _saved_size: int
 
     def __init__(self, rom: bytes) -> None:
         self.load(rom)
+        self.save_state()  # make sure there's always something to load
 
     def load(self, rom: bytes) -> None:
         self._map_indexes = []
@@ -140,9 +141,13 @@ class TerrainCompressor:
                 self._map_indexes.append(map_index)
                 self._rooms[map_index] = recompressed
                 self._size += len(recompressed)
+                # print(len(recompressed))
 
         original_size = rom_info.terrain_end_120da - rom_info.terrain_begin_10ef0
         assert original_size - self._size == 77, f"original terrain size: {original_size}  recompressed: {self._size}"
+        # print(f"average compressed size: {self._size / len(self._map_indexes)}")
+        # print(f"average original size: {original_size / len(self._map_indexes)}")
+        # print(f"room count: {len(self._map_indexes)}")
 
         """
         with open("verified_.py", "wt") as file:

@@ -11,6 +11,7 @@ from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
 from zilliandomizer.room_gen.room_gen import RoomGen
+from zilliandomizer.utils import parse_reg_name
 
 # this is used in math, not just an id
 # (in case someone is tempted to change it to 0-2 to match rom value)
@@ -43,6 +44,12 @@ class Randomizer:
             self.room_gen = room_gen
         locations = self.room_gen.make_locations() if self.room_gen else make_locations()
         start = make_regions(locations)
+        if room_gen:
+            for region_name, region in start.all.items():
+                if len(region_name) == 5 and region_name[0] == 'r' and region_name[3] == 'c':
+                    row, col = parse_reg_name(region_name)
+                    map_index = row * 8 + col
+                    region.computer = room_gen.get_computer(map_index)
         self.start = start
         self.locations = locations
 

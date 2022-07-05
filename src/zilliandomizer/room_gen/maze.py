@@ -3,7 +3,9 @@ from copy import deepcopy
 import random
 from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from zilliandomizer.logger import Logger
+from zilliandomizer.low_resources.terrain_tiles import Tile
 from zilliandomizer.room_gen.common import Coord
+from zilliandomizer.terrain_compressor import TerrainCompressor
 
 LEFT = 0
 RIGHT = 13
@@ -25,10 +27,12 @@ class Grid:
     data: List[List[str]]
     ends: List[Coord]
     """ coords of lower left """
+    _tc: TerrainCompressor
     _logger: Logger
 
-    def __init__(self, ends: List[Coord], logger: Logger) -> None:
+    def __init__(self, ends: List[Coord], tc: TerrainCompressor, logger: Logger) -> None:
         self.ends = ends
+        self._tc = tc
         self._logger = logger
         self.reset()
 
@@ -235,6 +239,11 @@ class Grid:
         return (row + 1, col - 1) in self.ends
 
     def sparsify(self) -> bool:
+        """
+        make more space for the character to move around in the room
+
+        returns whether a change was made
+        """
         clearables: List[Coord] = []
 
         def is_clearable(row: int, col: int) -> bool:
@@ -266,10 +275,113 @@ class Grid:
             self.data[row][col] = random.choice((Cell.space, Cell.floor))
         return True
 
-    def make(self, jump_blocks: int) -> None:
-        while not self.solve(jump_blocks):
-            if not self.sparsify():
-                raise MakeFailure("make terrain failed")
+    def shortify(self) -> bool:
+        """
+        make the room more compressible, so it takes fewer bytes in the rom
+
+        return whether a change was made
+        """
+        changeables: List[Tuple[int, int, List[str]]] = []
+
+        def is_changeable(row: int, col: int) -> List[str]:
+            """ returns what it can change to """
+            tr: List[str] = []
+            if self.in_exit(row, col):
+                return tr
+
+            here = self.data[row][col]
+            left = self.data[row][col - 1] if col > LEFT else Cell.wall
+            right = self.data[row][col + 1] if col < RIGHT else Cell.wall
+
+            if here == left or here == right:
+                # we benefit from changing this, only if
+                # we can change to a floor without losing space
+                # and we can benefit from changing below to a wall
+                if here != Cell.floor and (
+                    left == Cell.floor or
+                    right == Cell.floor
+                ) and row < BOTTOM:
+                    # we can change to a floor without losing space
+                    # and not on bottom row
+                    below = self.data[row + 1][col]
+                    below_left = self.data[row + 1][col - 1] if col > LEFT else Cell.wall
+                    below_right = self.data[row + 1][col + 1] if col < RIGHT else Cell.wall
+                    if below == below_left or below == below_right or Cell.wall not in (below_left, below_right):
+                        # no benefit from changing below to a wall
+                        return tr
+                    else:  # would benefit from changing below to wall
+                        return [Cell.floor]
+                else:  # either bottom row or can't change to floor without losing space
+                    return tr
+            else:  # here is different from both left and right
+                if left == right:
+                    if left == Cell.wall:
+                        if row == TOP or self.data[row - 1][col] != Cell.space:
+                            return [left]
+                        else:  # can't turn this to wall because space above it
+                            return tr
+                    elif left == Cell.space:
+                        if row == BOTTOM or self.data[row + 1][col] != Cell.wall:
+                            return [left]
+                        else:  # can't turn this to space because wall below it
+                            return tr
+                    else:  # floor on both sides
+                        return [left]
+                else:  # left and right different
+                    if left == Cell.wall:
+                        if row == TOP or self.data[row - 1][col] != Cell.space:
+                            tr.append(left)
+                    elif left == Cell.space:
+                        if row == BOTTOM or self.data[row + 1][col] != Cell.wall:
+                            tr.append(left)
+                    else:  # floor on left
+                        tr.append(left)
+
+                    if right == Cell.wall:
+                        if row == TOP or self.data[row - 1][col] != Cell.space:
+                            tr.append(right)
+                    elif right == Cell.space:
+                        if row == BOTTOM or self.data[row + 1][col] != Cell.wall:
+                            tr.append(right)
+                    else:  # floor on left
+                        tr.append(right)
+                    return tr
+
+        for row in range(6):
+            for col in range(14):
+                changeable = is_changeable(row, col)
+                if len(changeable):
+                    changeables.append((row, col, changeable))
+        if len(changeables) == 0:
+            return False
+        row, col, change_to = random.choice(changeables)
+        self.data[row][col] = random.choice(change_to)
+        return True
+
+    def make(self, jump_blocks: int, size_limit: float) -> None:
+        success = False
+        count = 0
+        while count < 500 and not success:
+            count += 1
+            solved = self.solve(jump_blocks)
+            if solved:
+                # using a red room because red might be most restrictive?
+                # otherwise doesn't matter which room
+                data = self.to_room_data(0x31)
+                if len(data) <= size_limit:
+                    success = True
+                else:
+                    if self.shortify() or self.sparsify():
+                        success = False  # need to check again
+                    else:  # unable to find any changes
+                        raise MakeFailure("make terrain failed")
+            else:  # not able to traverse yet
+                if self.sparsify() or self.shortify():
+                    success = False  # check again
+                else:  # unable to find any changes
+                    raise MakeFailure("make terrain failed")
+        if not success:
+            raise MakeFailure("make terrain failed")
 
     def get_goables(self, jump_blocks: int) -> Set[Tuple[int, int, bool]]:
         """ coordinates can go to, and whether I can stand there """
@@ -283,7 +395,7 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.ends, self._logger)
+        tr = Grid(self.ends, self._tc, self._logger)
         tr.data = deepcopy(self.data)
         return tr
 
@@ -378,3 +490,65 @@ class Grid:
                 self._logger.debug(self.map_str())
                 return True
         return False
+
+    def to_room_data(self, map_index: int) -> List[int]:
+        """ to compressed """
+        if map_index < 0x28:  # blue
+            wall = Tile.b_walls
+            floor_even = Tile.b_floor
+            floor_odd = floor_even
+            space_even = Tile.b_space
+            space_odd = space_even
+            ceiling_even = Tile.b_ceiling
+            ceiling_odd = ceiling_even
+            floor_ceiling_even = Tile.b_floor_ceiling
+            floor_ceiling_odd = floor_ceiling_even
+        elif map_index < 0x50:  # red
+            wall = Tile.r_walls
+            floor_even = Tile.r_light_floor
+            floor_odd = Tile.r_dark_floor
+            space_even = Tile.r_light_space
+            space_odd = Tile.r_dark_space
+            ceiling_even = Tile.r_light_ceiling
+            ceiling_odd = Tile.r_dark_ceiling
+            floor_ceiling_even = Tile.r_light_floor_ceiling
+            floor_ceiling_odd = Tile.r_dark_floor_ceiling
+        else:  # paperclip
+            wall = Tile.p_walls
+            floor_even = Tile.p_floor
+            floor_odd = floor_even
+            space_even = Tile.p_space
+            space_odd = space_even
+            ceiling_even = Tile.p_ceiling
+            ceiling_odd = ceiling_even
+            floor_ceiling_even = Tile.p_floor_ceiling
+            floor_ceiling_odd = floor_ceiling_even
+
+        original_data = TerrainCompressor.decompress(self._tc.get_room(map_index))
+
+        tr: List[int] = []
+        for row in range(len(self.data)):
+
+            # left wall
+            tr.append(original_data[len(tr)])
+
+            for col in range(len(self.data[0])):
+                if self.data[row][col] == Cell.wall:
+                    tr.append(wall)
+                else:  # not wall here
+                    ceiling_here = (row == 0) or (self.data[row - 1][col] != Cell.space)
+                    if not ceiling_here:
+                        if self.data[row][col] == Cell.space:
+                            tr.append(space_odd if (row & 1) else space_even)
+                        else:  # floor with no ceiling
+                            tr.append(floor_odd if (row & 1) else floor_even)
+                    else:  # floor or space with ceiling above
+                        if self.data[row][col] == Cell.space:
+                            tr.append(ceiling_odd if (row & 1) else ceiling_even)
+                        else:  # floor with no ceiling
+                            tr.append(floor_ceiling_odd if (row & 1) else floor_ceiling_even)
+
+            # right wall
+            tr.append(original_data[len(tr)])
+
+        return TerrainCompressor.compress(tr)

@@ -1,4 +1,4 @@
-from typing import Dict, List, Any
+from typing import ClassVar, Dict, List, Any
 # some changes here for working on region connections
 # from typing_extensions import Unpack  # type: ignore
 from zilliandomizer.logic_components.locations import Req, Location  # , ReqArgs
@@ -9,15 +9,18 @@ class Region:
     door: int
     connections: Dict["Region", Req]
     locations: List[Location]
+    computer: bytes
+    """ `0xff` for all non-generated rooms """
 
     # static
-    all: Dict[str, "Region"] = {}
+    all: ClassVar[Dict[str, "Region"]] = {}
 
     def __init__(self, name: str, door: int = 0) -> None:
         self.name = name
         self.door = door
         self.connections = {}
         self.locations = []
+        self.computer = b'\xff'
         Region.all[name] = self
 
     # this is good for type checking when working with region connections

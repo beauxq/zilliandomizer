@@ -75,13 +75,13 @@ room item data structure:
 
             vvvvv is vertical position (1-19)
                 (0 puts a hole in the ceiling, 20 puts a hole in the floor)
-                canister position 18 = computer position 00011
-                                  38 = 00111
-                                  58 = 01011
-                                  78 = 01111
-                                  98 = 10011
-            hhhhh is horizontal position (2-29)
-                (0, 1, 30, 31 put holes in the walls)
+                canister position 0x18 = computer position 00011
+                                  0x38 = 00111
+                                  0x58 = 01011
+                                  0x78 = 01111
+                                  0x98 = 10011
+            hhhhh is horizontal position (2-28)
+                (0, 1, 29, 30 put holes in the walls)
 """
 
 ItemData = Tuple[int, int, int, int, int, int, int, int]
@@ -115,7 +115,7 @@ def make_loc_name(map_index: int, item_or_y: Union[ItemData, int], x: Optional[i
 
 def parse_reg_name(name: str) -> Tuple[int, int]:
     """ row and col from region name """
-    assert name[0] == 'r' and name[3] == 'c'
+    assert name[0] == 'r' and name[3] == 'c', name
     row = int(name[1:3])
     col = int(name[4])
     return row, col

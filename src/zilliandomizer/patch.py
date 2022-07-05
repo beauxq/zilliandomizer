@@ -7,7 +7,7 @@ from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.terrain_compressor import TerrainCompressor
-from zilliandomizer.utils import ItemData, parse_loc_name
+from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
 
 ROM_NAME = "Zillion (UE) [!].sms"
 
@@ -484,6 +484,13 @@ class Patcher:
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(rom_room + 1 + 8 * item_no, new_item_data)
                     items_placed_in_map_index[map_index] += 1
+            if region.computer != b'\xff':
+                row, col = parse_reg_name(region.name)
+                map_index = row * 8 + col
+                rom_room = self.get_address_for_room(map_index)
+                computer_address = rom_room + 1 + 8 * self.item_count(rom_room)
+                self.writes[computer_address] = region.computer[0]
+                self.writes[computer_address + 1] = region.computer[1]
 
     def _use_bank(self, bank_no: int, code: bytearray) -> int:
         """
