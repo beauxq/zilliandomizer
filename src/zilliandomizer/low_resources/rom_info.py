@@ -48,7 +48,10 @@ floppy_req_instruction_4fb0 = 0x4fb0
 """ the conditional jump instruction that checks for the correct number of floppies """
 
 floppy_req_4faf = 0x4faf
-""" the number of floppies required """
+""" the number of floppies required at main computer """
+
+floppy_req_13ef = 0x13ef
+""" the number of floppies required at ship to win """
 
 floppy_intro_text_1a771 = 0x1a771
 """ the text in the introduction that tells how many floppies are required """

@@ -18,6 +18,7 @@ def set_verified_bytes(b: bytearray) -> None:
     b[rom_info.floppy_req_instruction_4fb0] = 0xc2
     # floppy req
     b[rom_info.floppy_req_4faf] = 0x05
+    b[rom_info.floppy_req_13ef] = 0x05
 
     # floppy intro text
     floppy_text = b'THE 5 FLOPPY DISKS FROM'

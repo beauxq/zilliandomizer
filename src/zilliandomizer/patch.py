@@ -220,13 +220,14 @@ class Patcher:
         self.demos_disabled = True
 
     def set_required_floppies(self, floppy_count: int) -> None:
-        """ set how many floppies are required to use the main computer """
-        # 01:4FAF = number of floppies required
-        addr = rom_info.floppy_req_4faf
-        if self.verify:
-            assert self.rom[addr] == 0x05
-        assert 0 <= floppy_count < 256
-        self.writes[addr] = floppy_count
+        """ set how many floppies are required to use the main computer and win """
+        # 01:4FAF = number of floppies required to use the main computer
+        # 01:13EF = number of floppies required to win at the ship
+        for addr in (rom_info.floppy_req_4faf, rom_info.floppy_req_13ef):
+            if self.verify:
+                assert self.rom[addr] == 0x05
+            assert 0 <= floppy_count < 256
+            self.writes[addr] = floppy_count
 
         # change introduction text to tell how many floppies are required
         addr = rom_info.floppy_intro_text_1a771
@@ -250,10 +251,6 @@ class Patcher:
         # I'm not changing this. No matter how many floppies are required
         # to win, 4 is still the number of floppies that gives an extra
         # continue.
-
-        # TODO: Investigate: I think there's another place in the code that checks the floppy requirement.
-        # maybe something happens at the ship if you have them?
-        # I don't see anything special happening if I go to the ship with 5 floppies.
 
     def set_display_computer_codes_default(self, display: bool) -> None:
         """
