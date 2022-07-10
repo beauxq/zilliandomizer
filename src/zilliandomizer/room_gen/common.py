@@ -19,7 +19,7 @@ class RoomData:
 
 
 def coord_to_pixel(coord: Coord) -> Tuple[int, int]:
-    """ returns y_pixel [0x18, 0x98], x_pixel [0x10, 0xe0] """
+    """ returns y_pixel [0x18, 0x98] (-8 for y_coord 0), x_pixel [0x10, 0xe0] """
     y_coord, x_coord = coord
     y_pixel = 0x20 * y_coord - 8
     x_pixel = x_coord * 0x10 + 0x10

@@ -1,14 +1,15 @@
-from random import choice, sample, shuffle
+from random import choice, randrange, sample, shuffle
 from typing import Dict, FrozenSet, List, Set
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region
-from zilliandomizer.low_resources.sprite_types import SpriteType
+from zilliandomizer.low_resources.sprite_types import AutoGunSub, SpriteType
 from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
 from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS
 from zilliandomizer.room_gen.maze import Grid, MakeFailure
+from zilliandomizer.room_gen.sprite_placing import auto_gun_places
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import make_loc_name, make_reg_name
 from zilliandomizer.logger import Logger
@@ -154,9 +155,11 @@ class RoomGen:
               grid: Grid) -> None:
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.
+        agp = auto_gun_places(grid)
         cursor = 0
         for sprite in sprites:
             if sprite.type[0] in floor_sprite_types:
+                # TODO: can I make it so it's always possible to jump over mines?
                 y, x = coord_to_pixel(coords[cursor])
                 cursor += 1
                 if sprite.type[0] == SpriteType.mine:
@@ -169,9 +172,35 @@ class RoomGen:
                 # TODO: implement
                 pass
             elif sprite.type[0] == SpriteType.auto_gun:
-                # TODO: implement
-                # can I avoid having them move over doors?
-                pass
+                # TODO: can I avoid having them move over doors?
+                # (I already avoid placing them on doors, but they can still move.)
+                subtype = sprite.type[1]
+                if subtype in (AutoGunSub.down, AutoGunSub.down_move):
+                    if len(agp.down):
+                        c = agp.down.pop()
+                        y, x = coord_to_pixel(c)
+                        y += 8
+                    else:
+                        y = 0
+                        x = randrange(0x10, 0xe1)
+                elif subtype in (AutoGunSub.right, AutoGunSub.right_move):
+                    if len(agp.right):
+                        c = agp.right.pop()
+                        y, x = coord_to_pixel(c)
+                        y += 16
+                    else:
+                        y = randrange(0x48, 0x69)
+                        x = 0x10
+                else:  # left facing
+                    if len(agp.left):
+                        c = agp.left.pop()
+                        y, x = coord_to_pixel(c)
+                        y += 16
+                    else:
+                        y = randrange(0x48, 0x69)
+                        x = 0xe0
+                sprite.x = x
+                sprite.y = y
             else:
                 self._logger.warn(f"sprite type {sprite.type[0]} unhandled in room {map_index}")
         this_room = GEN_ROOMS[map_index]
