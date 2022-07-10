@@ -4,12 +4,23 @@ from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.low_resources.sprite_types import SpriteType
+from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
 from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS
 from zilliandomizer.room_gen.maze import Grid, MakeFailure
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import make_loc_name, make_reg_name
 from zilliandomizer.logger import Logger
+
+floor_sprite_types = (
+    SpriteType.mine,
+    SpriteType.enemy,
+    # moving falling enemies to the floor
+    # because it's more complex to find a place for them to fall from
+    # TODO: implement falling enemies
+    SpriteType.falling_enemy
+)
 
 
 class RoomGen:
@@ -18,12 +29,7 @@ class RoomGen:
     because this could use all of the space for terrain.
     """
     tc: TerrainCompressor
-    # _space_pacer_init: Final[float]
-    """ how many extra bytes we start with before choosing alarms """
-    _space_pacer: float
-    """ what the space available should be if using the space gradually """
-    # _space_per_room: Final[float]
-    """ the ideal number of extra bytes to use for each room """
+    sm: NPSpriteManager
     _logger: Logger
 
     _canisters: Dict[int, List[Coord]]
@@ -35,8 +41,9 @@ class RoomGen:
     _rooms: Set[int]
     """ rooms generated (map_index) """
 
-    def __init__(self, tc: TerrainCompressor, logger: Logger) -> None:
+    def __init__(self, tc: TerrainCompressor, sm: NPSpriteManager, logger: Logger) -> None:
         self.tc = tc
+        self.sm = sm
         self._logger = logger
 
         # testing
@@ -55,6 +62,7 @@ class RoomGen:
 
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
+        self.sm.save_state()
         self.reset()
 
         # so the top rooms don't always have more space than the bottom
@@ -83,6 +91,7 @@ class RoomGen:
             else:
                 self._logger.debug(f"overused terrain memory by {-self.tc.get_space()} bytes")
                 self.tc.load_state()
+                self.sm.load_state()
                 self.reset()
 
     def _generate_room(self, map_index: int, jump_blocks: int, size_limit: float) -> int:
@@ -97,8 +106,9 @@ class RoomGen:
             exits.append(choice(far_corners))
         g = Grid(exits, self.tc, self._logger)
         placed: List[Coord] = []
+        done_generating = False
 
-        while len(placed) == 0:  # TODO: not a good condition (some rooms don't have anything - r08c1)
+        while not done_generating:  # TODO: not a good condition (some rooms don't have anything - r08c1)
             g.reset()
             try:
                 g.make(jump_blocks, size_limit)
@@ -108,19 +118,26 @@ class RoomGen:
                 softlock = g.softlock_exists(2) or g.softlock_exists(3)
                 if not softlock:
                     # TODO: keep track of which canisters require jump 3
+                    # TODO: find out which rooms require jump 3 to get through (to which exit)
                     goables = g.get_standing_goables(jump_blocks)
                     placeables = [(y, x) for y, x, _ in goables if not g.in_exit(y, x)]
                     reg_name = make_reg_name(map_index)
-                    assert reg_name in Region.all, f"generated terrain for non-region {reg_name}"
-                    region = Region.all[reg_name]
-                    placeable_count = len(region.locations) + this_room.computer
-                    if len(placeables) > placeable_count + 1:
-                        placed = sample(placeables, placeable_count)
-                        # TODO: possible uncompletable seed: Make sure I can get to 2 places
-                        # in the height of the lowest canister.
-                        self._canisters[map_index] = placed[this_room.computer:]
-                        if this_room.computer:
-                            self._computers[map_index] = placed[0]
+                    assert (reg_name == "r08c1") or (reg_name in Region.all), \
+                        f"generated terrain for non-region {reg_name}"
+                    region_locations = Region.all[reg_name].locations if reg_name in Region.all else []
+                    sprites = self.sm.get_room(map_index)
+                    floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
+                    placeable_count = (
+                        len(region_locations) +
+                        this_room.computer +
+                        floor_sprite_count
+                    )
+                    self._logger.debug(f"need to place {placeable_count} in room {map_index}")
+                    if len(placeables) >= placeable_count:
+                        if placeable_count > 0:
+                            placed = sample(placeables, placeable_count)
+                            self.place(placed, sprites, map_index, g)
+                        done_generating = True
             except MakeFailure:
                 print(".", end="")
         print()
@@ -129,6 +146,41 @@ class RoomGen:
         compressed = g.to_room_data(map_index)
         self.tc.set_room(map_index, compressed)
         return len(compressed)
+
+    def place(self,
+              coords: List[Coord],
+              sprites: RoomSprites,
+              map_index: int,
+              grid: Grid) -> None:
+        # TODO: possible uncompletable seed: Make sure I can get to 2 places
+        # in the height of the lowest canister.
+        cursor = 0
+        for sprite in sprites:
+            if sprite.type[0] in floor_sprite_types:
+                y, x = coord_to_pixel(coords[cursor])
+                cursor += 1
+                if sprite.type[0] == SpriteType.mine:
+                    y += 0x10
+                elif sprite.type[0] == SpriteType.falling_enemy:
+                    sprite.type = (SpriteType.enemy, sprite.type[1])
+                sprite.x = x
+                sprite.y = y
+            elif sprite.type[0] == SpriteType.barrier:
+                # TODO: implement
+                pass
+            elif sprite.type[0] == SpriteType.auto_gun:
+                # TODO: implement
+                # can I avoid having them move over doors?
+                pass
+            else:
+                self._logger.warn(f"sprite type {sprite.type[0]} unhandled in room {map_index}")
+        this_room = GEN_ROOMS[map_index]
+        if this_room.computer:
+            self._computers[map_index] = coords[cursor]
+            cursor += 1
+        self._canisters[map_index] = coords[cursor:]
+
+        self.sm.set_room(map_index, sprites)
 
     def make_locations(self) -> Dict[str, Location]:
         # original = make_locations()

@@ -6,6 +6,7 @@ from zilliandomizer.options import Options, ID
 from zilliandomizer.options.parsing import parse_options
 from zilliandomizer.logger import Logger
 from zilliandomizer.patch import Patcher
+from zilliandomizer.room_gen.room_gen import RoomGen
 
 some_options = Options(item_counts={
     ID.card: 50,
@@ -37,13 +38,12 @@ def generate(seed: int) -> None:
     logger.spoil(f"seed {seed_str}")
     r = Randomizer(options, logger)
 
-    # testing
     modified_rooms: FrozenSet[int] = frozenset()
-    # from zilliandomizer.room_gen.room_gen import RoomGen
-    # room_gen = RoomGen(p.tc, logger)
-    # room_gen.generate_all()
-    # r.reset(room_gen)
-    # modified_rooms = room_gen.get_modified_rooms()
+    if options.room_gen:
+        room_gen = RoomGen(p.tc, p.sm, logger)
+        room_gen.generate_all()
+        r.reset(room_gen)
+        modified_rooms = room_gen.get_modified_rooms()
 
     r.roll(seed)
 

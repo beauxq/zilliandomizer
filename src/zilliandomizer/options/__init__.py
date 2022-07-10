@@ -37,11 +37,11 @@ class ID(IntEnum):
 ItemCounts = Dict[ID, int]
 
 default_item_counts: ItemCounts = {
-    ID.card: 50,
-    ID.bread: 35,
+    ID.card: 55,
+    ID.bread: 33,
     ID.opa: 26,
-    ID.gun: 10,
-    ID.floppy: 7,
+    ID.gun: 9,
+    ID.floppy: 8,
     ID.scope: 4,
     ID.red: 2
 }
@@ -76,12 +76,14 @@ class Options:
     """ which character you start with """
     floppy_req: int = 5
     """ how many floppies are required """
-    continues: int = -1
+    continues: int = 3
     """ number of continues before game over, -1 for infinity """
     randomize_alarms: bool = True
     """ whether to randomize the locations of alarm sensors """
     early_scope: bool = False
     """ whether to make sure there is a scope available early """
+    room_gen: bool = False
+    """ whether to generate rooms with random terrain """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
 
 

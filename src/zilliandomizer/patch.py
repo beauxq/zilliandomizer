@@ -5,6 +5,7 @@ from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
+from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
@@ -39,6 +40,11 @@ class Patcher:
     demos_disabled: bool
     """ needed for bank 6 space """
 
+    rom_path: str
+    rom: bytes
+    tc: TerrainCompressor
+    sm: NPSpriteManager
+
     BANK_OFFSETS: ClassVar[Dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
         2: 0,  # bank 2 if I use (unbanked) 0x8000 through 0xbfff
@@ -48,10 +54,6 @@ class Patcher:
         6: 0x10000,
         7: 0x14000,
     }
-
-    rom_path: str
-    rom: bytes
-    tc: TerrainCompressor
 
     def __init__(self, path_to_rom: str = "") -> None:
         self.writes = {}
@@ -86,6 +88,7 @@ class Patcher:
         assert Patcher.checksum(self.rom), "incorrect data in rom - invalid checksum"
 
         self.tc = TerrainCompressor(self.rom)
+        self.sm = NPSpriteManager(self.rom)
 
     def fix_floppy_req(self) -> None:
         """
@@ -1317,6 +1320,7 @@ class Patcher:
 
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
+        self.writes.update(self.sm.get_writes())
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()

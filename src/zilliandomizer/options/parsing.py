@@ -39,6 +39,7 @@ valid_choices: Dict[str, Container[Any]] = {
     "continues": range(-1, 127),
     "randomize_alarms": (True, False),
     "early_scope": (True, False),
+    "room_gen": (True, False),
 }
 
 sub_options = {

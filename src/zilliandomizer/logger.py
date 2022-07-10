@@ -15,3 +15,6 @@ class Logger:
     def debug(self, line: str) -> None:
         if self.debug_stdout:
             print(line)
+
+    def warn(self, line: str) -> None:
+        print(line)
