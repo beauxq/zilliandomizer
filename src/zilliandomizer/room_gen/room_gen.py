@@ -4,12 +4,12 @@ from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region
-from zilliandomizer.low_resources.sprite_types import AutoGunSub, SpriteType
+from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, SpriteType
 from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
 from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS
 from zilliandomizer.room_gen.maze import Grid, MakeFailure
-from zilliandomizer.room_gen.sprite_placing import auto_gun_places
+from zilliandomizer.room_gen.sprite_placing import auto_gun_places, sensor_barrier_places
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import make_loc_name, make_reg_name
 from zilliandomizer.logger import Logger
@@ -48,8 +48,8 @@ class RoomGen:
         self._logger = logger
 
         # testing
-        logger.spoil_stdout = True
-        logger.debug_stdout = True
+        # logger.spoil_stdout = True
+        # logger.debug_stdout = True
 
     def reset(self) -> None:
         self._canisters = {}
@@ -77,7 +77,17 @@ class RoomGen:
             total_space_limit = len(GEN_ROOMS) * 59
             for i, map_index in enumerate(shuffled_gen_rooms):
                 print(f"generating room {i + 1} / {len(GEN_ROOMS)}")
-                jump_block_ability = 2  # TODO: progressive jump requirements
+                jump_block_ability = 2
+                # TODO: random progressive jump requirements
+                if map_index in {
+                    0x3f,
+                    0x45, 0x46, 0x47,
+                    0x4b, 0x4c, 0x4d, 0x4f,
+                    0x52,
+                    0x5a, 0x5b, 0x5c,
+                    0x62, 0x63, 0x64,
+                }:
+                    jump_block_ability = 3
 
                 number_of_rooms_remaining = len(GEN_ROOMS) - i
                 ideal_space_limit = (total_space_limit - total_space_taken) / number_of_rooms_remaining
@@ -136,8 +146,14 @@ class RoomGen:
                     self._logger.debug(f"need to place {placeable_count} in room {map_index}")
                     if len(placeables) >= placeable_count:
                         if placeable_count > 0:
-                            placed = sample(placeables, placeable_count)
-                            self.place(placed, sprites, map_index, g)
+                            # take 2 samples, and choose whichever has higher coords
+                            # (to counter the tendency of putting most on the lowest level)
+                            placed_1 = sample(placeables, placeable_count)
+                            placed_2 = sample(placeables, placeable_count)
+                            sum_1 = sum(p[0] for p in placed_1)
+                            sum_2 = sum(p[0] for p in placed_2)
+                            placed = placed_1 if sum_1 < sum_2 else placed_2
+                        self.place(placed, sprites, map_index, g)
                         done_generating = True
             except MakeFailure:
                 print(".", end="")
@@ -153,9 +169,11 @@ class RoomGen:
               sprites: RoomSprites,
               map_index: int,
               grid: Grid) -> None:
+        # TODO: place alarm sensors
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.
         agp = auto_gun_places(grid)
+        sbp = sensor_barrier_places(grid, coords)
         cursor = 0
         for sprite in sprites:
             if sprite.type[0] in floor_sprite_types:
@@ -169,8 +187,27 @@ class RoomGen:
                 sprite.x = x
                 sprite.y = y
             elif sprite.type[0] == SpriteType.barrier:
-                # TODO: implement
-                pass
+                if len(sbp.bars):
+                    bar_place = sbp.bars.pop()
+                    new_subtype = (
+                        BarrierSub.ver_8, BarrierSub.hor_2, BarrierSub.hor_4
+                    )[bar_place.hor_len]
+                    sprite.type = (sprite.type[0], new_subtype)
+                    y, x = coord_to_pixel(bar_place.c)
+                    if bar_place.hor_len:
+                        y += 0x20  # bottom of tile
+                    else:  # vertical
+                        y += 8
+                        x += 8 * randrange(2)  # either left or right side of larger tile
+                else:  # didn't find any good place to put a bar
+                    # TODO: changing to mine offscreen is not a good solution because
+                    # offscreen mine will show up in next room when screen scrolls to it
+                    sprite.type = (SpriteType.mine, 0x00)
+                    y = 0xc8  # off screen
+                    x = 0x80
+                    self._logger.debug(f"not enough good places for barrier in room {map_index}")
+                sprite.y = y
+                sprite.x = x
             elif sprite.type[0] == SpriteType.auto_gun:
                 # TODO: can I avoid having them move over doors?
                 # (I already avoid placing them on doors, but they can still move.)

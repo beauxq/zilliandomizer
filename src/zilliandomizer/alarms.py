@@ -106,7 +106,10 @@ class Alarms:
             self._logger.debug(f"increasing prob_mult from {prob_mult} to {(prob_mult + increases) / (increases + 1)}")
             prob_mult = (prob_mult + increases) / (increases + 1)
             assert prob_mult < 1, f"sanity check on increasing prob_mult {prob_mult}, pace_diff {pace_diff}"
-        while (len(eliminated) < len(this_room)) and random() < prob:
+        while (len(eliminated) < len(this_room)) and random() < (
+            # usually at least as many alarms as vanilla, and unlikely to have many more
+            (prob * 0.3) if len(chosen) >= vanilla_alarm_count else prob
+        ):
             choices: List[Alarm] = [a for a in this_room if a.id not in eliminated]
             n = len(choices)  # not changing during iteration
             for i in range(n):
