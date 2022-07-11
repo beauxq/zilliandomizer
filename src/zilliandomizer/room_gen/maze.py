@@ -69,6 +69,14 @@ class Grid:
             yield row, col, False
 
             # jump around ledge
+            # TODO: impossible jump around ledge:
+            # _  |
+            #   _|
+            #    |
+            #   _|
+            #    |
+            # ___|
+            # (It is possible if the left platform is 1 tile lower.)
             # TODO: don't jump around ledges at low skill levels
             left_col = col - 1
             right_col = col + 1

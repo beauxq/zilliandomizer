@@ -9,7 +9,7 @@ from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
 from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS
 from zilliandomizer.room_gen.maze import Grid, MakeFailure
-from zilliandomizer.room_gen.sprite_placing import auto_gun_places, sensor_barrier_places
+from zilliandomizer.room_gen.sprite_placing import auto_gun_places, barrier_places
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import make_loc_name, make_reg_name
 from zilliandomizer.logger import Logger
@@ -173,7 +173,7 @@ class RoomGen:
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.
         agp = auto_gun_places(grid)
-        sbp = sensor_barrier_places(grid, coords)
+        bp = barrier_places(grid, coords)
         cursor = 0
         for sprite in sprites:
             if sprite.type[0] in floor_sprite_types:
@@ -187,24 +187,28 @@ class RoomGen:
                 sprite.x = x
                 sprite.y = y
             elif sprite.type[0] == SpriteType.barrier:
-                if len(sbp.bars):
-                    bar_place = sbp.bars.pop()
+                if len(bp.bars):
+                    bar_place = bp.bars.pop()
                     new_subtype = (
-                        BarrierSub.ver_8, BarrierSub.hor_2, BarrierSub.hor_4
-                    )[bar_place.hor_len]
+                        (BarrierSub.hor_2, BarrierSub.hor_4)[bar_place.length - 1]
+                        if bar_place.horizontal
+                        else (BarrierSub.ver_4, BarrierSub.ver_8)[bar_place.length - 1]
+                    )
+
                     sprite.type = (sprite.type[0], new_subtype)
                     y, x = coord_to_pixel(bar_place.c)
-                    if bar_place.hor_len:
+                    if bar_place.horizontal:
                         y += 0x20  # bottom of tile
                     else:  # vertical
                         y += 8
                         x += 8 * randrange(2)  # either left or right side of larger tile
+                        # TODO: if one side is next to a wall, move x away from wall
                 else:  # didn't find any good place to put a bar
                     # TODO: changing to mine offscreen is not a good solution because
                     # offscreen mine will show up in next room when screen scrolls to it
                     sprite.type = (SpriteType.mine, 0x00)
-                    y = 0xc8  # off screen
-                    x = 0x80
+                    y = 0xbc  # half off screen
+                    x = 0x90
                     self._logger.debug(f"not enough good places for barrier in room {map_index}")
                 sprite.y = y
                 sprite.x = x
