@@ -29,11 +29,14 @@ class Grid:
     """ coords of lower left """
     _tc: TerrainCompressor
     _logger: Logger
+    _skill: int
+    """ skill from options """
 
-    def __init__(self, ends: List[Coord], tc: TerrainCompressor, logger: Logger) -> None:
+    def __init__(self, ends: List[Coord], tc: TerrainCompressor, logger: Logger, skill: int) -> None:
         self.ends = ends
         self._tc = tc
         self._logger = logger
+        self._skill = skill
         self.reset()
 
     def reset(self) -> None:
@@ -46,7 +49,55 @@ class Grid:
             self.data[row - 1][col] = Cell.space
             self.data[row - 1][col + 1] = Cell.space
 
-    def _adj_moves(self, state: Tuple[int, int, bool], highest_jump: int) -> Iterator[Tuple[int, int, bool]]:
+    def side_of_jump_around(self, row: int, col: int, dir: int, jump: int) -> bool:
+        """ Is there terrain to the side that I can do a jump around ledge through? """
+        next_col = col + dir
+
+        if not (
+            next_col >= LEFT and next_col <= RIGHT and
+            all(
+                self.data[row - i][next_col] == Cell.space
+                for i in range(jump + 2)
+            )
+        ):
+            return False
+
+        next_next_col = next_col + dir
+
+        if next_next_col < LEFT or next_next_col > RIGHT:
+            return True
+
+        # what I'm trying to deal with here
+        # _  |  _  |     |     |     |     |
+        #   _|    _|  _ _|  _ _|  _ _|  _ _|
+        #    |     |     |     |  _ _|    _|
+        #   _|     |    _|     |     |     |
+        #    |    _|     |    _|    _|    _|
+        # ___|  ___|  ___|  ___|  ___|  ___|
+        # some are difficult, some are impossible
+
+        # find out what row above me is solid
+        head_hit = row - 2
+        while head_hit >= 0 and self.data[head_hit][col] == Cell.space:
+            head_hit -= 1
+
+        if self.data[head_hit + 1][next_next_col] != Cell.space:
+            # This solid block helps me get in the slot
+            return True
+        # else there is a space 1 below head hit
+        if self.data[head_hit][next_next_col] != Cell.space:
+            # I have to jump into a slot.
+            return self._skill > 3
+        # else space at head hit level also
+        if self.data[head_hit - 1][next_next_col] != Cell.space:
+            # I think this jump is impossible
+            return False
+        # else space all the way up to top of where I'm jumping
+        return True
+
+    def _adj_moves(self,
+                   state: Tuple[int, int, bool],
+                   highest_jump: int) -> Iterator[Tuple[int, int, bool]]:
         """
         yield all the places I can move in one step
 
@@ -69,51 +120,21 @@ class Grid:
             yield row, col, False
 
             # jump around ledge
-            # TODO: impossible jump around ledge:
-            # _  |
-            #   _|
-            #    |
-            #   _|
-            #    |
-            # ___|
-            # (It is possible if the left platform is 1 tile lower.)
-            # TODO: don't jump around ledges at low skill levels
-            left_col = col - 1
-            right_col = col + 1
-            if highest_jump >= 2 and row > 2 and \
-                    self.data[row - 2][col] == Cell.floor and \
-                    self.data[row - 3][col] == Cell.space and ((
-                        left_col >= LEFT and
-                        self.data[row][left_col] == Cell.space and
-                        self.data[row - 1][left_col] == Cell.space and
-                        self.data[row - 2][left_col] == Cell.space and
-                        self.data[row - 3][left_col] == Cell.space
-                    ) or (
-                        right_col <= RIGHT and
-                        self.data[row][right_col] == Cell.space and
-                        self.data[row - 1][right_col] == Cell.space and
-                        self.data[row - 2][right_col] == Cell.space and
-                        self.data[row - 3][right_col] == Cell.space
-                    )):
-                yield row - 2, col, True
-            if highest_jump >= 3 and row > 3 and \
-                    self.data[row - 3][col] == Cell.floor and \
-                    self.data[row - 4][col] == Cell.space and ((
-                        left_col >= LEFT and
-                        self.data[row][left_col] == Cell.space and
-                        self.data[row - 1][left_col] == Cell.space and
-                        self.data[row - 2][left_col] == Cell.space and
-                        self.data[row - 3][left_col] == Cell.space and
-                        self.data[row - 4][left_col] == Cell.space
-                    ) or (
-                        right_col <= RIGHT and
-                        self.data[row][right_col] == Cell.space and
-                        self.data[row - 1][right_col] == Cell.space and
-                        self.data[row - 2][right_col] == Cell.space and
-                        self.data[row - 3][right_col] == Cell.space and
-                        self.data[row - 4][right_col] == Cell.space
-                    )):
-                yield row - 3, col, True
+            if self._skill > 1:  # don't jump around ledges at low skill levels
+                if highest_jump >= 2 and row > 2 and \
+                        self.data[row - 2][col] == Cell.floor and \
+                        self.data[row - 3][col] == Cell.space and (
+                            self.side_of_jump_around(row, col, -1, 2) or
+                            self.side_of_jump_around(row, col, 1, 2)
+                        ):
+                    yield row - 2, col, True
+                if highest_jump >= 3 and row > 3 and \
+                        self.data[row - 3][col] == Cell.floor and \
+                        self.data[row - 4][col] == Cell.space and (
+                            self.side_of_jump_around(row, col, -1, 3) or
+                            self.side_of_jump_around(row, col, 1, 3)
+                        ):
+                    yield row - 3, col, True
 
             # check jump and move left or right
             for jump_height in range(1, highest_jump + 1):  # grid spaces, not jump levels
@@ -403,7 +424,7 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.ends, self._tc, self._logger)
+        tr = Grid(self.ends, self._tc, self._logger, self._skill)
         tr.data = deepcopy(self.data)
         return tr
 

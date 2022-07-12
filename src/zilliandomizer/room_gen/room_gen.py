@@ -32,6 +32,8 @@ class RoomGen:
     tc: TerrainCompressor
     sm: NPSpriteManager
     _logger: Logger
+    _skill: int
+    """ from options """
 
     _canisters: Dict[int, List[Coord]]
     """ placed canisters { map_index: [Coord, ...] } """
@@ -42,10 +44,11 @@ class RoomGen:
     _rooms: Set[int]
     """ rooms generated (map_index) """
 
-    def __init__(self, tc: TerrainCompressor, sm: NPSpriteManager, logger: Logger) -> None:
+    def __init__(self, tc: TerrainCompressor, sm: NPSpriteManager, logger: Logger, skill: int) -> None:
         self.tc = tc
         self.sm = sm
         self._logger = logger
+        self._skill = skill
 
         # testing
         # logger.spoil_stdout = True
@@ -115,7 +118,7 @@ class RoomGen:
                 corner for corner in FOUR_CORNERS if (corner[0] != row or corner[1] != col)
             ]
             exits.append(choice(far_corners))
-        g = Grid(exits, self.tc, self._logger)
+        g = Grid(exits, self.tc, self._logger, self._skill)
         placed: List[Coord] = []
         done_generating = False
 
