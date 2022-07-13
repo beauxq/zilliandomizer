@@ -35,6 +35,7 @@ class Grid:
     def __init__(self, ends: List[Coord], tc: TerrainCompressor, logger: Logger, skill: int) -> None:
         self.ends = ends
         self._tc = tc
+        """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
         self._skill = skill
         self.reset()
@@ -388,6 +389,12 @@ class Grid:
         return True
 
     def make(self, jump_blocks: int, size_limit: float) -> None:
+        """
+        produce a room that is traversable from each exit to every other exit
+        <= size_limit bytes
+
+        does not optimize or check for softlocks
+        """
         success = False
         count = 0
         while count < 500 and not success:

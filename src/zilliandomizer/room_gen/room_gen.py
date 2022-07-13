@@ -1,5 +1,5 @@
 from random import choice, randrange, sample, shuffle
-from typing import Dict, FrozenSet, List, Set
+from typing import Dict, FrozenSet, List, Optional, Set
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
@@ -118,46 +118,65 @@ class RoomGen:
                 corner for corner in FOUR_CORNERS if (corner[0] != row or corner[1] != col)
             ]
             exits.append(choice(far_corners))
-        g = Grid(exits, self.tc, self._logger, self._skill)
-        placed: List[Coord] = []
-        done_generating = False
 
-        while not done_generating:  # TODO: not a good condition (some rooms don't have anything - r08c1)
-            g.reset()
+        def make_optimized_no_softlock() -> Grid:
+            tr = Grid(exits, self.tc, self._logger, self._skill)
+            tr.make(jump_blocks, size_limit)
+            tr.fix_crawl_fall()
+            tr.optimize_encoding()
+            tr.optimize_encoding()
+            if tr.softlock_exists(2) or tr.softlock_exists(3):
+                raise MakeFailure("softlock")
+            return tr
+
+        # If all the exits are on the bottom, I want an extra chance to get high goables
+        second_candidate_for_elevation = all(exit[0] == 5 for exit in exits)
+
+        g: Optional[Grid] = None
+        placed: List[Coord] = []
+
+        while not g:
             try:
-                g.make(jump_blocks, size_limit)
-                g.fix_crawl_fall()
-                g.optimize_encoding()
-                g.optimize_encoding()
-                softlock = g.softlock_exists(2) or g.softlock_exists(3)
-                if not softlock:
-                    # TODO: keep track of which canisters require jump 3
-                    # TODO: find out which rooms require jump 3 to get through (to which exit)
-                    goables = g.get_standing_goables(jump_blocks)
-                    placeables = [(y, x) for y, x, _ in goables if not g.in_exit(y, x)]
-                    reg_name = make_reg_name(map_index)
-                    assert (reg_name == "r08c1") or (reg_name in Region.all), \
-                        f"generated terrain for non-region {reg_name}"
-                    region_locations = Region.all[reg_name].locations if reg_name in Region.all else []
-                    sprites = self.sm.get_room(map_index)
-                    floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
-                    placeable_count = (
-                        len(region_locations) +
-                        this_room.computer +
-                        floor_sprite_count
-                    )
-                    self._logger.debug(f"need to place {placeable_count} in room {map_index}")
-                    if len(placeables) >= placeable_count:
-                        if placeable_count > 0:
-                            # take 2 samples, and choose whichever has higher coords
-                            # (to counter the tendency of putting most on the lowest level)
-                            placed_1 = sample(placeables, placeable_count)
-                            placed_2 = sample(placeables, placeable_count)
-                            sum_1 = sum(p[0] for p in placed_1)
-                            sum_2 = sum(p[0] for p in placed_2)
-                            placed = placed_1 if sum_1 < sum_2 else placed_2
-                        self.place(placed, sprites, map_index, g)
-                        done_generating = True
+                candidate = make_optimized_no_softlock()
+                candidate_goables = candidate.get_goables(jump_blocks)
+                if second_candidate_for_elevation:
+                    # lowest y coordinate is highest elevation
+                    highest = min(c[0] for c in candidate_goables)
+                    if highest > 1:
+                        candidate_2 = make_optimized_no_softlock()
+                        candidate_2_goables = candidate_2.get_goables(jump_blocks)
+                        highest_2 = min(c[0] for c in candidate_2_goables)
+                        if highest_2 < highest:
+                            candidate = candidate_2
+                            candidate_goables = candidate_2_goables
+
+                # TODO: keep track of which canisters require jump 3
+                # TODO: find out which rooms require jump 3 to get through (to which exit)
+                standing = [g for g in candidate_goables if g[2]]
+                placeables = [(y, x) for y, x, _ in standing if not candidate.in_exit(y, x)]
+                reg_name = make_reg_name(map_index)
+                assert (reg_name == "r08c1") or (reg_name in Region.all), \
+                    f"generated terrain for non-region {reg_name}"
+                region_locations = Region.all[reg_name].locations if reg_name in Region.all else []
+                sprites = self.sm.get_room(map_index)
+                floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
+                placeable_count = (
+                    len(region_locations) +
+                    this_room.computer +
+                    floor_sprite_count
+                )
+                self._logger.debug(f"need to place {placeable_count} in room {map_index}")
+                if len(placeables) >= placeable_count:
+                    if placeable_count > 0:
+                        # take 2 samples, and choose whichever has higher coords
+                        # (to counter the tendency of putting most on the lowest level)
+                        placed_1 = sample(placeables, placeable_count)
+                        placed_2 = sample(placeables, placeable_count)
+                        sum_1 = sum(p[0] for p in placed_1)
+                        sum_2 = sum(p[0] for p in placed_2)
+                        placed = placed_1 if sum_1 < sum_2 else placed_2
+                    self.place(placed, sprites, map_index, candidate)
+                    g = candidate
             except MakeFailure:
                 print(".", end="")
         print()
