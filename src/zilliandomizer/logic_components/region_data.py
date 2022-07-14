@@ -539,8 +539,8 @@ def make_regions(locations: Dict[str, Location]) -> Region:
 
     # down left
 
-    r06c6.to(r07c6, door=55)
-    r07c6.to(r07c5, door=62)
+    r06c6.to(r07c6, door=r06c6.door)
+    r07c6.to(r07c5, door=r07c6.door)
     r07c5.to(r07c4, door=r07c5.door)
     r07c4.to(r07c3)
     r07c3.to(r08c3, door=r07c3.door)
@@ -548,7 +548,7 @@ def make_regions(locations: Dict[str, Location]) -> Region:
 
     # down right
 
-    r07c6.to(r07c7, door=62)
+    r07c6.to(r07c7, door=r07c6.door)
     r07c7.to(r08c7, door=r07c7.door)
     r08c7.to(r08c6, door=r08c7.door)
     r08c6.to(r08c5, door=r08c6.door)

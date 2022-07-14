@@ -226,8 +226,8 @@ class RoomGen:
                         x += 8 * randrange(2)  # either left or right side of larger tile
                         # TODO: if one side is next to a wall, move x away from wall
                 else:  # didn't find any good place to put a bar
-                    # TODO: changing to mine offscreen is not a good solution because
-                    # offscreen mine will show up in next room when screen scrolls to it
+                    # TODO: test to see whether this mine shows up in next room,
+                    # when screen scrolls to it going down elevator
                     sprite.type = (SpriteType.mine, 0x00)
                     y = 0xbc  # half off screen
                     x = 0x90
