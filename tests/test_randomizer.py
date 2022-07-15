@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Tuple, Counter as _Counter
 from collections import Counter
 import pytest
+from random import seed
 
 from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import ID, Options, char_to_gun, char_to_jump
@@ -22,7 +23,8 @@ def test_randomizer() -> None:
     logger = Logger()
     logger.spoil_stdout = True
     r = Randomizer(options, logger)
-    r.roll(s)
+    seed(s)
+    r.roll()
 
     p = Patcher()
     p.write_locations(r.start, options.start_char)
@@ -41,7 +43,8 @@ def test_infinite_continues_and_not() -> None:
         logger = Logger()
         logger.spoil_stdout = True
         r = Randomizer(options, logger)
-        r.roll(s)
+        seed(s)
+        r.roll()
 
         p = Patcher()
         p.write_locations(r.start, options.start_char)
@@ -61,7 +64,8 @@ def test_placement() -> None:
         logger = Logger()
         logger.spoil_stdout = False
         r = Randomizer(options, logger)
-        r.roll(s)
+        seed(s)
+        r.roll()
         if r.check():
             total_completable += 1
             for line in logger.spoiler_lines:
@@ -120,14 +124,16 @@ def test_problems() -> None:
     options = deepcopy(some_options)
     options.item_counts[ID.card] = 200
     r = Randomizer(options)
+    seed(88)
     with pytest.raises(ValueError):
-        r.roll(88)
+        r.roll()
 
     options = deepcopy(some_options)
     options.floppy_req = 30
     r = Randomizer(options)
+    seed(88)
     with pytest.raises(ValueError):
-        r.roll(88)
+        r.roll()
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -140,7 +146,8 @@ def test_early_scope() -> None:
 
     for test_n in range(20):
         r = Randomizer(o)
-        r.roll(70 + test_n)
+        seed(70 + test_n)
+        r.roll()
         req1 = r.make_ability([])
         req2 = Req(
             gun=char_to_gun[o.start_char][o.gun_levels][0],

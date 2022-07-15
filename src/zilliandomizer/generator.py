@@ -1,4 +1,5 @@
 import os
+from random import seed as random_seed
 from typing import FrozenSet
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
@@ -38,6 +39,8 @@ def generate(seed: int) -> None:
     logger.spoil(f"seed {seed_str}")
     r = Randomizer(options, logger)
 
+    random_seed(seed)
+
     modified_rooms: FrozenSet[int] = frozenset()
     if options.room_gen:
         room_gen = RoomGen(p.tc, p.sm, logger, options.skill)
@@ -45,7 +48,7 @@ def generate(seed: int) -> None:
         r.reset(room_gen)
         modified_rooms = room_gen.get_modified_rooms()
 
-    r.roll(seed)
+    r.roll()
 
     if options.randomize_alarms:
         a = Alarms(p.tc, logger)

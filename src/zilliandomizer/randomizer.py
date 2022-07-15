@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict, deque
-from random import choice, randint, randrange, seed, shuffle
+from random import choice, randint, randrange, shuffle
 import time
 from typing import Deque, Dict, List, Optional, Set, Counter as _Counter, cast
 
@@ -336,8 +336,7 @@ class Randomizer:
                 break
         return found_main
 
-    def roll(self, _seed: int) -> None:
-        seed(_seed)
+    def roll(self) -> None:
         success = False
         fail_count = 0
         timeout = time.time() + 15
