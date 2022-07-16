@@ -120,10 +120,19 @@ class Grid:
             if self.data[row - 1][col] == Cell.space:
                 yield row, col, True
 
-            if col > LEFT and self.data[row][col - 1] == Cell.floor:
-                yield row, col - 1, standing
-            if col < RIGHT and self.data[row][col + 1] == Cell.floor:
-                yield row, col + 1, standing
+            # move left or right crawling
+            for dir in (-1, 1):
+                target_col = col + dir
+                if target_col >= LEFT and target_col <= RIGHT:
+                    tile = self.data[row][target_col]
+                    if tile == Cell.floor:
+                        yield row, target_col, False
+                    elif tile == Cell.space:
+                        # fall
+                        target_row = row + 1
+                        while self.data[target_row][target_col] == Cell.space:
+                            target_row += 1
+                        yield target_row, target_col, True
         else:  # standing
             # can change to not standing
             yield row, col, False
@@ -147,28 +156,75 @@ class Grid:
 
             # check jump and move left or right
             for jump_height in range(1, highest_jump + 1):  # grid spaces, not jump levels
-                if all(row > j and self.data[row - (j+1)][col] == Cell.space
-                       for j in range(1, jump_height + 1)):
-                    if col > LEFT and \
-                            self.data[row - (jump_height + 1)][col - 1] == Cell.space and \
-                            self.data[row - jump_height][col - 1] == Cell.floor:
-                        yield row - jump_height, col - 1, True
-                    if col < RIGHT and \
-                            self.data[row - (jump_height + 1)][col + 1] == Cell.space and \
-                            self.data[row - jump_height][col + 1] == Cell.floor:
-                        yield row - jump_height, col + 1, True
-                    if col > 1 and \
-                            self.data[row - (jump_height + 1)][col - 1] == Cell.space and \
-                            self.data[row - jump_height][col - 1] == Cell.space and \
-                            self.data[row - (jump_height + 1)][col - 2] == Cell.space and \
-                            self.data[row - jump_height][col - 2] == Cell.floor:
-                        yield row - jump_height, col - 2, True
-                    if col < 12 and \
-                            self.data[row - (jump_height + 1)][col + 1] == Cell.space and \
-                            self.data[row - jump_height][col + 1] == Cell.space and \
-                            self.data[row - (jump_height + 1)][col + 2] == Cell.space and \
-                            self.data[row - jump_height][col + 2] == Cell.floor:
-                        yield row - jump_height, col + 2, True
+                target_row = row - jump_height
+                if target_row < 1:
+                    continue
+                for dir in (-1, 1):
+                    # some jump distances would require looking at more ceiling
+                    # distance 5 example:
+                    #     ___|
+                    #        |
+                    #      __|
+                    # _      |
+                    #        |
+                    # _______|
+                    # Champ room escape is distance 5, but with ceiling over all
+
+                    # conclusion after below research:
+                    #  - don't need to worry about partial ceilings if skill is high
+                    #     - can release jump button early to not bonk
+
+                    # new discovery after that conclusion:
+                    # - height 1 distance 6 partial ceiling with jump 2 is possible
+                    #    - It may have been a frame-perfect jump button release that I did.
+
+                    # with no ceiling, jump 1 (2 blocks) can get distance 5 at height 1
+                    #  - maybe barely distance 6 (didn't find a test for 6)
+                    #  - with partial ceiling at distance 4, is possible, but difficult
+                    #     - requires skill (> 4?) (release jump button early to not bonk)
+                    # with ceiling, jump 1 (2 blocks) can get distance 4 at height 1
+                    #  - distance 5 possible but difficult (release jump button early to not bonk)
+                    #  - looks like partial ceiling probably doesn't matter for dist 4 (didn't find a test)
+                    #     - can bonk head at distance 3 with a little difficulty (more often bonk at 2)
+                    # jump 1 can barely get height 2 distance 5 (skill > 1?)
+
+                    # jump 2 can barely get height 2 distance 6
+                    # Champ escape (h 1 d 5 w/ ceiling) is easier with jump 2 than jump 1
+                    #  - can hold jump button
+                    # jump 2 cannot get h 1 d 6 with ceiling
+
+                    # jump 3
+                    # h 3 d 6 is easy
+                    # looks like I can't do h 2 d 7 with ceiling
+                    # h 2 d 6 w ceiling not hard (maybe skill > 0)
+
+                    # include distance 4 and 5 only if skill is high
+                    for distance in range(1, 6 if self._skill > 4 else 4):
+                        target_col = col + distance * dir
+                        if target_col < LEFT or target_col > RIGHT:
+                            continue
+                        start_of_needing_space = (
+                            min(col + dir, target_col - dir)
+                            if dir == 1
+                            else max(col + dir, target_col - dir)
+                        )
+                        # require skill to jump with horizontal movement into a 1-tile hole
+                        if self._skill < 4:
+                            if target_col == col + 2 * dir:
+                                start_of_needing_space = col
+                        # check all space before target
+                        if all(
+                            all(
+                                self.data[y][col_i] == Cell.space
+                                for col_i in range(start_of_needing_space, target_col, dir)
+                            )
+                            for y in range(target_row - 1, row)
+                        ) and (
+                            # and landing
+                            self.data[target_row][target_col] == Cell.floor
+                            and self.data[target_row - 1][target_col] == Cell.space
+                        ):
+                            yield target_row, target_col, True
 
             for dir in (-1, 1):
                 # check move
@@ -193,6 +249,23 @@ class Grid:
                             self.data[row - 1][nnn_col] == Cell.space and \
                             self.data[row][nnn_col] == Cell.floor:
                         yield row, nnn_col, True
+                    # horizontal jump over gap of 3
+                    # this is only used on top row
+                    # because it requires jump 3 for the speed
+                    # and if it's not on the top row, I can use jump 3 to jump up from below
+                    # TODO: except if there's no ceiling to bonk, then it's easy with jump 1
+                    # TODO: and with ceiling, it's barely possible with jump 2 (same as jump 3?)
+                    if row == 1 and highest_jump == 3 and self._skill > 4:
+                        nnnn_col = nnn_col + dir
+                        if nnnn_col >= LEFT and nnnn_col <= RIGHT and \
+                                self.data[1][next_col] == Cell.space and \
+                                self.data[0][next_next_col] == Cell.space and \
+                                self.data[1][next_next_col] == Cell.space and \
+                                self.data[0][nnn_col] == Cell.space and \
+                                self.data[1][nnn_col] == Cell.space and \
+                                self.data[0][nnnn_col] == Cell.space and \
+                                self.data[1][nnnn_col] == Cell.floor:
+                            yield row, nnnn_col, True
                     # or fall
                     if self.data[row][next_col] == Cell.space:
                         target_row = row
@@ -217,6 +290,7 @@ class Grid:
             here = to_move_from.pop()
             if here not in been:
                 been.add(here)
+                # print(self.map_str([(here[0], here[1])]))
                 if here == target_end:
                     return been
                 for adj in self._adj_moves(here, highest_jump):

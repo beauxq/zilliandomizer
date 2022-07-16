@@ -1,4 +1,4 @@
-from random import choice, randrange, sample, shuffle
+from random import choice, random, randrange, sample, shuffle
 from typing import Dict, FrozenSet, List, Optional, Set
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
@@ -124,11 +124,20 @@ class RoomGen:
         def make_optimized_no_softlock() -> Grid:
             tr = Grid(exits, ends, self.tc, self._logger, self._skill)
             tr.make(jump_blocks, size_limit)
-            tr.fix_crawl_fall()
+            if random() < 0.5:
+                # I used to use this for softlock avoidance,
+                # but after improving the movement adjacency function,
+                # I don't need it for softlock avoidance anymore (maybe?).
+                # But it makes a significantly different style of room,
+                # so I include it randomly for variety.
+                tr.fix_crawl_fall()
             tr.optimize_encoding()
             tr.optimize_encoding()
             if tr.softlock_exists(2) or tr.softlock_exists(3):
                 raise MakeFailure("softlock")
+            if not tr.solve(jump_blocks):
+                self._logger.warn("WARNING: room generation post-processing removed navigability")
+                raise MakeFailure("post-proc broke room")
             return tr
 
         # If all the ends are on the bottom, I want an extra chance to get high goables
@@ -228,8 +237,11 @@ class RoomGen:
                         x += 8 * randrange(2)  # either left or right side of larger tile
                         # TODO: if one side is next to a wall, move x away from wall
                 else:  # didn't find any good place to put a bar
-                    # TODO: test to see whether this mine shows up in next room,
-                    # when screen scrolls to it going down elevator
+                    # This mine will show up in next room,
+                    # while screen scrolls to it going down elevator.
+                    # But then it disappears when arriving (stop scrolling)
+                    # and I didn't find any way to interact with it.
+                    # So it's not a bad way of disposing of a sprite.
                     sprite.type = (SpriteType.mine, 0x00)
                     y = 0xbc  # half off screen
                     x = 0x90
