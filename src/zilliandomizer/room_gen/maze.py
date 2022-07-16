@@ -25,14 +25,22 @@ class MakeFailure(Exception):
 
 class Grid:
     data: List[List[str]]
+    exits: List[Coord]
+    """ places I enter and exit room - coords of lower left """
     ends: List[Coord]
-    """ coords of lower left """
+    """ superset of exits, places I want to be able to get to - coords of lower left """
     _tc: TerrainCompressor
     _logger: Logger
     _skill: int
     """ skill from options """
 
-    def __init__(self, ends: List[Coord], tc: TerrainCompressor, logger: Logger, skill: int) -> None:
+    def __init__(self,
+                 exits: List[Coord],
+                 ends: List[Coord],
+                 tc: TerrainCompressor,
+                 logger: Logger,
+                 skill: int) -> None:
+        self.exits = exits
         self.ends = ends
         self._tc = tc
         """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
@@ -260,6 +268,16 @@ class Grid:
 
     def in_exit(self, row: int, col: int) -> bool:
         """ this coordinate is in an exit area """
+        if (row, col) in self.exits:
+            return True
+        if (row, col - 1) in self.exits:
+            return True
+        if (row + 1, col) in self.exits:
+            return True
+        return (row + 1, col - 1) in self.exits
+
+    def in_end(self, row: int, col: int) -> bool:
+        """ this coordinate is in an end area """
         if (row, col) in self.ends:
             return True
         if (row, col - 1) in self.ends:
@@ -277,7 +295,7 @@ class Grid:
         clearables: List[Coord] = []
 
         def is_clearable(row: int, col: int) -> bool:
-            if self.in_exit(row, col):
+            if self.in_end(row, col):
                 return False
 
             here = self.data[row][col]
@@ -316,7 +334,7 @@ class Grid:
         def is_changeable(row: int, col: int) -> List[str]:
             """ returns what it can change to """
             tr: List[str] = []
-            if self.in_exit(row, col):
+            if self.in_end(row, col):
                 return tr
 
             here = self.data[row][col]
@@ -390,7 +408,7 @@ class Grid:
 
     def make(self, jump_blocks: int, size_limit: float) -> None:
         """
-        produce a room that is traversable from each exit to every other exit
+        produce a room that is traversable from each end to every other end
         <= size_limit bytes
 
         does not optimize or check for softlocks
@@ -431,7 +449,7 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.ends, self._tc, self._logger, self._skill)
+        tr = Grid(self.exits, self.ends, self._tc, self._logger, self._skill)
         tr.data = deepcopy(self.data)
         return tr
 

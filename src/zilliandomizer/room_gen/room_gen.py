@@ -111,16 +111,18 @@ class RoomGen:
     def _generate_room(self, map_index: int, jump_blocks: int, size_limit: float) -> int:
         """ returns the length of the compressed room data """
         this_room = GEN_ROOMS[map_index]
-        exits = this_room.exits[:]
-        if len(exits) < 2:
-            row, col = exits[0]
+        exits = this_room.exits[:]  # real exits
+        ends = exits[:]  # places I want to be able to get to
+        if len(ends) < 2:
+            row, col = ends[0]
             far_corners = [
-                corner for corner in FOUR_CORNERS if (corner[0] != row or corner[1] != col)
+                corner for corner in FOUR_CORNERS
+                if (corner[0] != row and abs(corner[1] - col) > 3)
             ]
-            exits.append(choice(far_corners))
+            ends.append(choice(far_corners))
 
         def make_optimized_no_softlock() -> Grid:
-            tr = Grid(exits, self.tc, self._logger, self._skill)
+            tr = Grid(exits, ends, self.tc, self._logger, self._skill)
             tr.make(jump_blocks, size_limit)
             tr.fix_crawl_fall()
             tr.optimize_encoding()
@@ -129,8 +131,8 @@ class RoomGen:
                 raise MakeFailure("softlock")
             return tr
 
-        # If all the exits are on the bottom, I want an extra chance to get high goables
-        second_candidate_for_elevation = all(exit[0] == 5 for exit in exits)
+        # If all the ends are on the bottom, I want an extra chance to get high goables
+        second_candidate_for_elevation = all(end[0] > 2 for end in ends)
 
         g: Optional[Grid] = None
         placed: List[Coord] = []
