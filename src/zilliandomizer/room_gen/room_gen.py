@@ -117,9 +117,16 @@ class RoomGen:
             row, col = ends[0]
             far_corners = [
                 corner for corner in FOUR_CORNERS
-                if (corner[0] != row and abs(corner[1] - col) > 3)
+                if (corner[0] != row and abs(corner[1] - col) > 4)
             ]
-            ends.append(choice(far_corners))
+            assert len(far_corners) == 1
+            adjacent_corners = [
+                corner for corner in FOUR_CORNERS
+                if (corner[0] == row and abs(corner[1] - col) > 4)
+                or (corner[0] != row and abs(corner[1] - col) < 4)
+            ]
+            assert len(adjacent_corners) == 2
+            ends.extend(choice((far_corners, adjacent_corners)))
 
         def make_optimized_no_softlock() -> Grid:
             tr = Grid(exits, ends, self.tc, self._logger, self._skill)
