@@ -103,3 +103,11 @@ class Tile:
     r_light_floor_ceiling = 0x14
     r_dark_floor_ceiling = 0x15
     p_floor_ceiling = 0x5c
+
+    # moving walkways
+    b_right_walkway = 0x3d
+    b_left_walkway = 0x3e
+    r_right_walkway = 0x16
+    r_left_walkway = 0x17
+    p_right_walkway = 0x5d
+    p_left_walkway = 0x5e

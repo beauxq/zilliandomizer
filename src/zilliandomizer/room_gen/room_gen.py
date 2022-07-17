@@ -130,7 +130,7 @@ class RoomGen:
 
         def make_optimized_no_softlock() -> Grid:
             tr = Grid(exits, ends, self.tc, self._logger, self._skill)
-            tr.make(jump_blocks, size_limit)
+            tr.make(jump_blocks, map_index, size_limit)
             if random() < 0.5:
                 # I used to use this for softlock avoidance,
                 # but after improving the movement adjacency function,
@@ -138,7 +138,6 @@ class RoomGen:
                 # But it makes a significantly different style of room,
                 # so I include it randomly for variety.
                 tr.fix_crawl_fall()
-            tr.optimize_encoding()
             tr.optimize_encoding()
             if tr.softlock_exists():
                 raise MakeFailure("softlock")
@@ -209,6 +208,15 @@ class RoomGen:
               sprites: RoomSprites,
               map_index: int,
               grid: Grid) -> None:
+        """
+        place the things that need to be placed in this room
+
+        length of coords should be (
+            the number of floor sprites in the non-player sprite table
+            + the number of canisters in the room
+            + 1 if there's a computer in the room
+        )
+        """
         # TODO: place alarm sensors
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.

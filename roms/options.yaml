@@ -58,7 +58,6 @@ early_scope: false
 
 # experimental:
 #   not done yet for generated rooms:
-#     moving walkways
 #     alarm lines
 #     rooms divided into 2 regions are not randomized
 #     logic might think that some things require jump 3 when they don't

@@ -74,6 +74,8 @@ class Alarms:
 
         I couldn't find a simple equation for this function.
         I'm curious whether there is one.
+        It looks like there's not:
+        https://math.stackexchange.com/questions/4494669/roll-until-lose-game-with-changing-probability/4494686#4494686
         ```
         e = {
             1.0: 0.0,

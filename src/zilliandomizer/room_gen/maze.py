@@ -1,5 +1,6 @@
 from collections import deque
 from copy import deepcopy
+from dataclasses import dataclass
 import random
 from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Set, Tuple, Union
 from zilliandomizer.logger import Logger
@@ -19,6 +20,14 @@ class Cell:
     space = ' '
 
 
+walkway_tiles = (
+    (Tile.b_right_walkway, Tile.b_left_walkway),
+    (Tile.r_right_walkway, Tile.r_left_walkway),
+    (Tile.p_right_walkway, Tile.p_left_walkway)
+)
+""" 0 blue - 1 red - 2 paperclip """
+
+
 class MakeFailure(Exception):
     pass
 
@@ -29,6 +38,8 @@ class Grid:
     """ places I enter and exit room - coords of lower left """
     ends: List[Coord]
     """ superset of exits, places I want to be able to get to - coords of lower left """
+    is_walkway: List[List[int]]
+    """ moving walkway - 0 normal floor - 1 right - 2 left """
     _tc: TerrainCompressor
     _logger: Logger
     _skill: int
@@ -50,6 +61,7 @@ class Grid:
 
     def reset(self) -> None:
         self.data = [[Cell.wall for _ in range(14)] for _ in range(6)]
+        self.is_walkway = [[0 for _ in range(14)] for _ in range(6)]
 
         for end in self.ends:
             row, col = end
@@ -137,8 +149,11 @@ class Grid:
             # can change to not standing
             yield row, col, False
 
+            is_walkway = self.is_walkway[row][col]
+
             # jump around ledge
-            if self._skill > 1:  # don't jump around ledges at low skill levels
+            # don't jump around ledges at low skill levels, and not from moving walkway
+            if self._skill > 1 and is_walkway == 0:
                 if highest_jump >= 2 and row > 2 and \
                         self.data[row - 2][col] == Cell.floor and \
                         self.data[row - 3][col] == Cell.space and (
@@ -200,6 +215,9 @@ class Grid:
 
                     # include distance 4 and 5 only if skill is high
                     for distance in range(1, 6 if self._skill > 4 else 4):
+                        # only jump distance 2 or 3 from moving walkways
+                        if is_walkway and distance not in (2, 3):
+                            continue
                         target_col = col + distance * dir
                         if target_col < LEFT or target_col > RIGHT:
                             continue
@@ -209,8 +227,8 @@ class Grid:
                             else max(col + dir, target_col - dir)
                         )
                         # require skill to jump with horizontal movement into a 1-tile hole
-                        if self._skill < 4:
-                            if target_col == col + 2 * dir:
+                        if self._skill < 4 or is_walkway:
+                            if distance == 2:
                                 start_of_needing_space = col
                         # check all space before target
                         if all(
@@ -255,7 +273,7 @@ class Grid:
                     # and if it's not on the top row, I can use jump 3 to jump up from below
                     # TODO: except if there's no ceiling to bonk, then it's easy with jump 1
                     # TODO: and with ceiling, it's barely possible with jump 2 (same as jump 3?)
-                    if row == 1 and highest_jump == 3 and self._skill > 4:
+                    if row == 1 and highest_jump == 3 and self._skill > 4 and not is_walkway:
                         nnnn_col = nnn_col + dir
                         if nnnn_col >= LEFT and nnnn_col <= RIGHT and \
                                 self.data[1][next_col] == Cell.space and \
@@ -480,7 +498,7 @@ class Grid:
         self.data[row][col] = random.choice(change_to)
         return True
 
-    def make(self, jump_blocks: int, size_limit: float) -> None:
+    def make(self, jump_blocks: int, map_index: int, size_limit: float) -> None:
         """
         produce a room that is traversable from each end to every other end
         <= size_limit bytes
@@ -489,13 +507,15 @@ class Grid:
         """
         success = False
         count = 0
+        walkways = self.walkways_in_room(map_index)
         while count < 500 and not success:
             count += 1
+            if (walkways):
+                self.place_walkways(map_index)
             solved = self.solve(jump_blocks)
             if solved:
-                # using a red room because red might be most restrictive?
-                # otherwise doesn't matter which room
-                data = self.to_room_data(0x31)
+                # doesn't matter which room - just need some data for size
+                data = self.to_room_data(map_index)
                 if len(data) <= size_limit:
                     success = True
                 else:
@@ -604,25 +624,81 @@ class Grid:
 
             return True
 
-        for y, row in enumerate(self.data):
-            for x, col in enumerate(row):
-                left = self.data[y][x - 1] if x > LEFT else Cell.wall
-                right = self.data[y][x + 1] if x < RIGHT else Cell.wall
-                if col != left and col != right:
-                    if left == right:
-                        try_change(y, x, left)
-                    # I'm worried that this will bring back crawl fall softlocks
-                    # after I get rid of them
-                    # else:  # something different on each side
-                    #     first, second = (left, right) if random.random() < 0.5 else (right, left)
-                    #     if first != Cell.wall:
-                    #         first, second = second, first
-                    #     if not try_change(y, x, first):
-                    #         try_change(y, x, second)
-                # else col same as one of its neighbors
-            # done with row
-        # done with data
+        # TODO: test how much stuff changes on the 2nd pass, to see if it's worth it
+        for _ in range(2):  # 2 passes
+            for y, row in enumerate(self.data):
+                for x, col in enumerate(row):
+                    left = self.data[y][x - 1] if x > LEFT else Cell.wall
+                    right = self.data[y][x + 1] if x < RIGHT else Cell.wall
+                    if col != left and col != right:
+                        if left == right:
+                            try_change(y, x, left)
+                        # I'm worried that this will bring back crawl fall softlocks
+                        # after I get rid of them
+                        # else:  # something different on each side
+                        #     first, second = (left, right) if random.random() < 0.5 else (right, left)
+                        #     if first != Cell.wall:
+                        #         first, second = second, first
+                        #     if not try_change(y, x, first):
+                        #         try_change(y, x, second)
+                    # else col same as one of its neighbors
+                # done with row
+            # done with data
         # TODO: another pass on the top row? (often ends up with small useless platforms)
+
+    def walkways_in_room(self, map_index: int) -> bool:
+        original_tiles = TerrainCompressor.decompress(self._tc.get_room(map_index))
+        # 0 blue - 1 red - 2 paperclip
+        section_index = 0 if map_index < 0x28 else (1 if map_index < 0x50 else 2)
+        here_walkway_tiles = walkway_tiles[section_index]
+        return any(
+            tile in original_tiles
+            for tile in here_walkway_tiles
+        )
+
+    def place_walkways(self, map_index: int) -> None:
+        self.is_walkway = [[0 for _ in range(14)] for _ in range(6)]
+
+        @dataclass
+        class Platform:
+            c: Coord
+            length: int
+        platform_list: List[Platform] = []
+
+        # red rooms can only have moving walkways in odd rows
+        for y in range(1, 6, 2 if 0x27 < map_index < 0x50 else 1):
+            prev_was_platform = False
+            for x in range(14):
+                here = (y, x)
+                here_is_platform = (
+                    self.data[y][x] == Cell.floor and not self.in_exit(y, x)
+                )
+                if here_is_platform:
+                    if prev_was_platform:
+                        if random.random() < 0.2:  # chance to break 1 platform into multiple
+                            platform_list.append(Platform(here, 1))
+                        else:  # not broken
+                            platform_list[-1].length += 1
+                    else:  # new platform
+                        platform_list.append(Platform(here, 1))
+                        prev_was_platform = True
+                else:
+                    prev_was_platform = False
+        if len(platform_list) == 0:
+            return
+        random.shuffle(platform_list)
+        # how much of the floor is moving walkway
+        portion = 0.02647 * (map_index // 8) + 0.13
+        mu = len(platform_list) * portion
+        sigma = (mu - 1) / 2
+        count = 0
+        while not (1 <= count <= len(platform_list)):
+            count = round(random.gauss(mu, sigma))
+        for platform in platform_list[:count]:
+            y, x = platform.c
+            dir = random.randrange(1, 3)
+            for x_i in range(x, x + platform.length):
+                self.is_walkway[y][x_i] = dir
 
     def softlock_exists(self) -> bool:
         start = self.ends[0]
@@ -655,6 +731,8 @@ class Grid:
             ceiling_odd = ceiling_even
             floor_ceiling_even = Tile.b_floor_ceiling
             floor_ceiling_odd = floor_ceiling_even
+            right_walkway = Tile.b_right_walkway
+            left_walkway = Tile.b_left_walkway
         elif map_index < 0x50:  # red
             wall = Tile.r_walls
             floor_even = Tile.r_light_floor
@@ -665,6 +743,8 @@ class Grid:
             ceiling_odd = Tile.r_dark_ceiling
             floor_ceiling_even = Tile.r_light_floor_ceiling
             floor_ceiling_odd = Tile.r_dark_floor_ceiling
+            right_walkway = Tile.r_right_walkway
+            left_walkway = Tile.r_left_walkway
         else:  # paperclip
             wall = Tile.p_walls
             floor_even = Tile.p_floor
@@ -675,6 +755,8 @@ class Grid:
             ceiling_odd = ceiling_even
             floor_ceiling_even = Tile.p_floor_ceiling
             floor_ceiling_odd = floor_ceiling_even
+            right_walkway = Tile.p_right_walkway
+            left_walkway = Tile.p_left_walkway
 
         original_data = TerrainCompressor.decompress(self._tc.get_room(map_index))
 
@@ -693,7 +775,11 @@ class Grid:
                         if self.data[row][col] == Cell.space:
                             tr.append(space_odd if (row & 1) else space_even)
                         else:  # floor with no ceiling
-                            tr.append(floor_odd if (row & 1) else floor_even)
+                            walkway = self.is_walkway[row][col]
+                            if walkway:
+                                tr.append(right_walkway if walkway == 1 else left_walkway)
+                            else:  # normal floor
+                                tr.append(floor_odd if (row & 1) else floor_even)
                     else:  # floor or space with ceiling above
                         if self.data[row][col] == Cell.space:
                             tr.append(ceiling_odd if (row & 1) else ceiling_even)
