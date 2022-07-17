@@ -133,7 +133,7 @@ class RoomGen:
                 tr.fix_crawl_fall()
             tr.optimize_encoding()
             tr.optimize_encoding()
-            if tr.softlock_exists(2) or tr.softlock_exists(3):
+            if tr.softlock_exists():
                 raise MakeFailure("softlock")
             if not tr.solve(jump_blocks):
                 self._logger.warn("WARNING: room generation post-processing removed navigability")

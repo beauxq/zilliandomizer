@@ -84,8 +84,7 @@ def test_softlock_detect() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    skill = 5  # needed to make some of these jumps
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], tc, log, skill)
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], tc, log, 0)
     g.data = [
         list("             |"),
         list("__          _ "),
@@ -94,46 +93,79 @@ def test_softlock_detect() -> None:
         list("             |"),
         list("_____________|"),
     ]
-    assert not g.softlock_exists(3), "softlock exists that I can't reach 3"
-    assert not g.softlock_exists(2), "softlock exists that I can't reach 2"
+    assert g.softlock_exists(), "softlock detection can jump 4 tiles"
+
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], tc, log, 0)
+    g.data = [
+        list("             |"),
+        list("__            "),
+        list("           _ _"),
+        list("   __      | |"),
+        list("           | |"),
+        list("___________|_|"),
+    ]
+    assert not g.softlock_exists(), "If you can get in that hole, you can get out."
+
+    g.data[3][9] = Cell.floor
+    assert g.softlock_exists(), "jump 2 can get trapped in that hole"
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_hard_jumps() -> None:
+    """ jumping to known softlock """
+    p = Patcher()
+    tc = TerrainCompressor(p.rom)
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends = [BOT_LEFT, TOP_RIGHT]
+    g = Grid(ends, ends, tc, log, 5)
+    g.data = [
+        list("              "),
+        list("__          __"),
+        list("            |_"),
+        list("   __        |"),
+        list("             |"),
+        list("_____________|"),
+    ]
+    assert not g.solve(3), "can't jump to that platform"
 
     # horizontal jump length 3
     g.data[1][8] = Cell.floor
-    assert g.softlock_exists(3), "horizontal jump 3"
+    assert g.solve(3), "horizontal jump 3"
 
-    # It is possible to softlock like this with jump 2 (2.5 blocks),
+    # It is possible to get there with jump 2 (2.5 blocks),
     # but my movement logic says I can't do this hor jump with 2 jump blocks
-    # assert g.softlock_exists(2), "hor jump 3 with 2"
+    # assert g.solve(2), "hor jump 3 with 2"
 
     g.data[1][9] = Cell.floor
-    assert g.softlock_exists(3)
-    assert g.softlock_exists(2)
+    assert g.solve(3)
+    assert g.solve(2)
     g.data[1][9] = Cell.space
     g.data[1][8] = Cell.space
 
     # Champ room exit equivalent jump
     g.data[2][7] = Cell.floor
-    assert g.softlock_exists(3), "Champ room exit jump 3 to softlock"
-    assert g.softlock_exists(2), "Champ room exit jump 2 to softlock"
+    assert g.solve(3), "Champ room exit jump 3"
+    assert g.solve(2), "Champ room exit jump 2"
     # add ceiling
     g.data[0][7] = '_'
-    assert g.softlock_exists(3), "Champ room exit jump 3 with ceiling to softlock"
-    assert g.softlock_exists(2), "Champ room exit jump 2 with ceiling to softlock"
+    assert g.solve(3), "Champ room exit jump 3 with ceiling"
+    assert g.solve(2), "Champ room exit jump 2 with ceiling"
 
     g.data = [
-        list("          _  |"),
-        list("__          _ "),
+        list("          _   "),
+        list("__          __"),
         list("            |_"),
         list("   __    _   |"),
         list("             |"),
         list("_____________|"),
     ]
-    # TODO: how to deal with this?
-    # bring crawl fall back for the places I think I can't get to?
-    # or always do softlock detection with 4 blocks (in addition to 2 and 3)?
-    # assert g.softlock_exists(2)
-    # assert g.softlock_exists(3)
-    assert g.softlock_exists(4)
+    # This is possible, but traversal logic doesn't support it.
+    # assert g.solve(2)
+    # assert g.solve(3)
+    assert g.solve(4)
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -155,7 +187,7 @@ def test_from_early_dev() -> None:
         list("   |_ _  _  _ "),
         list("_________|____"),
     ]
-    assert g.softlock_exists(2)
+    assert g.softlock_exists()
 
     ends = [BOT_LEFT, (2, 1)]
     g = Grid(ends, ends, tc, log, skill)
@@ -238,5 +270,6 @@ if __name__ == "__main__":
     test_navigation()
     test_jump_requirements()
     test_softlock_detect()
+    test_hard_jumps()
     test_from_early_dev()
     test_skill_required_for_jumps()

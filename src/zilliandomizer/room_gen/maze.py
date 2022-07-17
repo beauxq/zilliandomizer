@@ -529,6 +529,7 @@ class Grid:
 
     def fix_crawl_fall(self, jump_blocks: int = 3) -> None:
         """ eliminate softlocks from crawling into falling holes """
+        # TODO: This could mess up a jump 2 room when I call it with jump 3
         base_goables = self.get_standing_goables(jump_blocks)
         for y, row in enumerate(self.data):
             if y > 0:
@@ -563,9 +564,10 @@ class Grid:
                                 #         f"eliminated crawl fall at row {y}, col {target_col}"
                                 #     )
 
-    def optimize_encoding(self, jump_blocks: int = 3) -> None:
+    def optimize_encoding(self) -> None:
         """ try to save space in run-length encoding """
-        base_goables = self.get_goables(jump_blocks)
+        base_goables_2 = self.get_goables(2)
+        base_goables_3 = self.get_goables(3)
 
         def try_change(y: int, x: int, value: str) -> bool:
             """ returns whether change was good """
@@ -578,12 +580,21 @@ class Grid:
             if value == Cell.wall and y > 0 and self.data[y - 1][x] == Cell.space:
                 above_saved = self.data[y - 1][x]
                 self.data[y - 1][x] = Cell.floor
-            new_goables = self.get_goables(jump_blocks)
-            if new_goables != base_goables:
+
+            new_goables_2 = self.get_goables(2)
+            if new_goables_2 != base_goables_2:
                 self.data[y][x] = saved
                 if above_saved:
                     self.data[y - 1][x] = above_saved
                 return False
+
+            new_goables_3 = self.get_goables(3)
+            if new_goables_3 != base_goables_3:
+                self.data[y][x] = saved
+                if above_saved:
+                    self.data[y - 1][x] = above_saved
+                return False
+
             return True
 
         for y, row in enumerate(self.data):
@@ -606,17 +617,23 @@ class Grid:
         # done with data
         # TODO: another pass on the top row? (often ends up with small useless platforms)
 
-    def softlock_exists(self, jump_blocks: int) -> bool:
+    def softlock_exists(self) -> bool:
         start = self.ends[0]
         start_state = (start[0], start[1], True)
-        start_goables = self._search(start, jump_blocks)
-        for y, x, standing in start_goables:
-            here = (y, x)
-            here_goables = self._search(here, jump_blocks, standing, start_state)
-            if start_state not in here_goables:
-                self._logger.debug(f"softlock at row {y} col {x}")
-                self._logger.debug(self.map_str())
-                return True
+        skill_temp = self._skill
+        # skill 5 and jump 4 to make sure I don't miss any places I can go
+        self._skill = 5
+        for jump_blocks in (2, 3, 4):
+            start_goables = self._search(start, jump_blocks)
+            for y, x, standing in start_goables:
+                here = (y, x)
+                here_goables = self._search(here, jump_blocks, standing, start_state)
+                if start_state not in here_goables:
+                    self._logger.debug(f"softlock at row {y} col {x}")
+                    self._logger.debug(self.map_str())
+                    self._skill = skill_temp
+                    return True
+        self._skill = skill_temp
         return False
 
     def to_room_data(self, map_index: int) -> List[int]:
