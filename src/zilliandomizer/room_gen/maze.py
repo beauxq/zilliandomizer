@@ -527,10 +527,10 @@ class Grid:
         tr.data = deepcopy(self.data)
         return tr
 
-    def fix_crawl_fall(self, jump_blocks: int = 3) -> None:
+    def fix_crawl_fall(self) -> None:
         """ eliminate softlocks from crawling into falling holes """
-        # TODO: This could mess up a jump 2 room when I call it with jump 3
-        base_goables = self.get_standing_goables(jump_blocks)
+        base_goables_2 = self.get_standing_goables(2)
+        base_goables_3 = self.get_standing_goables(3)
         for y, row in enumerate(self.data):
             if y > 0:
                 for x, col in enumerate(row):
@@ -552,17 +552,24 @@ class Grid:
                                 if self.data[y - 1][target_col] == Cell.space:
                                     to_restore[y - 1, target_col] = self.data[y - 1][target_col]
                                     self.data[y - 1][target_col] = Cell.floor
-                                new_goables = self.get_standing_goables(jump_blocks)
-                                if new_goables != base_goables:
+                                new_goables_2 = self.get_standing_goables(2)
+                                if new_goables_2 != base_goables_2:
                                     # restore
                                     for y_r, x_r in to_restore:
                                         value = to_restore[y_r, x_r]
                                         self.data[y_r][x_r] = value
-                                # else:
-                                #     # debug
-                                #     self._logger.debug(
-                                #         f"eliminated crawl fall at row {y}, col {target_col}"
-                                #     )
+                                else:
+                                    new_goables_3 = self.get_standing_goables(3)
+                                    if new_goables_3 != base_goables_3:
+                                        # restore
+                                        for y_r, x_r in to_restore:
+                                            value = to_restore[y_r, x_r]
+                                            self.data[y_r][x_r] = value
+                                    # else:
+                                    #     # debug
+                                    #     self._logger.debug(
+                                    #         f"eliminated crawl fall at row {y}, col {target_col}"
+                                    #     )
 
     def optimize_encoding(self) -> None:
         """ try to save space in run-length encoding """
