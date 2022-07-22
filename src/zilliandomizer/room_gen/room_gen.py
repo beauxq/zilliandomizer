@@ -129,8 +129,8 @@ class RoomGen:
             ends.extend(choice((far_corners, adjacent_corners)))
 
         def make_optimized_no_softlock() -> Grid:
-            tr = Grid(exits, ends, self.tc, self._logger, self._skill)
-            tr.make(jump_blocks, map_index, size_limit)
+            tr = Grid(exits, ends, map_index, self.tc, self._logger, self._skill)
+            tr.make(jump_blocks, size_limit)
             if random() < 0.5:
                 # I used to use this for softlock avoidance,
                 # but after improving the movement adjacency function,
@@ -139,9 +139,17 @@ class RoomGen:
                 # so I include it randomly for variety.
                 tr.fix_crawl_fall()
             tr.optimize_encoding()
+            # place some new walkways after post-processing
+            solved = False
+            for _ in range(5 if tr.walkways else 1):
+                if tr.walkways:
+                    tr.place_walkways()
+                if tr.solve(jump_blocks):
+                    solved = True
+                    break
             if tr.softlock_exists():
                 raise MakeFailure("softlock")
-            if not tr.solve(jump_blocks):
+            if not solved:
                 self._logger.warn("WARNING: room generation post-processing removed navigability")
                 raise MakeFailure("post-proc broke room")
             return tr
@@ -199,7 +207,7 @@ class RoomGen:
         print()
         self._logger.debug(g.map_str(placed))
 
-        compressed = g.to_room_data(map_index)
+        compressed = g.to_room_data()
         self.tc.set_room(map_index, compressed)
         return len(compressed)
 

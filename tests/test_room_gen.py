@@ -16,7 +16,7 @@ def test_navigation() -> None:
 
     skill = 5
     ends = [BOT_LEFT, BOT_RIGHT]
-    g = Grid(ends, ends, tc, log, skill)
+    g = Grid(ends, ends, 0x31, tc, log, skill)
     g.data = [
         list("        |||__|"),
         list("__    ___  |||"),
@@ -52,6 +52,22 @@ def test_navigation() -> None:
     assert g.solve(2)
     assert g.solve(3)
 
+    g.data = [
+        list("       _      "),
+        list("              "),
+        list("     __  __   "),
+        list("     |        "),
+        list("   __|     _  "),
+        list("_____|________"),
+    ]
+    assert g.solve(2)
+    assert g.solve(3)
+    g.is_walkway[2][9] = True
+    assert not g.solve(2)
+    g.data[0][8] = Cell.floor
+    assert g.solve(2)
+    g.is_walkway[2][9] = False
+
 
 @pytest.mark.usefixtures("fake_rom")
 def test_jump_requirements() -> None:
@@ -60,7 +76,7 @@ def test_jump_requirements() -> None:
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], tc, log, 5)
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 5)
     g.data = [
         list("         |__  "),
         list("__       |||  "),
@@ -84,7 +100,7 @@ def test_softlock_detect() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], tc, log, 0)
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0)
     g.data = [
         list("             |"),
         list("__          _ "),
@@ -95,7 +111,7 @@ def test_softlock_detect() -> None:
     ]
     assert g.softlock_exists(), "softlock detection can jump 4 tiles"
 
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], tc, log, 0)
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0)
     g.data = [
         list("             |"),
         list("__            "),
@@ -120,7 +136,7 @@ def test_hard_jumps() -> None:
     log.spoil_stdout = True
 
     ends = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, tc, log, 5)
+    g = Grid(ends, ends, 0x31, tc, log, 5)
     g.data = [
         list("              "),
         list("__          __"),
@@ -178,7 +194,7 @@ def test_from_early_dev() -> None:
 
     skill = 5
     ends = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, tc, log, skill)
+    g = Grid(ends, ends, 0x31, tc, log, skill)
     g.data = [
         list("| _   _       "),
         list("    _ |  _ ___"),
@@ -190,7 +206,7 @@ def test_from_early_dev() -> None:
     assert g.softlock_exists()
 
     ends = [BOT_LEFT, (2, 1)]
-    g = Grid(ends, ends, tc, log, skill)
+    g = Grid(ends, ends, 0x31, tc, log, skill)
     g.data = [
         list("         _    "),
         list("   _ _  _|  _ "),
@@ -212,7 +228,7 @@ def test_skill_required_for_jumps() -> None:
     log.spoil_stdout = True
 
     ends = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, tc, log, 0)
+    g = Grid(ends, ends, 0x31, tc, log, 0)
     g.data = [
         list("              "),
         list("            __"),
@@ -222,17 +238,17 @@ def test_skill_required_for_jumps() -> None:
         list("______________"),
     ]
     assert not g.solve(2), "whether skill 0 can jump around ledges"
-    h = Grid(ends, ends, tc, log, 2)
+    h = Grid(ends, ends, 0x31, tc, log, 2)
     h.data = g.data
     assert h.solve(2), "whether skill 2 can jump around ledges"
     h.data[1][10] = Cell.floor
     assert not h.solve(2), "whether skill 2 can jump with horizontal movement into 1-tile holes"
-    i = Grid(ends, ends, tc, log, 5)
+    i = Grid(ends, ends, 0x31, tc, log, 5)
     i.data = h.data
     assert i.solve(2), "whether skill 5 can jump with horizontal movement into 1-tile holes"
 
     # make sure it doesn't think impossible jump is possible
-    g = Grid(ends, ends, tc, log, 5)
+    g = Grid(ends, ends, 0x31, tc, log, 5)
     g.data = [
         list("              "),
         list("        _   __"),
@@ -242,7 +258,7 @@ def test_skill_required_for_jumps() -> None:
         list("______________"),
     ]
     assert not g.solve(2)
-    g = Grid(ends, ends, tc, log, 5)
+    g = Grid(ends, ends, 0x31, tc, log, 5)
     g.data = [
         list("          _   "),
         list("            __"),
@@ -253,7 +269,7 @@ def test_skill_required_for_jumps() -> None:
     ]
     assert not g.solve(2)
     assert not g.solve(3)
-    g = Grid(ends, ends, tc, log, 5)
+    g = Grid(ends, ends, 0x31, tc, log, 5)
     g.data = [
         list("          _   "),
         list("            __"),

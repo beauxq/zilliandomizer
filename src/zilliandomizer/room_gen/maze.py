@@ -38,6 +38,10 @@ class Grid:
     """ places I enter and exit room - coords of lower left """
     ends: List[Coord]
     """ superset of exits, places I want to be able to get to - coords of lower left """
+    map_index: int
+    """ where in base """
+    walkways: bool
+    """ whether to put walkways in this room """
     is_walkway: List[List[int]]
     """ moving walkway - 0 normal floor - 1 right - 2 left """
     _tc: TerrainCompressor
@@ -48,15 +52,18 @@ class Grid:
     def __init__(self,
                  exits: List[Coord],
                  ends: List[Coord],
+                 map_index: int,
                  tc: TerrainCompressor,
                  logger: Logger,
                  skill: int) -> None:
         self.exits = exits
         self.ends = ends
+        self.map_index = map_index
         self._tc = tc
         """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
         self._skill = skill
+        self.walkways = self.walkways_in_room()
         self.reset()
 
     def reset(self) -> None:
@@ -266,7 +273,10 @@ class Grid:
                             self.data[row][next_next_col] == Cell.space and \
                             self.data[row - 1][nnn_col] == Cell.space and \
                             self.data[row][nnn_col] == Cell.floor:
-                        yield row, nnn_col, True
+                        if row == 1 or not self.is_walkway[row][col] or (
+                            self.data[row - 2][next_col] != Cell.space and self._skill > 2
+                        ):
+                            yield row, nnn_col, True
                     # horizontal jump over gap of 3
                     # this is only used on top row
                     # because it requires jump 3 for the speed
@@ -498,7 +508,7 @@ class Grid:
         self.data[row][col] = random.choice(change_to)
         return True
 
-    def make(self, jump_blocks: int, map_index: int, size_limit: float) -> None:
+    def make(self, jump_blocks: int, size_limit: float) -> None:
         """
         produce a room that is traversable from each end to every other end
         <= size_limit bytes
@@ -507,15 +517,14 @@ class Grid:
         """
         success = False
         count = 0
-        walkways = self.walkways_in_room(map_index)
         while count < 500 and not success:
             count += 1
-            if (walkways):
-                self.place_walkways(map_index)
+            if (self.walkways):
+                self.place_walkways()
             solved = self.solve(jump_blocks)
             if solved:
                 # doesn't matter which room - just need some data for size
-                data = self.to_room_data(map_index)
+                data = self.to_room_data()
                 if len(data) <= size_limit:
                     success = True
                 else:
@@ -543,7 +552,7 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.exits, self.ends, self._tc, self._logger, self._skill)
+        tr = Grid(self.exits, self.ends, self.map_index, self._tc, self._logger, self._skill)
         tr.data = deepcopy(self.data)
         return tr
 
@@ -601,6 +610,7 @@ class Grid:
             if value == Cell.space and y < BOTTOM and self.data[y + 1][x] == Cell.wall:
                 # space above wall not allowed
                 return False
+            # before_change = self.map_str()
             saved = self.data[y][x]
             self.data[y][x] = value
             above_saved: Optional[str] = None
@@ -608,19 +618,43 @@ class Grid:
                 above_saved = self.data[y - 1][x]
                 self.data[y - 1][x] = Cell.floor
 
+            nonlocal base_goables_2
+            nonlocal base_goables_3
+
+            def new_goables_ok(new: Set[Tuple[int, int, bool]], base: Set[Tuple[int, int, bool]]) -> bool:
+                return (
+                    (new == base) or
+                    (random.random() < 0.25 and new > base and (
+                        # space changing to floor (no way for space to wall to increase goables)
+                        (saved == Cell.space) or
+                        # floor changing to space (no way for floor to wall to increase goables)
+                        (saved == Cell.floor and len(new) > len(base) + 2) or
+                        (saved == Cell.wall and len(new) > len(base) + 6)
+                    ))
+                )
+
             new_goables_2 = self.get_goables(2)
-            if new_goables_2 != base_goables_2:
+            if not new_goables_ok(new_goables_2, base_goables_2):
                 self.data[y][x] = saved
                 if above_saved:
                     self.data[y - 1][x] = above_saved
                 return False
 
             new_goables_3 = self.get_goables(3)
-            if new_goables_3 != base_goables_3:
+            if not new_goables_ok(new_goables_3, base_goables_3):
                 self.data[y][x] = saved
                 if above_saved:
                     self.data[y - 1][x] = above_saved
                 return False
+
+            # test to see the changes I make when I increase goables
+            # if (new_goables_2 > base_goables_2) or (new_goables_3 > base_goables_3):
+            #     print("before:")
+            #     print(before_change)
+            #     print("after:")
+            #     print(self.map_str())
+            base_goables_2 = new_goables_2
+            base_goables_3 = new_goables_3
 
             return True
 
@@ -646,17 +680,17 @@ class Grid:
             # done with data
         # TODO: another pass on the top row? (often ends up with small useless platforms)
 
-    def walkways_in_room(self, map_index: int) -> bool:
-        original_tiles = TerrainCompressor.decompress(self._tc.get_room(map_index))
+    def walkways_in_room(self) -> bool:
+        original_tiles = TerrainCompressor.decompress(self._tc.get_room(self.map_index))
         # 0 blue - 1 red - 2 paperclip
-        section_index = 0 if map_index < 0x28 else (1 if map_index < 0x50 else 2)
+        section_index = 0 if self.map_index < 0x28 else (1 if self.map_index < 0x50 else 2)
         here_walkway_tiles = walkway_tiles[section_index]
         return any(
             tile in original_tiles
             for tile in here_walkway_tiles
         )
 
-    def place_walkways(self, map_index: int) -> None:
+    def place_walkways(self) -> None:
         self.is_walkway = [[0 for _ in range(14)] for _ in range(6)]
 
         @dataclass
@@ -666,7 +700,7 @@ class Grid:
         platform_list: List[Platform] = []
 
         # red rooms can only have moving walkways in odd rows
-        for y in range(1, 6, 2 if 0x27 < map_index < 0x50 else 1):
+        for y in range(1, 6, 2 if 0x27 < self.map_index < 0x50 else 1):
             prev_was_platform = False
             for x in range(14):
                 here = (y, x)
@@ -688,7 +722,7 @@ class Grid:
             return
         random.shuffle(platform_list)
         # how much of the floor is moving walkway
-        portion = 0.02647 * (map_index // 8) + 0.13
+        portion = 0.02647 * (self.map_index // 8) + 0.13
         mu = len(platform_list) * portion
         sigma = (mu - 1) / 2
         count = 0
@@ -719,9 +753,9 @@ class Grid:
         self._skill = skill_temp
         return False
 
-    def to_room_data(self, map_index: int) -> List[int]:
+    def to_room_data(self) -> List[int]:
         """ to compressed """
-        if map_index < 0x28:  # blue
+        if self.map_index < 0x28:  # blue
             wall = Tile.b_walls
             floor_even = Tile.b_floor
             floor_odd = floor_even
@@ -733,7 +767,7 @@ class Grid:
             floor_ceiling_odd = floor_ceiling_even
             right_walkway = Tile.b_right_walkway
             left_walkway = Tile.b_left_walkway
-        elif map_index < 0x50:  # red
+        elif self.map_index < 0x50:  # red
             wall = Tile.r_walls
             floor_even = Tile.r_light_floor
             floor_odd = Tile.r_dark_floor
@@ -758,7 +792,7 @@ class Grid:
             right_walkway = Tile.p_right_walkway
             left_walkway = Tile.p_left_walkway
 
-        original_data = TerrainCompressor.decompress(self._tc.get_room(map_index))
+        original_data = TerrainCompressor.decompress(self._tc.get_room(self.map_index))
 
         tr: List[int] = []
         for row in range(len(self.data)):
