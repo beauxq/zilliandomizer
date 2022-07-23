@@ -267,7 +267,8 @@ class RoomGen:
                     # So it's not a bad way of disposing of a sprite.
                     sprite.type = (SpriteType.mine, 0x00)
                     y = 0xbc  # half off screen
-                    x = 0x90
+                    x = 0xa0  # where elevators don't reach
+                    # TODO: need a better solution in case I change location of elevators
                     self._logger.debug(f"not enough good places for barrier in room {map_index}")
                 sprite.y = y
                 sprite.x = x
