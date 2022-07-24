@@ -1,6 +1,7 @@
 import os
 from random import seed as random_seed
 from typing import FrozenSet
+from zilliandomizer.ver import version_hash, date
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import Options, ID
@@ -37,6 +38,7 @@ def generate(seed: int) -> None:
     logger.spoil_stdout = False
     logger.spoil(str(options))
     logger.spoil(f"seed {seed_str}")
+    logger.spoil(f"zilliandomizer version: {version_hash} {date}")
     r = Randomizer(options, logger)
 
     random_seed(seed)
