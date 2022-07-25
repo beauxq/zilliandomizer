@@ -129,7 +129,13 @@ class RoomGen:
             ends.extend(choice((far_corners, adjacent_corners)))
 
         def make_optimized_no_softlock() -> Grid:
-            tr = Grid(exits, ends, map_index, self.tc, self._logger, self._skill)
+            tr = Grid(exits,
+                      ends,
+                      map_index,
+                      self.tc,
+                      self._logger,
+                      self._skill,
+                      this_room.no_space)
             tr.make(jump_blocks, size_limit)
             if random() < 0.5:
                 # I used to use this for softlock avoidance,
@@ -150,7 +156,8 @@ class RoomGen:
             if tr.softlock_exists():
                 raise MakeFailure("softlock")
             if not solved:
-                self._logger.warn("WARNING: room generation post-processing removed navigability")
+                # This is expected to happen changing walkways after optimization
+                # self._logger.warn("WARNING: room generation post-processing removed navigability")
                 raise MakeFailure("post-proc broke room")
             return tr
 
@@ -202,6 +209,9 @@ class RoomGen:
                         placed = placed_1 if sum_1 < sum_2 else placed_2
                     self.place(placed, sprites, map_index, candidate)
                     g = candidate
+                    # testing - TODO: make unit test for Grid.no_space
+                    # if map_index in (0x4b, 0x21):
+                    #     print(g.map_str())
             except MakeFailure:
                 print(".", end="")
         print()

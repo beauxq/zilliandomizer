@@ -44,6 +44,8 @@ class Grid:
     """ whether to put walkways in this room """
     is_walkway: List[List[int]]
     """ moving walkway - 0 normal floor - 1 right - 2 left """
+    no_space: FrozenSet[Coord]
+    """ special places that I'm not allowed to put space """
     _tc: TerrainCompressor
     _logger: Logger
     _skill: int
@@ -55,10 +57,12 @@ class Grid:
                  map_index: int,
                  tc: TerrainCompressor,
                  logger: Logger,
-                 skill: int) -> None:
+                 skill: int,
+                 no_space: Iterable[Coord]) -> None:
         self.exits = exits
         self.ends = ends
         self.map_index = map_index
+        self.no_space = frozenset(no_space)
         self._tc = tc
         """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
@@ -404,7 +408,11 @@ class Grid:
             if here == Cell.wall:
                 return True
             if here == Cell.floor:
-                return row < 5 and self.data[row + 1][col] != Cell.wall
+                return (
+                    row < 5 and
+                    self.data[row + 1][col] != Cell.wall and
+                    ((row, col) not in self.no_space)
+                )
             return False
 
         for row in range(6):
@@ -419,7 +427,11 @@ class Grid:
             self.data[row][col] = Cell.space
             return True
         # else removing wall
-        if row == 5 or self.data[row + 1][col] == Cell.wall:
+        if (
+            row == 5 or
+            self.data[row + 1][col] == Cell.wall or
+            ((row, col) in self.no_space)
+        ):
             self.data[row][col] = Cell.floor
         else:
             self.data[row][col] = random.choice((Cell.space, Cell.floor))
@@ -471,7 +483,10 @@ class Grid:
                         else:  # can't turn this to wall because space above it
                             return tr
                     elif left == Cell.space:
-                        if row == BOTTOM or self.data[row + 1][col] != Cell.wall:
+                        if (
+                            (row == BOTTOM or self.data[row + 1][col] != Cell.wall) and
+                            ((row, col) not in self.no_space)
+                        ):
                             return [left]
                         else:  # can't turn this to space because wall below it
                             return tr
@@ -483,7 +498,8 @@ class Grid:
                             tr.append(left)
                     elif left == Cell.space:
                         if row == BOTTOM or self.data[row + 1][col] != Cell.wall:
-                            tr.append(left)
+                            if (row, col) not in self.no_space:
+                                tr.append(left)
                     else:  # floor on left
                         tr.append(left)
 
@@ -492,7 +508,8 @@ class Grid:
                             tr.append(right)
                     elif right == Cell.space:
                         if row == BOTTOM or self.data[row + 1][col] != Cell.wall:
-                            tr.append(right)
+                            if (row, col) not in self.no_space:
+                                tr.append(right)
                     else:  # floor on left
                         tr.append(right)
                     return tr
@@ -552,7 +569,7 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.exits, self.ends, self.map_index, self._tc, self._logger, self._skill)
+        tr = Grid(self.exits, self.ends, self.map_index, self._tc, self._logger, self._skill, self.no_space)
         tr.data = deepcopy(self.data)
         return tr
 
