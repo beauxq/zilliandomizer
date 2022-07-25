@@ -7,6 +7,7 @@ if __name__ == "__main__":
         "zilliandomizer.options",
         "zilliandomizer.low_resources",
         "zilliandomizer.logic_components",
+        "zilliandomizer.map_gen",
         "zilliandomizer.room_gen",
         "zilliandomizer.zri",
         "zilliandomizer.zri.asyncudp",

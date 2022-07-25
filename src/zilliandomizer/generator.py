@@ -1,6 +1,7 @@
 import os
 from random import seed as random_seed
 from typing import FrozenSet
+from zilliandomizer.map_gen.jump import room_jump_requirements
 from zilliandomizer.ver import version_hash, date
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.randomizer import Randomizer
@@ -45,8 +46,9 @@ def generate(seed: int) -> None:
 
     modified_rooms: FrozenSet[int] = frozenset()
     if options.room_gen:
+        jump_3_rooms = [m for m, j in room_jump_requirements().items() if j == 3]
         room_gen = RoomGen(p.tc, p.sm, logger, options.skill)
-        room_gen.generate_all()
+        room_gen.generate_all(jump_3_rooms)
         r.reset(room_gen)
         modified_rooms = room_gen.get_modified_rooms()
 

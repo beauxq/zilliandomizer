@@ -171,6 +171,17 @@ def test_hard_jumps() -> None:
     assert g.solve(2), "Champ room exit jump 2 with ceiling"
 
     g.data = [
+        list("              "),
+        list("__   __     __"),
+        list("         _  |_"),
+        list("   __        |"),
+        list("             |"),
+        list("_____________|"),
+    ]
+    # TODO: enable this jump
+    # assert g.solve(2), "jump to lower platform"
+
+    g.data = [
         list("          _   "),
         list("__          __"),
         list("            |_"),

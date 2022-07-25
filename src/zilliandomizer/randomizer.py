@@ -50,6 +50,11 @@ class Randomizer:
                     row, col = parse_reg_name(region_name)
                     map_index = row * 8 + col
                     region.computer = room_gen.get_computer(map_index)
+                    room_gen.get_modified_rooms()
+                    jump_blocks = room_gen.get_jump_blocks_required(map_index)
+                    if jump_blocks:  # 0 means this room wasn't generated
+                        for req in region.connections.values():
+                            req.jump = 3 if jump_blocks == 3 else 1
         self.start = start
         self.locations = locations
 
@@ -93,7 +98,7 @@ class Randomizer:
             [62, 61, 59, 67],
             [62, 63, 71, 70, 69, 68, 76, 75]
         ]
-        continued = [41, 49, 57, 114, 106]
+        continued = [41, 49, 57, 122, 114]
 
         progression_path = choice(red_progressions) + continued
         for room in progression_path:
