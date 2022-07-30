@@ -1,5 +1,5 @@
 from random import choice, random, randrange, sample, shuffle
-from typing import Dict, FrozenSet, Iterable, List, Optional, Set, Tuple
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
@@ -35,13 +35,13 @@ class RoomGen:
     _skill: int
     """ from options """
 
-    _canisters: Dict[int, List[Tuple[Coord, int]]]
+    _canisters: Dict[int, List[Tuple[Coord, float]]]
     """ placed canisters { map_index: [(Coord, jump_blocks_required), ...] } """
 
     _computers: Dict[int, Coord]
     """ placed computers { map_index: Coord } """
 
-    _rooms: Dict[int, int]
+    _rooms: Dict[int, float]
     """ rooms generated {map_index: jump_blocks} """
 
     def __init__(self, tc: TerrainCompressor, sm: NPSpriteManager, logger: Logger, skill: int) -> None:
@@ -59,8 +59,7 @@ class RoomGen:
         self._computers = {}
         self._rooms = {}
 
-    def generate_all(self, jump_3_rooms: Iterable[int]) -> None:
-        jump_3_rooms = frozenset(jump_3_rooms)
+    def generate_all(self, map_index_2_jump_level: Dict[int, int]) -> None:
         if len(Region.all) == 0:
             locations = make_locations()
             make_regions(locations)
@@ -81,9 +80,9 @@ class RoomGen:
             total_space_limit = len(GEN_ROOMS) * 59
             for i, map_index in enumerate(shuffled_gen_rooms):
                 print(f"generating room {i + 1} / {len(GEN_ROOMS)}")
-                jump_block_ability = 2
-                if map_index in jump_3_rooms:
-                    jump_block_ability = 3
+                jump_block_ability = 2 if map_index_2_jump_level[map_index] == 1 else (
+                    2.5 if map_index_2_jump_level[map_index] == 2 else 3
+                )
 
                 number_of_rooms_remaining = len(GEN_ROOMS) - i
                 ideal_space_limit = (total_space_limit - total_space_taken) / number_of_rooms_remaining
@@ -101,7 +100,10 @@ class RoomGen:
                 self.sm.load_state()
                 self.reset()
 
-    def _generate_room(self, map_index: int, jump_blocks: int, size_limit: float) -> Tuple[int, int]:
+    def _generate_room(self,
+                       map_index: int,
+                       jump_blocks: float,
+                       size_limit: float) -> Tuple[int, float]:
         """ returns (the length of the compressed room data, jump blocks required to traverse) """
         this_room = GEN_ROOMS[map_index]
         exits = this_room.exits[:]  # real exits
@@ -174,7 +176,7 @@ class RoomGen:
                         if highest_2 < highest:
                             candidate = candidate_2
                             candidate_goables = candidate_2_goables
-                # TODO: find out which exits require jump 3
+                # TODO: find out which exits require jump 2.5, 3
                 standing = [g for g in candidate_goables if g[2]]
                 placeables = [(y, x) for y, x, _ in standing if not candidate.in_exit(y, x)]
                 reg_name = make_reg_name(map_index)
@@ -202,13 +204,18 @@ class RoomGen:
                     g = candidate
                     # testing - TODO: make unit test for Grid.no_space
                     # if map_index in (0x4b, 0x21):
+                    # if map_index < 0x28:
                     #     print(g.map_str())
             except MakeFailure:
                 print(".", end="")
         print()
         # self._logger.debug(g.map_str(placed))
 
-        jump_blocks_required = 2 if g.solve(2) else 3
+        jump_blocks_required = 2 if g.solve(2) else (2.5 if g.solve(2.5) else 3)
+        # testing
+        # if jump_blocks_required == 2.5:
+        #     print(f"2.5 req {map_index}")
+        #     print(g.map_str())
         compressed = g.to_room_data()
         self.tc.set_room(map_index, compressed)
         return len(compressed), jump_blocks_required
@@ -312,11 +319,14 @@ class RoomGen:
             cursor += 1
         # canisters
         goables_2 = grid.get_standing_goables(2)
-        cans: List[Tuple[Coord, int]] = []
+        goables_25 = grid.get_standing_goables(2.5)
+        cans: List[Tuple[Coord, float]] = []
         for coord in coords[cursor:]:
             y, x = coord
             state = (y, x, True)
-            jump = 2 if state in goables_2 else 3
+            jump = 2 if state in goables_2 else (
+                2.5 if state in goables_25 else 3
+            )
             cans.append((coord, jump))
         self._canisters[map_index] = cans
 
@@ -330,7 +340,9 @@ class RoomGen:
         for map_index, placed in self._canisters.items():
             for can in placed:
                 coord, jump_blocks = can
-                jump_level = 3 if jump_blocks == 3 else 1
+                jump_level = 3 if jump_blocks == 3 else (
+                    2 if jump_blocks == 2.5 else 1
+                )
                 y, x = coord_to_pixel(coord)
                 reg_name = make_reg_name(map_index)
                 generated_regions.add(reg_name)
@@ -359,7 +371,7 @@ class RoomGen:
     def get_modified_rooms(self) -> FrozenSet[int]:
         return frozenset(self._rooms)
 
-    def get_jump_blocks_required(self, map_index: int) -> int:
+    def get_jump_blocks_required(self, map_index: int) -> float:
         """ returns 0 if this map index wasn't generated """
         if map_index in self._rooms:
             return self._rooms[map_index]

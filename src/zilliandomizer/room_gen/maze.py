@@ -81,7 +81,7 @@ class Grid:
             self.data[row - 1][col] = Cell.space
             self.data[row - 1][col + 1] = Cell.space
 
-    def side_of_jump_around(self, row: int, col: int, dir: int, jump: int) -> bool:
+    def side_of_jump_around(self, row: int, col: int, dir: int, jump: float) -> bool:
         """ Is there terrain to the side that I can do a jump around ledge through? """
         next_col = col + dir
 
@@ -89,7 +89,7 @@ class Grid:
             next_col >= LEFT and next_col <= RIGHT and
             all(
                 self.data[row - i][next_col] == Cell.space
-                for i in range(jump + 2)
+                for i in range(int(jump) + 2)
             )
         ):
             return False
@@ -129,7 +129,7 @@ class Grid:
 
     def _adj_moves(self,
                    state: Tuple[int, int, bool],
-                   highest_jump: int) -> Iterator[Tuple[int, int, bool]]:
+                   highest_jump: float) -> Iterator[Tuple[int, int, bool]]:
         """
         yield all the places I can move in one step
 
@@ -181,7 +181,7 @@ class Grid:
                     yield row - 3, col, True
 
             # check jump and move left or right
-            for jump_height in range(1, highest_jump + 1):  # grid spaces, not jump levels
+            for jump_height in range(1, int(highest_jump) + 1):  # grid spaces, not jump levels
                 target_row = row - jump_height
                 if target_row < 1:
                     continue
@@ -305,9 +305,51 @@ class Grid:
                             target_row += 1
                         yield target_row, next_col, True
 
+            # long distance jumps, so jump level 2 (jump_blocks 2.5) can be in logic
+            if not is_walkway and highest_jump >= 2.5:
+                for dir in (1, -1):
+                    distance_6 = col + (6 * dir)
+                    if distance_6 < LEFT or distance_6 > RIGHT:
+                        continue
+                    distance_7 = distance_6 + dir
+                    if row > 2 and all(
+                        self.data[row_i][check_space_col] == Cell.space
+                        for row_i in range(row - 3, row + 1)
+                        for check_space_col in range(col + dir, distance_6, dir)
+                    ):
+                        # gap 5 is all space
+                        # jump height 2 distance 6 (gap 5) - jump_blocks 2 can't do that
+                        if self.data[row - 3][distance_6] == Cell.space and \
+                           self.data[row - 2][distance_6] == Cell.floor:
+                            yield row - 2, distance_6, True
+                        # jump height 1 distance 7 (gap 6) - jump_blocks 2 can't do that
+                        elif (
+                            distance_7 >= LEFT and
+                            distance_7 <= RIGHT and
+                            all(
+                                self.data[row_i][distance_6] == Cell.space
+                                for row_i in range(row - 3, row + 1)
+                            ) and
+                            self.data[row - 2][distance_7] == Cell.space and
+                            self.data[row - 1][distance_7] == Cell.floor
+                        ):
+                            yield row - 1, distance_7, True
+                    # h0d6 (w/ ceiling at 3) is difficult with jb2, easy with jb2.5
+                    if (
+                        row == 2 and
+                        all(
+                            self.data[row_i][check_space_col] == Cell.space
+                            for check_space_col in range(col + dir, distance_6, dir)
+                            for row_i in range(3)
+                        ) and
+                        self.data[1][distance_6] == Cell.space and
+                        self.data[2][distance_6] == Cell.floor
+                    ):
+                        yield 2, distance_6, True
+
     def _search(self,
                 start: Coord,
-                highest_jump: int,
+                highest_jump: float,
                 standing: bool = True,
                 target_end: Optional[Tuple[int, int, bool]] = None) -> Set[Tuple[int, int, bool]]:
         """
@@ -329,7 +371,7 @@ class Grid:
                     to_move_from.append(adj)
         return been
 
-    def solve(self, highest_jump: int) -> bool:
+    def solve(self, highest_jump: float) -> bool:
         """
         returns whether I can traverse from every end to every other end
 
@@ -525,7 +567,7 @@ class Grid:
         self.data[row][col] = random.choice(change_to)
         return True
 
-    def make(self, jump_blocks: int, size_limit: float) -> None:
+    def make(self, jump_blocks: float, size_limit: float) -> None:
         """
         produce a room that is traversable from each end to every other end
         <= size_limit bytes
@@ -557,11 +599,11 @@ class Grid:
         if not success:
             raise MakeFailure("make terrain failed")
 
-    def get_goables(self, jump_blocks: int) -> Set[Tuple[int, int, bool]]:
+    def get_goables(self, jump_blocks: float) -> Set[Tuple[int, int, bool]]:
         """ coordinates can go to, and whether I can stand there """
         return self._search(self.ends[0], jump_blocks)
 
-    def get_standing_goables(self, jump_blocks: int) -> List[Tuple[int, int, bool]]:
+    def get_standing_goables(self, jump_blocks: float) -> List[Tuple[int, int, bool]]:
         return [
             goable
             for goable in self.get_goables(jump_blocks)
@@ -757,13 +799,13 @@ class Grid:
         skill_temp = self._skill
         # skill 5 and jump 4 to make sure I don't miss any places I can go
         self._skill = 5
-        for jump_blocks in (2, 3, 4):
+        for jump_blocks in (2, 2.5, 3, 4):
             start_goables = self._search(start, jump_blocks)
             for y, x, standing in start_goables:
                 here = (y, x)
                 here_goables = self._search(here, jump_blocks, standing, start_state)
                 if start_state not in here_goables:
-                    self._logger.debug(f"softlock at row {y} col {x}")
+                    self._logger.debug(f"softlock at row {y} col {x} jump {jump_blocks}")
                     self._logger.debug(self.map_str())
                     self._skill = skill_temp
                     return True

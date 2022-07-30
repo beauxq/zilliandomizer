@@ -5,33 +5,37 @@ MAX_JUMP = 3
 
 
 def room_jump_requirements() -> Dict[int, int]:
-    """ returns map of room index to the jump requirement [1, 2, or 3] for that room """
+    """ returns map of room index to the jump requirement cap [1, 2, or 3] for that room """
     tr: Dict[int, int] = {}  # room index to jump requirement
 
     progression_path = [29, 28, 27, 26, 34, 36, 37, 47, 55, 54]  # down from 6666 until junction in red
 
     # tunable magic number
-    extra_1 = 5  # inverse probability for jump requirements left and right of 6666
+    extra_2 = 5  # inverse probability for jump requirements left and right of 6666
     # if progression path down is blocked early by jump,
     # there will be a higher chance of not blocking by jump left and right
 
     current_jump_ability = 1
 
     # tunable magic number
-    escalation_chance = 0.05  # prob of blocking the current jump in each room
+    escalation_chance = 0.25  # prob of blocking the current jump in each room
 
     for room in progression_path:
-        if (
-            random() < escalation_chance and
+        if room == 36 and current_jump_ability < 2:
+            # room 36 is one of the best chances for jump 2 requirement,
+            # so force ability for chance at requirement
+            current_jump_ability = 2
+        elif (
+            random() < (escalation_chance if current_jump_ability == 1 else escalation_chance * 0.25) and
             current_jump_ability < MAX_JUMP
         ):
-            current_jump_ability += 2
+            current_jump_ability += 1
         tr[room] = current_jump_ability
         if current_jump_ability == 1:
-            extra_1 -= 1  # tunable magic number
-    lr_chances = [1, 3]
-    for _ in range(extra_1):
-        lr_chances.append(1)
+            extra_2 -= 1  # tunable magic number
+    lr_chances = [2, 3]
+    for _ in range(extra_2):
+        lr_chances.append(2)
     tr[10] = choice(lr_chances)
     tr[11] = tr[10]  # TODO: progressive escalation here too?
     tr[13] = tr[10]
@@ -53,7 +57,7 @@ def room_jump_requirements() -> Dict[int, int]:
             random() < escalation_chance and
             current_jump_ability < MAX_JUMP
         ):
-            current_jump_ability += 2
+            current_jump_ability += 1
         tr[room] = current_jump_ability
 
     all_rooms = [

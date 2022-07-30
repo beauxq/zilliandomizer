@@ -116,7 +116,7 @@ def test_softlock_detect() -> None:
         list("             |"),
         list("__            "),
         list("           _ _"),
-        list("   __      | |"),
+        list("   _       | |"),
         list("           | |"),
         list("___________|_|"),
     ]
@@ -293,6 +293,70 @@ def test_skill_required_for_jumps() -> None:
     assert not g.solve(3)
 
 
+@pytest.mark.usefixtures("fake_rom")
+def test_long_distance_jumps() -> None:
+    p = Patcher()
+    tc = TerrainCompressor(p.rom)
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends = [BOT_LEFT, TOP_RIGHT]
+    g = Grid(ends, ends, 0x31, tc, log, 0, [])
+    g.data = [
+        list("              "),
+        list("            __"),
+        list("              "),
+        list("  ____        "),
+        list("              "),
+        list("______________"),
+    ]
+    assert not (g.solve(2) or g.solve(2.5) or g.solve(3)), "can't jump 5"
+    g.data[3][6] = Cell.floor
+    assert not g.solve(2), "height 2 distance 6, jump blocks 2"
+    assert g.solve(2.5), "height 2 distance 6, jump blocks 2.5"
+    assert g.solve(3), "height 2 distance 6, jump blocks 3"
+    # TODO: verify and implement:
+    # g.data[3][7] = Cell.floor
+    # assert g.solve(2) and g.solve(2.5) and g.solve(3)
+
+    g.data = [
+        list("              "),
+        list("            __"),
+        list("           _  "),
+        list("  __          "),
+        list("              "),
+        list("______________"),
+    ]
+    assert not (g.solve(2) or g.solve(2.5)), "can't jump distance 8"
+    g.data[3][4] = Cell.floor
+    assert not g.solve(2), "height 1 distance 7, jump blocks 2"
+    assert g.solve(2.5), "height 1 distance 7, jump blocks 2.5"
+
+    g.data = [
+        list("              "),
+        list("           ___"),
+        list("   __         "),
+        list("  _           "),
+        list("              "),
+        list("______________"),
+    ]
+    assert not (g.solve(2) or g.solve(2.5)), "can't jump height 1 distance 7 with ceiling"
+
+    g.data = [
+        list("              "),
+        list("            __"),
+        list("   __      _  "),
+        list("  __          "),
+        list("              "),
+        list("______________"),
+    ]
+    assert not (g.solve(2) or g.solve(2.5)), "can't jump height 0 distance 7"
+    g.data[2][5] = Cell.floor
+    assert not g.solve(2), "height 0 distance 6, jump blocks 2"
+    assert g.solve(2.5), "height 0 distance 6, jump blocks 2.5"
+
+
 if __name__ == "__main__":
     test_navigation()
     test_jump_requirements()
@@ -300,3 +364,4 @@ if __name__ == "__main__":
     test_hard_jumps()
     test_from_early_dev()
     test_skill_required_for_jumps()
+    test_long_distance_jumps()

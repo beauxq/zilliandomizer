@@ -54,7 +54,9 @@ class Randomizer:
                     jump_blocks = room_gen.get_jump_blocks_required(map_index)
                     if jump_blocks:  # 0 means this room wasn't generated
                         for req in region.connections.values():
-                            req.jump = 3 if jump_blocks == 3 else 1
+                            req.jump = 3 if jump_blocks == 3 else (
+                                2 if jump_blocks == 2.5 else 1
+                            )
         self.start = start
         self.locations = locations
 
