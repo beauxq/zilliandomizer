@@ -1273,27 +1273,35 @@ class Patcher:
             "Champ": [2, 2, 2, 2, 1, 1, 1, 1],
             "Apple": [4, 4, 4, 4, 2, 2, 2, 1]
         }
-        harder: Dict[Chars, List[int]] = {
-            "JJ": [4, 3, 3, 3, 2, 2, 2, 1],
-            "Champ": [3, 3, 2, 2, 2, 1, 1, 1],
-            "Apple": [4, 4, 4, 4, 3, 3, 2, 1]
+        balanced: List[List[int]] = [
+            [2, 2, 2, 1, 1, 1, 1, 1],
+            [2, 2, 2, 2, 1, 1, 1, 1],
+            [2, 2, 2, 2, 2, 1, 1, 1],
+            [3, 2, 2, 2, 2, 1, 1, 1],
+            [3, 3, 2, 2, 2, 1, 1, 1],
+            [3, 3, 3, 2, 2, 1, 1, 1],
+            [3, 3, 3, 2, 2, 2, 1, 1],
+            [3, 3, 3, 2, 2, 2, 2, 1],
+            [4, 3, 3, 3, 2, 2, 2, 1],
+            [4, 4, 3, 3, 2, 2, 2, 1],
+            [4, 4, 4, 3, 3, 2, 2, 1],
+            [4, 4, 4, 4, 3, 3, 2, 1],
+        ]
+        difficulty_mods: Dict[Chars, int] = {
+            "JJ": 4,
+            "Champ": 0,
+            "Apple": 6
         }
-        easier: Dict[Chars, List[int]] = {
-            "JJ": [3, 3, 2, 2, 2, 1, 1, 1],
-            "Champ": [2, 2, 2, 2, 1, 1, 1, 1],
-            "Apple": [3, 3, 3, 2, 2, 2, 2, 1]
-        }
-        for_skill = [easier, easier, vanilla, vanilla, harder, harder][skill]
-
-        if for_skill is vanilla:
-            return
+        # length of `balanced` needs to be (highest skill level + Apple difficulty_mod + 1)
+        assert len(balanced) == 5 + difficulty_mods["Apple"] + 1
 
         for level in range(8):
             for char_i, char in enumerate(chars):
+                difficulty_mod = difficulty_mods[char]
                 address = rom_info.stats_per_level_table_7cc8 + char_i * 32 + level * 4 + 3
                 if self.verify:
                     assert self.rom[address] == vanilla[char][level]
-                self.writes[address] = for_skill[char][level]
+                self.writes[address] = balanced[skill + difficulty_mod][level]
 
     def set_explode_timer(self, skill: int) -> None:
         """ set the amount of time to escape based on skill """
@@ -1334,5 +1342,6 @@ class Patcher:
         self.set_jump_levels(options.jump_levels)
         self.set_continues(options.continues)
         self.set_new_game_over(options.continues)
-        self.set_defense(options.skill)
+        if (options.balance_defense):
+            self.set_defense(options.skill)
         self.set_explode_timer(options.skill)

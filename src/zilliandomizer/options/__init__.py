@@ -82,6 +82,16 @@ class Options:
     """ whether to randomize the locations of alarm sensors """
     early_scope: bool = False
     """ whether to make sure there is a scope available early """
+    balance_defense: bool = True
+    """
+    change defense levels according to skill
+
+    All character's defense will be tweaked:
+     - Generally, Apple's defense will be higher except at the highest skill levels.
+     - Generally, Champ's defense will be lower except at the lower skill levels.
+
+    Turning this off will give vanilla defense at all skill levels.
+    """
     room_gen: bool = False
     """ whether to generate rooms with random terrain """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)

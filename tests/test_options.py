@@ -117,6 +117,25 @@ def test_parse_alarms() -> None:
     assert o.continues == 0
 
     t = """
+    randomize_alarms: NO
+    gun_levels: "vanilla"
+    opas_per_level: 5
+    balance_defense: false
+    start_char:  random
+    floppy_req: random
+    continues: 0
+    """
+
+    o = parse_options(t)
+    assert o.randomize_alarms is False
+    assert o.gun_levels == "vanilla"
+    assert o.opas_per_level == 5
+    assert o.balance_defense is False
+    assert o.start_char in chars
+    assert o.floppy_req < 127
+    assert o.continues == 0
+
+    t = """
     randomize_alarms: yes
     """
 
@@ -229,6 +248,13 @@ def test_options_exceptions() -> None:
         parse_options("""
         gun: balanced
         """)
+
+    # TODO: fix
+    # with pytest.raises(TypeError):
+    #     # should be wrong type
+    #     parse_options("""
+    #     balance_defense: 2
+    #     """)
 
     with pytest.raises(ValueError):
         parse_options("""

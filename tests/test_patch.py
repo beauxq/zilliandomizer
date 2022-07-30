@@ -2,6 +2,8 @@ import os
 import pytest
 from typing import Counter as _Counter, Iterator, Set
 from collections import Counter
+from zilliandomizer.low_resources import rom_info
+from zilliandomizer.options import Options
 from zilliandomizer.patch import ROM_NAME, Patcher
 
 
@@ -62,6 +64,13 @@ def test_patches() -> None:
 
 
 @pytest.mark.usefixtures("fake_rom")
+def test_patches_default_options() -> None:
+    o = Options()
+    p = Patcher()
+    p.all_fixes_and_options(o)
+
+
+@pytest.mark.usefixtures("fake_rom")
 def test_disable_demo_requirement() -> None:
     with pytest.raises(AssertionError):
         p = Patcher()
@@ -114,3 +123,37 @@ def test_no_rom() -> None:
 def test_set_item() -> None:
     p = Patcher()
     p.set_item(23, (-1, 0, 1, 2, 254, 255, 256, 257))
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_defense() -> None:
+    o = Options()
+    o.balance_defense = False
+    p = Patcher()
+    p.all_fixes_and_options(o)
+
+    for level in range(8):
+        for char_i in range(3):
+            address = rom_info.stats_per_level_table_7cc8 + char_i * 32 + level * 4 + 3
+            assert address not in p.writes, "didn't change defense"
+
+    o.balance_defense = True
+    o.skill = 0
+    p = Patcher()
+    p.all_fixes_and_options(o)
+    apple_level_1_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 0 * 4 + 3
+    assert p.writes[apple_level_1_damage_taken] < 4
+
+    o.skill = 5
+    p = Patcher()
+    p.all_fixes_and_options(o)
+    assert p.writes[apple_level_1_damage_taken] == 4
+    apple_level_4_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 3 * 4 + 3
+    assert p.writes[apple_level_4_damage_taken] == 4
+
+    o.skill = 2
+    p = Patcher()
+    p.all_fixes_and_options(o)
+    assert p.writes[apple_level_1_damage_taken] == 4
+    apple_level_2_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 1 * 4 + 3
+    assert p.writes[apple_level_2_damage_taken] < 4

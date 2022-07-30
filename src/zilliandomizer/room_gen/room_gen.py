@@ -204,18 +204,18 @@ class RoomGen:
                     g = candidate
                     # testing - TODO: make unit test for Grid.no_space
                     # if map_index in (0x4b, 0x21):
-                    # if map_index < 0x28:
-                    #     print(g.map_str())
             except MakeFailure:
                 print(".", end="")
         print()
-        # self._logger.debug(g.map_str(placed))
 
         jump_blocks_required = 2 if g.solve(2) else (2.5 if g.solve(2.5) else 3)
         # testing
-        # if jump_blocks_required == 2.5:
-        #     print(f"2.5 req {map_index}")
-        #     print(g.map_str())
+        # TODO: make unit test for Grid.no_space
+        # if map_index in (0x4b, 0x21):
+        if self._logger.debug_stdout:  # check to reduce processing of creating the map string
+            self._logger.debug("map_index {:#02x}".format(map_index))
+            self._logger.debug(f"jump blocks required {jump_blocks_required}")
+            self._logger.debug(g.map_str(placed))
         compressed = g.to_room_data()
         self.tc.set_room(map_index, compressed)
         return len(compressed), jump_blocks_required

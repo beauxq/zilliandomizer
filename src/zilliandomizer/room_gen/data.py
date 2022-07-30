@@ -1,6 +1,9 @@
 from typing import Dict
 from zilliandomizer.room_gen.common import RoomData, TOP_LEFT, TOP_RIGHT, BOT_LEFT, BOT_RIGHT
 
+# TODO: distinguish entrances from exits, and check softlocks from all entrances
+# (currently softlock is possible in 0x22 because I only check softlock from 1 entrance)
+
 GEN_ROOMS: Dict[int, RoomData] = {
     0x0a: RoomData([BOT_LEFT, TOP_RIGHT], True, []),
     0x0b: RoomData([TOP_LEFT, BOT_RIGHT], False, []),
@@ -16,7 +19,7 @@ GEN_ROOMS: Dict[int, RoomData] = {
     0x1d: RoomData([BOT_RIGHT, BOT_LEFT], True, []),
 
     0x21: RoomData([BOT_LEFT, BOT_RIGHT], True, [(3, 13)]),
-    0x22: RoomData([BOT_LEFT, BOT_RIGHT, (1, 5)], True, []),
+    0x22: RoomData([(1, 5), BOT_LEFT, BOT_RIGHT], True, []),
     0x24: RoomData([BOT_LEFT, TOP_RIGHT], True, []),
     0x25: RoomData([TOP_LEFT, BOT_RIGHT], True, []),
 

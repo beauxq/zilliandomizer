@@ -56,6 +56,14 @@ randomize_alarms: true
 # (true, false)
 early_scope: false
 
+# change defense levels according to skill
+# All character's defense will be tweaked:
+#  - Generally, Apple's defense will be higher except at the highest skill levels.
+#  - Generally, Champ's defense will be lower except at the lower skill levels.
+# Turning this off will give vanilla defense at all skill levels.
+# (true, false)
+balance_defense: true
+
 # experimental:
 #   not done yet for generated rooms:
 #     alarm lines
