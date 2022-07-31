@@ -92,6 +92,13 @@ class Options:
 
     Turning this off will give vanilla defense at all skill levels.
     """
+    starting_cards: int = 2
+    """
+    how many cards to start the game with
+
+    Refilling at the ship also ensures you have at least this many cards.
+    `0` gives vanilla behavior.
+    """
     room_gen: bool = False
     """ whether to generate rooms with random terrain """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)

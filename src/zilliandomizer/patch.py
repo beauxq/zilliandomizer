@@ -1326,6 +1326,57 @@ class Patcher:
         self.writes[rom_info.base_explosion_timer_text_6044 + 1] = ord("0") + tens
         self.writes[rom_info.base_explosion_timer_text_6044 + 2] = ord("0") + ones
 
+    def set_starting_cards(self, starting_cards: int) -> None:
+        """
+        start the game with `starting_cards` cards
+        and, on ship refill, receive `starting_cards` cards
+        if you have less than that
+
+        0 gives vanilla behavior (refill still gives 1 card)
+        """
+        if starting_cards == 0:
+            return  # vanilla behavior
+
+        card_floor = bytearray([
+            asm.LDHL, ram_info.card_count_c129 & 0xff, ram_info.card_count_c129 // 256,
+            asm.LDAVHL,
+            asm.CP, starting_cards,
+            asm.JRNC, 2,
+            asm.LDVHLI, starting_cards,
+            asm.RET
+        ])
+        card_floor_address = self._use_bank(0, card_floor)
+
+        card_init = bytearray([
+            asm.CALL, card_floor_address & 0xff, card_floor_address // 256,
+            asm.JP, rom_info.init_splice_target_2e7d & 0xff, rom_info.init_splice_target_2e7d // 256
+        ])
+
+        card_init_address = self._use_bank(0, card_init)
+
+        if self.verify:
+            assert self.rom[rom_info.init_splice_address_0ac3 + 1] == rom_info.init_splice_target_2e7d & 0xff
+            assert self.rom[rom_info.init_splice_address_0ac3 + 2] == rom_info.init_splice_target_2e7d // 256
+        self.writes[rom_info.init_splice_address_0ac3 + 1] = card_init_address & 0xff
+        self.writes[rom_info.init_splice_address_0ac3 + 2] = card_init_address // 256
+
+        # also call card floor at ship refill
+        refill_replacement = bytearray([
+            asm.CALL, card_floor_address & 0xff, card_floor_address // 256,
+            # I was going to fill with NOP to the end of the 8 bytes,
+            # but the code that's there won't do anything anyway.
+            # (HL is still pointing at the card count.)
+        ])
+        if self.verify:
+            assert self.rom[rom_info.refill_card_injection_address_1389] == asm.LDHL
+            assert self.rom[rom_info.refill_card_injection_address_1389 + 1] == ram_info.card_count_c129 & 0xff
+            assert self.rom[rom_info.refill_card_injection_address_1389 + 2] == ram_info.card_count_c129 // 256
+        self.writes[rom_info.refill_card_injection_address_1389] = refill_replacement[0]
+        self.writes[rom_info.refill_card_injection_address_1389 + 1] = refill_replacement[1]
+        self.writes[rom_info.refill_card_injection_address_1389 + 2] = refill_replacement[2]
+
+        # not changing the number of cards from a continue (3)
+
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.writes.update(self.sm.get_writes())
@@ -1345,3 +1396,4 @@ class Patcher:
         if (options.balance_defense):
             self.set_defense(options.skill)
         self.set_explode_timer(options.skill)
+        self.set_starting_cards(options.starting_cards)

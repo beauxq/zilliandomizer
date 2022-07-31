@@ -40,6 +40,7 @@ valid_choices: Dict[str, Container[Any]] = {
     "randomize_alarms": (True, False),
     "early_scope": (True, False),
     "balance_defense": (True, False),
+    "starting_cards": range(127),
     "room_gen": (True, False),
 }
 

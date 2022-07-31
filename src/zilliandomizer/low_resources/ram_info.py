@@ -25,6 +25,7 @@ main game scene selector
 """
 
 current_char_c127 = 0xc127
+card_count_c129 = 0xc129
 red_c12a = 0xc12a
 floppy_c12b = 0xc12b
 

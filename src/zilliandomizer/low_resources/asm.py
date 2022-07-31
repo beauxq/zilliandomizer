@@ -64,6 +64,8 @@ JRZ = 0x28
 """ jump relative if zero """
 JRNZ = 0x20
 """ jump relative if not zero """
+JRNC = 0x30
+""" jump relative if not carry """
 JRC = 0x38
 """ jump relative if carry """
 JR = 0x18

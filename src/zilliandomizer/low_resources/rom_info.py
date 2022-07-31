@@ -221,3 +221,10 @@ tt tt: type of thing
    07 vertical   length 2 - small tile
 ```
 """
+
+init_splice_address_0ac3 = 0x0ac3
+""" a call to a subroutine in the initialization of a new game """
+init_splice_target_2e7d = 0x2e7d
+""" a subroutine called in the initialization of a new game """
+refill_card_injection_address_1389 = 0x1389
+""" 8 bytes of code at ship refill to give a card if you have none """

@@ -6,7 +6,7 @@ from verified import verified
 
 from zilliandomizer.options import ID, chars, char_to_jump
 from zilliandomizer.patch import ROM_NAME, Patcher
-from zilliandomizer.low_resources import asm, rom_info
+from zilliandomizer.low_resources import asm, ram_info, rom_info
 
 
 def set_verified_bytes(b: bytearray) -> None:
@@ -162,6 +162,13 @@ def set_verified_bytes(b: bytearray) -> None:
     b[rom_info.base_explosion_timer_text_6044] = ord("3")
     b[rom_info.base_explosion_timer_text_6044 + 1] = ord("0")
     b[rom_info.base_explosion_timer_text_6044 + 2] = ord("0")
+
+    b[rom_info.init_splice_address_0ac3 + 1] = rom_info.init_splice_target_2e7d & 0xff
+    b[rom_info.init_splice_address_0ac3 + 2] = rom_info.init_splice_target_2e7d // 256
+
+    b[rom_info.refill_card_injection_address_1389] = asm.LDHL
+    b[rom_info.refill_card_injection_address_1389 + 1] = ram_info.card_count_c129 & 0xff
+    b[rom_info.refill_card_injection_address_1389 + 2] = ram_info.card_count_c129 // 256
 
 
 @pytest.fixture
