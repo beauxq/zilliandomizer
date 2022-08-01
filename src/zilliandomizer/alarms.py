@@ -171,11 +171,24 @@ class Alarms:
                     if block_index not in blocks:
                         blocks[block_index] = "n"
 
-        # set bytes
+        Alarms.add_alarms_to_room_terrain_bytes(_bytes, blocks)
+
+        self.tc.set_room(map_index, TerrainCompressor.compress(_bytes))
+
+    @staticmethod
+    def add_alarms_to_room_terrain_bytes(
+        bytes_: List[int],
+        blocks: Dict[int, Literal["v", "h", "n"]]
+    ) -> None:
+        """
+        `bytes_` is length 96 of what `TerrainCompressor` deals with.
+        `bytes_` will be modified in place.
+
+        `blocks` is map of changes that need to be made for alarms,
+        index: Literal["v", "h", "n"]
+        """
         for block_index in blocks:
             block = blocks[block_index]
             to = to_vertical if block == "v" \
                 else (to_horizontal if block == "h" else to_none)
-            _bytes[block_index] = to[_bytes[block_index]]
-
-        self.tc.set_room(map_index, TerrainCompressor.compress(_bytes))
+            bytes_[block_index] = to[bytes_[block_index]]

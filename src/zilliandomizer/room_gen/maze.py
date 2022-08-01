@@ -2,7 +2,8 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Set, Tuple, Union
+from typing import Dict, FrozenSet, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
+from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
 from zilliandomizer.low_resources.terrain_tiles import Tile
 from zilliandomizer.room_gen.common import Coord
@@ -583,7 +584,7 @@ class Grid:
             solved = self.solve(jump_blocks)
             if solved:
                 # doesn't matter which room - just need some data for size
-                data = self.to_room_data()
+                data = self.to_room_data({})
                 if len(data) <= size_limit:
                     success = True
                 else:
@@ -812,7 +813,7 @@ class Grid:
         self._skill = skill_temp
         return False
 
-    def to_room_data(self) -> List[int]:
+    def to_room_data(self, alarm_blocks: Dict[int, Literal['v', 'h', 'n']]) -> List[int]:
         """ to compressed """
         if self.map_index < 0x28:  # blue
             wall = Tile.b_walls
@@ -881,5 +882,7 @@ class Grid:
 
             # right wall
             tr.append(original_data[len(tr)])
+
+        Alarms.add_alarms_to_room_terrain_bytes(tr, alarm_blocks)
 
         return TerrainCompressor.compress(tr)

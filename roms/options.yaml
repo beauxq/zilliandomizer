@@ -72,9 +72,7 @@ starting_cards: 2
 
 # experimental:
 #   not done yet for generated rooms:
-#     alarm lines
 #     rooms divided into 2 regions are not randomized
-#     logic might think that some things require jump 3 when they don't
 # whether to generate rooms with random terrain
 # (true, false)
 room_gen: false

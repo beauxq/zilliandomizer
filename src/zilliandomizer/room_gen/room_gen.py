@@ -1,15 +1,17 @@
-from random import choice, random, randrange, sample, shuffle
-from typing import Dict, FrozenSet, List, Optional, Set, Tuple
+from random import choice, gauss, random, randrange, sample, shuffle
+from typing import Dict, FrozenSet, List, Literal, Optional, Set, Tuple
+from zilliandomizer.alarm_data import ALARM_ROOMS
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, SpriteType
 from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
+from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS
-from zilliandomizer.room_gen.maze import Grid, MakeFailure
-from zilliandomizer.room_gen.sprite_placing import auto_gun_places, barrier_places
+from zilliandomizer.room_gen.maze import Cell, Grid, MakeFailure
+from zilliandomizer.room_gen.sprite_placing import alarm_places, auto_gun_places, barrier_places, choose_alarms
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import make_loc_name, make_reg_name
 from zilliandomizer.logger import Logger
@@ -31,6 +33,7 @@ class RoomGen:
     """
     tc: TerrainCompressor
     sm: NPSpriteManager
+    aem: AlarmEntranceManager
     _logger: Logger
     _skill: int
     """ from options """
@@ -44,11 +47,21 @@ class RoomGen:
     _rooms: Dict[int, float]
     """ rooms generated {map_index: jump_blocks} """
 
-    def __init__(self, tc: TerrainCompressor, sm: NPSpriteManager, logger: Logger, skill: int) -> None:
+    _alarm_rooms: FrozenSet[int]
+    """ rooms that can have alarm lines """
+
+    def __init__(self,
+                 tc: TerrainCompressor,
+                 sm: NPSpriteManager,
+                 aem: AlarmEntranceManager,
+                 logger: Logger,
+                 skill: int) -> None:
         self.tc = tc
         self.sm = sm
+        self.aem = aem
         self._logger = logger
         self._skill = skill
+        self._alarm_rooms = frozenset(ALARM_ROOMS)
 
         # testing
         # logger.spoil_stdout = True
@@ -86,10 +99,11 @@ class RoomGen:
 
                 number_of_rooms_remaining = len(GEN_ROOMS) - i
                 ideal_space_limit = (total_space_limit - total_space_taken) / number_of_rooms_remaining
-                hard_space_limit = ideal_space_limit + (30 * (number_of_rooms_remaining - 1) / len(GEN_ROOMS))
+                hard_space_limit = ideal_space_limit + (20 * (number_of_rooms_remaining - 1) / len(GEN_ROOMS)) - 1
+                # TODO: need to keep size limit above around 45
                 space_taken, jump_required = self._generate_room(map_index, jump_block_ability, hard_space_limit)
                 total_space_taken += space_taken
-                self._logger.debug("over" if space_taken > 59 else "under")
+                self._logger.debug(f"{space_taken} over 59" if space_taken > 59 else f"{space_taken} under 60")
 
                 self._rooms[map_index] = jump_required
             if self.tc.get_space() >= 0:
@@ -161,6 +175,7 @@ class RoomGen:
 
         g: Optional[Grid] = None
         placed: List[Coord] = []
+        alarm_blocks: Dict[int, Literal['v', 'h', 'n']] = {}
 
         while not g:
             try:
@@ -200,7 +215,7 @@ class RoomGen:
                         sum_1 = sum(p[0] for p in placed_1)
                         sum_2 = sum(p[0] for p in placed_2)
                         placed = placed_1 if sum_1 < sum_2 else placed_2
-                    self.place(placed, sprites, map_index, candidate)
+                    alarm_blocks = self.place(placed, sprites, map_index, candidate)
                     g = candidate
                     # testing - TODO: make unit test for Grid.no_space
                     # if map_index in (0x4b, 0x21):
@@ -216,7 +231,7 @@ class RoomGen:
             self._logger.debug("map_index {:#02x}".format(map_index))
             self._logger.debug(f"jump blocks required {jump_blocks_required}")
             self._logger.debug(g.map_str(placed))
-        compressed = g.to_room_data()
+        compressed = g.to_room_data(alarm_blocks)
         self.tc.set_room(map_index, compressed)
         return len(compressed), jump_blocks_required
 
@@ -224,17 +239,18 @@ class RoomGen:
               coords: List[Coord],
               sprites: RoomSprites,
               map_index: int,
-              grid: Grid) -> None:
+              grid: Grid) -> Dict[int, Literal['v', 'h', 'n']]:
         """
         place the things that need to be placed in this room
 
-        length of coords should be (
+        length of coords should be the sum (
             the number of floor sprites in the non-player sprite table
             + the number of canisters in the room
             + 1 if there's a computer in the room
         )
+
+        returns alarm block data (input to `Alarms.add_alarms_to_room_terrain_bytes`)
         """
-        # TODO: place alarm sensors
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.
         agp = auto_gun_places(grid)
@@ -331,6 +347,26 @@ class RoomGen:
         self._canisters[map_index] = cans
 
         self.sm.set_room(map_index, sprites)
+
+        if map_index in self._alarm_rooms:
+            if self.aem.is_ceiling(map_index):
+                enemy_level = 0 if map_index < 0x20 else (
+                    1 if map_index < 0x50 else 2
+                )
+                for x, i in self.aem.get_ceiling_entrances(enemy_level):
+                    col = x // 16 - 1
+                    if grid.data[0][col] == Cell.space:
+                        self._logger.debug(f"map index {map_index} alarm entrance col {col}")
+                        self.aem.indexes[map_index] = i
+                        break
+            mu = 0.25 * (map_index // 8) + 0.75
+            count = 0
+            while count < 1:
+                count = round(gauss(mu, 1))
+            ap = alarm_places(grid, coords)
+            return choose_alarms(ap, count)
+        else:
+            return {}
 
     def make_locations(self) -> Dict[str, Location]:
         # original = make_locations()

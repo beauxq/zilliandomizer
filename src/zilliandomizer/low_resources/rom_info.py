@@ -228,3 +228,13 @@ init_splice_target_2e7d = 0x2e7d
 """ a subroutine called in the initialization of a new game """
 refill_card_injection_address_1389 = 0x1389
 """ 8 bytes of code at ship refill to give a card if you have none """
+
+alarmed_enemy_entrance_table_7f04 = 0x7f04
+""" 1 byte for each map index, indexes to data for alarmed enemy entrances """
+alarmed_enemy_entrance_data_7f86 = 0x7f86
+"""
+6 bytes for each alarmed enemy entrance
+1st entry is null (00, 00, 00, 00, 00, 00)
+
+x, y, x velocity?, ff if falling?, enemy type, 12 from left - 13 from right - 11 from ceiling
+"""

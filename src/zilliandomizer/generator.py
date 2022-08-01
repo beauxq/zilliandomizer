@@ -47,7 +47,8 @@ def generate(seed: int) -> None:
     modified_rooms: FrozenSet[int] = frozenset()
     if options.room_gen:
         jump_req_rooms = room_jump_requirements()
-        room_gen = RoomGen(p.tc, p.sm, logger, options.skill)
+        p.aem.room_gen_mods()
+        room_gen = RoomGen(p.tc, p.sm, p.aem, logger, options.skill)
         room_gen.generate_all(jump_req_rooms)
         r.reset(room_gen)
         modified_rooms = room_gen.get_modified_rooms()

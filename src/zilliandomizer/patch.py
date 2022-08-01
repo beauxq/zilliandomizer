@@ -7,6 +7,7 @@ from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
+from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
 
@@ -44,6 +45,7 @@ class Patcher:
     rom: bytes
     tc: TerrainCompressor
     sm: NPSpriteManager
+    aem: AlarmEntranceManager
 
     BANK_OFFSETS: ClassVar[Dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
@@ -89,6 +91,7 @@ class Patcher:
 
         self.tc = TerrainCompressor(self.rom)
         self.sm = NPSpriteManager(self.rom)
+        self.aem = AlarmEntranceManager(self.rom)
 
     def fix_floppy_req(self) -> None:
         """
@@ -1380,6 +1383,7 @@ class Patcher:
     def all_fixes_and_options(self, options: Options) -> None:
         self.writes.update(self.tc.get_writes())
         self.writes.update(self.sm.get_writes())
+        self.writes.update(self.aem.get_writes())
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()
