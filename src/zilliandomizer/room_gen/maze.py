@@ -243,7 +243,10 @@ class Grid:
                         )
                         # require skill to jump with horizontal movement into a 1-tile hole
                         if self._skill < 4 or is_walkway:
-                            if distance == 2:
+                            if (
+                                (distance == 2) or
+                                (distance == 3 and is_walkway)
+                            ):
                                 start_of_needing_space = col
                         # check all space before target
                         if all(

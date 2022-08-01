@@ -372,6 +372,39 @@ def test_long_distance_jumps() -> None:
     assert g.solve(2.5), "height 0 distance 6, jump blocks 2.5"
 
 
+@pytest.mark.usefixtures("fake_rom")
+def test_jump_from_walkway() -> None:
+    p = Patcher()
+    tc = TerrainCompressor(p.rom)
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends = [BOT_LEFT, TOP_RIGHT]
+    g0 = Grid(ends, ends, 0x31, tc, log, 0, [])
+    g0.data = [
+        list("              "),
+        list("     ___  ____"),
+        list("     |        "),
+        list("_____|__      "),
+        list("              "),
+        list("______________"),
+    ]
+    assert g0.solve(2)
+    g0.is_walkway[3][7] = 1
+    assert not g0.solve(2)
+    g0.is_walkway[3][7] = 2
+    assert not g0.solve(2)
+
+    g5 = Grid(ends, ends, 0x31, tc, log, 5, [])
+    g5.data = g0.data
+    assert g5.solve(2)
+    g5.is_walkway[3][7] = 1  # right
+    # assert g5.solve(2)  # TODO: fix jump in same direction as walkway
+    g5.is_walkway[3][7] = 2  # left
+    assert not g5.solve(2)
+
+
 if __name__ == "__main__":
     test_navigation()
     test_jump_requirements()
@@ -380,3 +413,4 @@ if __name__ == "__main__":
     test_from_early_dev()
     test_skill_required_for_jumps()
     test_long_distance_jumps()
+    test_jump_from_walkway()
