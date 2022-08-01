@@ -292,6 +292,21 @@ def test_skill_required_for_jumps() -> None:
     assert not g.solve(2)
     assert not g.solve(3)
 
+    g.data = [
+        list("          _   "),
+        list("            __"),
+        list("            ||"),
+        list("              "),
+        list("            __"),
+        list("______________"),
+    ]
+    assert not g.solve(2)
+    assert not g.solve(3)
+
+    g.data[2] = list("            __")
+    assert not g.solve(2)
+    assert not g.solve(3)
+
 
 @pytest.mark.usefixtures("fake_rom")
 def test_long_distance_jumps() -> None:

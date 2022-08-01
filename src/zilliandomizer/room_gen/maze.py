@@ -82,7 +82,7 @@ class Grid:
             self.data[row - 1][col] = Cell.space
             self.data[row - 1][col + 1] = Cell.space
 
-    def side_of_jump_around(self, row: int, col: int, dir: int, jump: float) -> bool:
+    def side_of_jump_around(self, row: int, col: int, dir: int, jump: int) -> bool:
         """ Is there terrain to the side that I can do a jump around ledge through? """
         next_col = col + dir
 
@@ -90,7 +90,7 @@ class Grid:
             next_col >= LEFT and next_col <= RIGHT and
             all(
                 self.data[row - i][next_col] == Cell.space
-                for i in range(int(jump) + 2)
+                for i in range(jump + 2)
             )
         ):
             return False
@@ -122,7 +122,10 @@ class Grid:
             # I have to jump into a slot.
             return self._skill > 3
         # else space at head hit level also
-        if self.data[head_hit - 1][next_next_col] != Cell.space:
+        if any(
+            self.data[y][next_next_col] != Cell.space
+            for y in range(head_hit - 1, row - (jump + 2), -1)
+        ):
             # I think this jump is impossible
             return False
         # else space all the way up to top of where I'm jumping
