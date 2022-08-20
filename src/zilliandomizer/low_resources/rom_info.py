@@ -117,13 +117,15 @@ terrain_index_13725 = 0x13725
 """
 starting at `_DATA_13725_` is 65 bytes for each of the 17 rows
 
-each row is 1 byte (unknown purpose, `01` in most of them)
+each row is 8 bytes for each column
+    - 00 `00` scrolling hallway - `01` non-scrolling hallway - `03` room
+    - 01-02 banked address of terrain data for that location
+    - 03 unknown
+    - 04 map index (0-135)
+    - 05-06 banked address of door data
+    - 07 unknown
 
-followed by 8 bytes for each column
-    - 00-01 banked address of terrain data for that location
-    - 02 unknown
-    - 03 map index (0-135)
-    - 04-07 unknown
+followed by 1 byte at the end of the row 0xfe
 """
 terrain_begin_10ef0 = 0x10ef0
 """
@@ -140,6 +142,8 @@ Each room's terrain data ends with `0x00`
 """
 terrain_end_120da = 0x120da
 """ the byte after the last room's 0x00 """
+door_data_begin_13ce8 = 0x13ce8
+""" the beginning of the data containing the doors in each room """
 
 continue_count_init_0af5 = 0x0af5
 """ the initialization value for the number of continues (+ 1) """

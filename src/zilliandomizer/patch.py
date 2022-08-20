@@ -64,6 +64,9 @@ class Patcher:
         # 1st used byte after an unused section
         self.end_of_available_banked = {
             0: rom_info.free_space_end_7e00,
+            # If we use the end of bank 4, it might collide with changed door data.
+            # (If we don't change door data, there's space that could be used
+            #  at the end of bank 4.)
             5: rom_info.bank_5_free_space_end_bfdf,
             6: rom_info.bank_6_free_space_end_b5e6,
         }

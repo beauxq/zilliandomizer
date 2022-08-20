@@ -2,7 +2,7 @@ import pytest
 from typing import Iterator
 import os
 
-from verified import verified
+from verified import verified, v_door_data
 
 from zilliandomizer.options import ID, chars, char_to_jump
 from zilliandomizer.patch import ROM_NAME, Patcher
@@ -156,6 +156,8 @@ def set_verified_bytes(b: bytearray) -> None:
 
     for key in verified:
         b[key] = verified[key]
+    for key in v_door_data:
+        b[key] = v_door_data[key]
 
     b[rom_info.base_explosion_timer_init_207b] = 0x00
     b[rom_info.base_explosion_timer_init_207b + 1] = 0x03
