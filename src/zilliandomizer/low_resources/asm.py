@@ -24,6 +24,10 @@ LDDE = 0x11
 """ load into de, immediate value """
 LDHVHL = 0x66
 """ load into h, value at memory address hl """
+LDHI = 0x26
+""" load into h, immediate value """
+LDLI = 0x2e
+""" load into l, immediate value """
 LDLA = 0x6f
 """ load into l, value in a """
 INCA = 0x3c
@@ -52,6 +56,8 @@ ORC = 0xb1
 """ or a with c, into a """
 CP = 0xfe
 """ compare """
+CPVHL = 0xbe
+""" compare with value in address hl """
 BIT_B_HL_LO = 0xcb
 """ test bit b of value in address hl, low byte """
 BIT_2_HL_HI = 0x46 | (2 << 3)
@@ -88,6 +94,8 @@ RETZ = 0xc8
 """ return from subroutine if zero flag is set """
 RETNZ = 0xc0
 """ return from subroutine if zero flag not set """
+RETC = 0xd8
+""" return from subroutine if carry flag is set """
 DAA = 0x27
 """ adjust a for binary coded decimal """
 NOP = 0x00

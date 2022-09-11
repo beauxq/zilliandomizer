@@ -948,6 +948,155 @@ class Patcher:
         (RetroArch READ_CORE_RAM and WRITE_CORE_RAM)
         it can give items to the player.
 
+        ram address c2ex
+        where x is:
+         - an item id 5 or higher
+         - 3 to rescue apple (or jj if apple is the starting character)
+         - 4 to rescue champ (or jj if champ is the starting character)
+        put the total count of each item given to the game
+
+        Example:
+            To bring the total number of scopes given
+            through this interface to 2, put a 2 in c2eb,
+            because 0x0b is the item id for scope.
+
+        This value should only ever be increased, never decreased.
+        (You can't take back an item after it's given.)
+        """
+        # TODO: rescues bugged
+        # Is music correct after rescue?
+
+        # 3 into this interface is the apple rescue scene
+        # 4 into this interface is the champ rescue scene
+        # (These are normally keyword 4 and empty, which won't be sent.)
+        rescue = {
+            3: 0x70,
+            4: 0x60,
+        }
+        if start_char == "Apple":
+            rescue[3] = 0x50
+        elif start_char == "Champ":
+            rescue[4] = 0x50
+
+        # before getting to this code,
+        # a is which item we're picking up,
+        # hl points to how many of this item we picked up
+        pickup_code = bytearray([
+            asm.RETC,  # I've picked up more than I've been given?
+
+            asm.INCVHL,  # picked up one more of this item
+
+            # check if item or rescue
+            asm.CP, 0x04,
+            asm.JRZ, 15,  # champ
+            asm.JRC, 18,  # apple
+
+            # item
+            # TODO: instead of canister sound, make a new cutscene for scene 6
+            # for telling which item and who it came from
+            # (based on cutscene 0 because that's a short cutscene that goes back to gameplay)
+            # Maybe that should be optional because of the extra time it takes.
+            asm.PUSHAF,  # push item id to stack
+            asm.LDAI, 0x97,  # get canister sound
+            asm.LDVA, 0x05, 0xc0,  # sound trigger ram
+            asm.POPAF,  # pop item id from stack
+            # could save space, but use extra clock cycles to jump to where these next 2 lines are
+            asm.LDHL, 0xbc, 0x4a,
+            asm.JP, 0x20, 0x00,  # This jump leads to something with with `ret` instruction.
+
+            # champ
+            asm.LDHL, rescue[4], 0xc1,
+            asm.JR, 0x03,  # after_apple
+            # apple
+            asm.LDHL, rescue[3], 0xc1,
+            # after_apple
+            asm.SET_B_HL_LO, asm.SET_0_HL_HI,
+
+            asm.LDVA, 0x83, 0xc1,  # scene selector
+
+            # set music
+            # if c005 doesn't work well, can try this:
+            # ld a, $84
+            # call _SET_MUSIC_LABEL_689_
+            asm.LDAI, 0x84,  # rescue music
+            asm.LDVA, 0x05, 0xc0,  # sound trigger
+
+            asm.LDAI, 0x06,  # cutscene
+            asm.LDVA, 0x1e, 0xc1,  # scene trigger
+
+            # done processing item
+            asm.RET,
+
+            # copied from 4a1a, don't understand what this does
+            # something to do with facing the canister and/or showing text box
+            # 0xfd, 0x36, 0x16, 0x13,  # ld (iy+22), $13
+            # 0xfd, 0xcb, 0x08, 0xde,  # set 3, (iy+8)
+            # 0xfd, 0xcb, 0x08, 0xee,  # set 5, (iy+8)
+            # set 3, (ix+8)  # this is for the local room, so not here
+        ])
+        pickup_addr = self._use_bank(6, pickup_code)
+
+        # TODO: to ram_info
+        item_ram_hi = 0xc2
+        item_ram_pushed_lo = 0xe0
+        item_ram_picked_lo = 0xd0
+
+        check_interface_code = bytearray([
+            asm.LDAV, ram_info.current_scene_c11f % 256, ram_info.current_scene_c11f // 256,
+            asm.CP, 0x8b,
+            asm.RETNZ,  # return if not in scene b (gameplay scene)
+
+            asm.LDHI, item_ram_hi,
+        ])
+        for item_id in range(0x03, 0x0c):
+            each_item = bytearray([
+                asm.LDAV, item_ram_pushed_lo + item_id, item_ram_hi,
+                asm.LDLI, item_ram_picked_lo + item_id,
+                asm.CPVHL,
+                asm.LDAI, item_id,
+                asm.JPNZ, pickup_addr % 256, pickup_addr // 256
+            ])
+            check_interface_code.extend(each_item)
+        check_interface_code.append(asm.RET)
+
+        check_address_banked = self._use_bank(6, check_interface_code)
+
+        # I might want to move this after some of the other checks in this area.
+        # I'm not sure what all of them do.
+        # It's important that this points to a 3 byte instruction.
+        # TODO: move to rom_info after well tested
+        common_gameplay_0x0c71 = 0x0c71
+        splice = common_gameplay_0x0c71
+
+        # don't know if I need to save current bank
+        bank_wrapper = bytearray([
+            asm.LDAI, 0x06,
+            asm.LDVA, 0xff, 0xff,
+            asm.CALL, check_address_banked & 0xff, check_address_banked >> 8,
+            self.rom[splice], self.rom[splice + 1], self.rom[splice + 2],  # code replaced by jump here
+            asm.JP, (splice + 3) & 0xff, (splice + 3) >> 8,
+        ])
+
+        # length 14
+        new_code_addr = self._use_bank(0, bank_wrapper)
+
+        if self.verify:
+            assert self.rom[splice] == bank_wrapper[-6]
+            assert self.rom[splice + 1] == bank_wrapper[-5]
+            assert self.rom[splice + 2] == bank_wrapper[-4]
+        self.writes[splice] = asm.JP
+        self.writes[splice + 1] = new_code_addr & 0xff
+        self.writes[splice + 2] = new_code_addr >> 8
+
+    def old_set_external_item_interface(self, start_char: Chars, max_level: int) -> None:
+        """
+        deprecated
+        keeping around for now, for comparison
+
+        If another program can read and write the ram of this game,
+        (RetroArch READ_CORE_RAM and WRITE_CORE_RAM)
+        it can give items to the player.
+
         ram address c2ea
          - put an item id 5 or higher to give the player that item
          - put a 3 there to rescue apple (or jj if apple is the starting character)
@@ -956,8 +1105,8 @@ class Patcher:
         The game will set that address to 0 when it has finished processing that item.
         """
         # new ram going to use - hope it's not already used
-        item_flag_hi = 0xc2
-        item_flag_lo = 0xea
+        item_flag_hi = ram_info.external_item_trigger_c2ea // 256
+        item_flag_lo = ram_info.external_item_trigger_c2ea % 256
 
         # 3 into this interface is the apple rescue scene
         # 4 into this interface is the champ rescue scene
