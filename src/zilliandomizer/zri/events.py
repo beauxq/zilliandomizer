@@ -1,5 +1,6 @@
 import abc
 from dataclasses import dataclass
+from typing import List
 
 
 class EventFromGame(abc.ABC):
@@ -22,7 +23,7 @@ class EventToGame(abc.ABC):
 
 @dataclass
 class ItemEventToGame(EventToGame):
-    id: int
+    ids: List[int]
 
 
 class DeathEventToGame(EventToGame):

@@ -300,6 +300,9 @@ class RoomGen:
             elif sprite.type[0] == SpriteType.auto_gun:
                 # TODO: can I avoid having them move over doors?
                 # (I already avoid placing them on doors, but they can still move.)
+
+                # TODO: more than 4 guns in a row makes some of them invisible (r07c4)
+
                 subtype = sprite.type[1]
                 if subtype in (AutoGunSub.down, AutoGunSub.down_move):
                     if len(agp.down):

@@ -54,7 +54,11 @@ canister_state_d700 = 0xd700
 """ 2 bytes per room, opened, acquired """
 
 # moveable (TODO: make sure covered all references for moveable)
-external_item_trigger_c2ea = 0xc2ea
+item_pickup_queue = 0xc2e0
+""" this + item id is the the total count of that item received """
+item_pickup_record = 0xc2d0
+""" this + item id is the the total count of that item already picked up """
+deprecated_external_item_trigger_c2ea = 0xc2ea
 """ 3 rescue_0, 4 rescue_1 """
 guns_c2ec = 0xc2ec
 opas_c2ee = 0xc2ee

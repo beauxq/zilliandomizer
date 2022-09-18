@@ -1036,10 +1036,9 @@ class Patcher:
         ])
         pickup_addr = self._use_bank(6, pickup_code)
 
-        # TODO: to ram_info
-        item_ram_hi = 0xc2
-        item_ram_pushed_lo = 0xe0
-        item_ram_picked_lo = 0xd0
+        item_ram_hi = ram_info.item_pickup_queue // 256
+        item_ram_pushed_lo = ram_info.item_pickup_queue & 0xff
+        item_ram_picked_lo = ram_info.item_pickup_record & 0xff
 
         check_interface_code = bytearray([
             asm.LDAV, ram_info.current_scene_c11f % 256, ram_info.current_scene_c11f // 256,
@@ -1105,8 +1104,8 @@ class Patcher:
         The game will set that address to 0 when it has finished processing that item.
         """
         # new ram going to use - hope it's not already used
-        item_flag_hi = ram_info.external_item_trigger_c2ea // 256
-        item_flag_lo = ram_info.external_item_trigger_c2ea % 256
+        item_flag_hi = ram_info.deprecated_external_item_trigger_c2ea // 256
+        item_flag_lo = ram_info.deprecated_external_item_trigger_c2ea % 256
 
         # 3 into this interface is the apple rescue scene
         # 4 into this interface is the champ rescue scene

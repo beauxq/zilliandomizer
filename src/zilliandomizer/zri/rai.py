@@ -19,7 +19,7 @@ _range_reads: Dict[RangeName, Tuple[int, int]] = {
         ram_info.map_current_index_c198 + 1
     ),
     "new_ram": (
-        ram_info.external_item_trigger_c2ea,
+        ram_info.item_pickup_queue,
         ram_info.opas_c2ee + 1
     ),
     "door_can": (
@@ -116,19 +116,22 @@ class RamData:
         # binary coded decimal / 10
         return bcd_decode(c143) * 10
 
-    def check_item_trigger(self) -> bool:
-        """ True if ram value 0 (available for sending an item) """
-        return self[ram_info.external_item_trigger_c2ea] == 0
+    def _check_item_trigger(self) -> bool:
+        """
+        deprecated - doesn't work anymore
+        True if ram value 0 (available for sending an item)
+        """
+        return self[ram_info.deprecated_external_item_trigger_c2ea] == 0
 
     def safe_to_write(self) -> bool:
         """ in game play and current hp > 0 and item trigger ready """
         return self.in_game_play() and \
-            bool(self.current_hp()) and \
-            self.check_item_trigger()
+            bool(self.current_hp())
 
 
 class RAInterface:
     sock: Optional[asyncudp.Socket]
+    lock: asyncio.Lock
 
     _read_messages: Dict[RangeName, Tuple[bytes, bytes]]
 
@@ -163,7 +166,11 @@ class RAInterface:
         return prefix.encode(), params_str.encode()
 
     async def _message(self, prefix: bytes, params: bytes) -> bytes:
-        """ parameters from `_build_message` """
+        """
+        send message to retroarch
+
+        parameters from `_build_message`
+        """
         res = b''
         write = prefix.startswith(b'W')
         attempt_count = 0
@@ -171,13 +178,22 @@ class RAInterface:
         # gun_message = message.find(b" 0a") != -1
         # t = 0.0
         if not self.sock:
-            self.sock = await asyncudp.create_socket(remote_addr=RAInterface.RETROARCH)
+            try:
+                # print("try create")
+                self.sock = await asyncudp.create_socket(remote_addr=RAInterface.RETROARCH)
+            except ConnectionRefusedError:
+                print("create_socket... no connection")
+                return b''
         async with self.lock:
             while True:
                 # if gun_message:
                 #     print(f"rai message {message}")
                 #     t = time.perf_counter()
-                self.sock.sendto(message, RAInterface.RETROARCH)
+                try:
+                    # print("try send")
+                    self.sock.sendto(message, RAInterface.RETROARCH)
+                except (asyncudp.ClosedError, ConnectionRefusedError):
+                    print("send... no connection")
                 # if gun_message:
                 #     t1 = time.perf_counter()
                 #     print(f"sendto time {t1 - t}")
@@ -187,16 +203,20 @@ class RAInterface:
                 try:
                     # if gun_message:
                     #     t = time.perf_counter()
+                    # print("try receive")
                     res, _ = await self.sock.recvfrom()
+                    # print("receive success")
                     # if gun_message:
                     #     t1 = time.perf_counter()
                     #     print(f" got res {res}  recv time {t1 - t}")
-                except (asyncudp.ClosedError, ConnectionRefusedError) as e:
+                except (asyncudp.ClosedError, ConnectionRefusedError):
                     # if gun_message:
                     #     t1 = time.perf_counter()
                     #     print(f"timed out  time {t1 - t}")
-                    print(e)
+                    # print(e)
+                    print("no connection")
                     res = b''
+                # print("after except")
 
                 # if gun_message:
                 #     print(f" res later {res}")
