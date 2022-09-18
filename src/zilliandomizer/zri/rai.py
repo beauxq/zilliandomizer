@@ -1,6 +1,8 @@
 import asyncio
 import bisect
+from collections import defaultdict
 from dataclasses import dataclass
+import time
 from typing import Dict, List, Tuple, ClassVar, Literal, Union, Iterable, Optional, overload
 
 from zilliandomizer.low_resources import ram_info
@@ -129,6 +131,17 @@ class RamData:
             bool(self.current_hp())
 
 
+class NoSpamLog:
+    _lasts: ClassVar[Dict[str, float]] = defaultdict(float)
+
+    @staticmethod
+    def log(s: str) -> None:
+        now = time.time()
+        if now - NoSpamLog._lasts[s] > 10:
+            NoSpamLog._lasts[s] = now
+            print(s)
+
+
 class RAInterface:
     sock: Optional[asyncudp.Socket]
     lock: asyncio.Lock
@@ -214,7 +227,7 @@ class RAInterface:
                     #     t1 = time.perf_counter()
                     #     print(f"timed out  time {t1 - t}")
                     # print(e)
-                    print("no connection")
+                    NoSpamLog.log("no connection")
                     res = b''
                 # print("after except")
 
