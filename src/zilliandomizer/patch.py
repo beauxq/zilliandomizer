@@ -1,4 +1,5 @@
 from collections import defaultdict
+from dataclasses import dataclass
 import os
 from random import randrange, shuffle
 from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
@@ -31,6 +32,13 @@ paths: List[List[str]] = [
 # TODO: lots of JJ rescue graphic work
 
 
+@dataclass
+class RescueInfo:
+    start_char: Chars
+    room_code: int
+    mask: int
+
+
 class Patcher:
     writes: Dict[int, int]  # address to byte
     verify: bool
@@ -46,6 +54,8 @@ class Patcher:
     tc: TerrainCompressor
     sm: NPSpriteManager
     aem: AlarmEntranceManager
+
+    rescue_locations: Dict[int, RescueInfo] = {}
 
     BANK_OFFSETS: ClassVar[Dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
@@ -428,6 +438,7 @@ class Patcher:
             file.write(new_rom)
 
     def get_address_for_room(self, map_index: int) -> int:
+        """ the address in the rom where this room's items are stored """
         index = rom_info.room_table_91c2 + 2 * map_index
         low = self.rom[index]
         high = self.rom[index + 1]
@@ -454,6 +465,7 @@ class Patcher:
 
     def write_locations(self, start_region: Region, start_char: Chars) -> None:
         items_placed_in_map_index: Dict[int, int] = defaultdict(int)
+        self.rescue_locations = {}
         for region in start_region.all.values():
             for loc in region.locations:
                 assert loc.item, "There should be an item placed in every location before " \
@@ -486,6 +498,7 @@ class Patcher:
                             s = 0x16  # use Champ rescue sprite for both JJ and Champ
                         else:
                             s = loc.item.id * 2 + 0x14
+                        self.rescue_locations[loc.item.id] = RescueInfo(start_char, r, m)
                     g = max(0, loc.req.gun - 1)
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(rom_room + 1 + 8 * item_no, new_item_data)

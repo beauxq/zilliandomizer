@@ -227,7 +227,7 @@ class RAInterface:
                     #     t1 = time.perf_counter()
                     #     print(f"timed out  time {t1 - t}")
                     # print(e)
-                    NoSpamLog.log("no connection")
+                    NoSpamLog.log("no connection to game")
                     res = b''
                 # print("after except")
 

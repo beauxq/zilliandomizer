@@ -3,7 +3,7 @@ from zilliandomizer.zri.memory import Memory
 
 
 async def main() -> None:
-    m = Memory()
+    m = Memory({})
     while True:
         await m.check()
         await asyncio.sleep(0.09375)

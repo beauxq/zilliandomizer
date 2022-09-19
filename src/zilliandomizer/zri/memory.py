@@ -2,13 +2,15 @@ import asyncio
 from collections import Counter
 import sys
 from types import TracebackType
-from typing import Final, Literal, Optional, Tuple, Iterator
+from typing import Dict, Final, Literal, Optional, Tuple, Iterator
 import typing
 
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
 from zilliandomizer.low_resources import ram_info
+from zilliandomizer.patch import RescueInfo
 from zilliandomizer.zri.events import EventFromGame, EventToGame, \
-    AcquireLocationEventFromGame, ItemEventToGame, DeathEventToGame
+    AcquireLocationEventFromGame, ItemEventToGame, DeathEventToGame, \
+    WinEventFromGame
 from zilliandomizer.zri.rai import CANISTER_ROOM_COUNT, RAInterface, DOOR_BYTE_COUNT, RamData
 
 BYTE_ORDER: Final[Literal['little', 'big']] = sys.byteorder  # type: ignore
@@ -85,6 +87,8 @@ class Memory:
     """
 
     _rai: RAInterface
+    rescues: Dict[int, Tuple[int, int]]
+    """ { address: (room_code, mask) } """
     from_game_queue: "Optional[asyncio.Queue[EventFromGame]]"
     to_game_queue: "asyncio.Queue[EventToGame]"
 
@@ -97,9 +101,22 @@ class Memory:
     state: State
 
     def __init__(self,
+                 rescues: Dict[int, RescueInfo],
                  from_game_queue: "Optional[asyncio.Queue[EventFromGame]]" = None,
                  to_game_queue: "Optional[asyncio.Queue[EventToGame]]" = None) -> None:
+        """ `rescues` maps a rescue id (0 or 1) to a canister location where that rescue is """
         self._rai = RAInterface()
+
+        self.rescues = {}
+        for rescue_id, ri in rescues.items():
+            if ri.start_char == "JJ":
+                address = ram_info.apple_status_c170 if rescue_id == 0 else ram_info.champ_status_c160
+            elif ri.start_char == "Apple":
+                address = ram_info.jj_status_c150 if rescue_id == 0 else ram_info.champ_status_c160
+            else:  # start char Champ
+                address = ram_info.apple_status_c170 if rescue_id == 0 else ram_info.jj_status_c150
+            self.rescues[address] = (ri.room_code, ri.mask)
+
         self.from_game_queue = from_game_queue
         self.to_game_queue = to_game_queue or asyncio.Queue()
 
@@ -210,6 +227,9 @@ class Memory:
             else:
                 self._check_win(ram)
 
+                # TODO: check for base explosion timer? boss dead?
+                # AcquireLocationEventFromGame(0)
+
                 current_state = State(ram)
 
                 lost = current_state.anything_lost(self.state)
@@ -220,12 +240,21 @@ class Memory:
                 else:
                     self.state.doors = bytes_or(current_state.doors, self.state.doors)
 
-                    canisters = ram[
+                    canisters = bytearray(ram[
                         ram_info.canister_state_d700 + 1:
                         ram_info.canister_state_d700 + CANISTER_ROOM_COUNT * 2:
                         2
-                    ]
+                    ])
                     assert len(canisters) == CANISTER_ROOM_COUNT
+
+                    # rescues don't show up in canister state
+                    for address, canister in self.rescues.items():
+                        index, mask = canister
+                        if ram[address] > 0:
+                            canisters[index] |= mask
+                        else:  # not rescued
+                            canisters[index] &= (~mask)
+
                     self._process_change(canisters)
                     self.known_cans = canisters
 
@@ -272,6 +301,10 @@ class Memory:
             print("found win")
             self.known_win_state = current_win_state
             if not (self.from_game_queue is None):
+                # TODO: move acquire main to when boss is dead, or something like that
                 self.from_game_queue.put_nowait(
                     AcquireLocationEventFromGame(0)
+                )
+                self.from_game_queue.put_nowait(
+                    WinEventFromGame()
                 )

@@ -13,8 +13,12 @@ class DeathEventFromGame(EventFromGame):
 
 @dataclass
 class AcquireLocationEventFromGame(EventFromGame):
-    """ 0 for game win """
+    """ 0 for main computer """
     id: int
+
+
+class WinEventFromGame(EventFromGame):
+    pass
 
 
 class EventToGame(abc.ABC):
