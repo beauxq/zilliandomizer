@@ -89,6 +89,8 @@ class Memory:
     _rai: RAInterface
     rescues: Dict[int, Tuple[int, int]]
     """ { address: (room_code, mask) } """
+    loc_mem_to_loc_id: Dict[int, int]
+    """ { ((room_code << 7) | bit_mask): location_id } """
     from_game_queue: "Optional[asyncio.Queue[EventFromGame]]"
     to_game_queue: "asyncio.Queue[EventToGame]"
 
@@ -102,9 +104,14 @@ class Memory:
 
     def __init__(self,
                  rescues: Dict[int, RescueInfo],
+                 loc_mem_to_loc_id: Dict[int, int],
                  from_game_queue: "Optional[asyncio.Queue[EventFromGame]]" = None,
                  to_game_queue: "Optional[asyncio.Queue[EventToGame]]" = None) -> None:
-        """ `rescues` maps a rescue id (0 or 1) to a canister location where that rescue is """
+        """
+        `rescues` maps a rescue id (0 or 1) to a canister location where that rescue is
+
+        `loc_mem_to_loc_id` maps memory location of canister (room code and bit mask) to location id
+        """
         self._rai = RAInterface()
 
         self.rescues = {}
@@ -117,6 +124,7 @@ class Memory:
                 address = ram_info.apple_status_c170 if rescue_id == 0 else ram_info.jj_status_c150
             self.rescues[address] = (ri.room_code, ri.mask)
 
+        self.loc_mem_to_loc_id = loc_mem_to_loc_id
         self.from_game_queue = from_game_queue
         self.to_game_queue = to_game_queue or asyncio.Queue()
 
@@ -162,11 +170,15 @@ class Memory:
         for room_i in added_rooms:
             for can in bits(rooms[room_i]):
                 print(f"picked up canister {can} in room {room_i}")
-                loc_id = (room_i << 8) | (can)
-                if not (self.from_game_queue is None):
-                    self.from_game_queue.put_nowait(
-                        AcquireLocationEventFromGame(loc_id)
-                    )
+                if self.from_game_queue is None:
+                    continue
+                loc_memory = (room_i << 8) | (can)
+                if loc_memory not in self.loc_mem_to_loc_id:
+                    continue
+                loc_id = self.loc_mem_to_loc_id[loc_memory]
+                self.from_game_queue.put_nowait(
+                    AcquireLocationEventFromGame(loc_id)
+                )
 
     async def _process_to_game_queue(self, ram: RamData, q: "asyncio.Queue[EventToGame]") -> None:
         if q.qsize():
@@ -186,6 +198,9 @@ class Memory:
         for comm_item_id in counts:
             code = comm_item_id >> 8
             item_id = comm_item_id & 0xff
+            if item_id == 0x04:  # empty
+                # don't send empties to game
+                continue
             if code == RESCUE:
                 if item_id in (0, 1):
                     # 3 Apple, 4 Champ

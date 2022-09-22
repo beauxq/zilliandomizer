@@ -13,8 +13,9 @@ def test_cross() -> None:
 
 def test_with_data() -> None:
     r = Randomizer(some_options)
-    for loc in loc_to_id:
-        assert loc in r.locations
+    # need to have ids for locations that are not in vanilla
+    # for loc in loc_to_id:
+    #     assert loc in r.locations
     for loc in r.locations:
         if loc != 'main':
             assert loc in loc_to_id

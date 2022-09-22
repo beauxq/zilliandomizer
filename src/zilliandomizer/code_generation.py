@@ -3,9 +3,9 @@ I used code to generate python code for location and region data.
 Most of it is outdated and will not generate the correct format for the current code.
 """
 
-from typing import List, Dict, Set
+from typing import List, Dict, Set, cast
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
-from zilliandomizer.utils import make_loc_name
+from zilliandomizer.utils import make_loc_name, ItemData
 from zilliandomizer.patch import Patcher  # for access to rom data
 from zilliandomizer.logic_components.location_data import make_locations
 
@@ -130,6 +130,56 @@ def location_ids() -> None:
     print('}\n')
 
 
+def big_location_ids() -> None:
+    p = Patcher()
+    loc_to_id: List[str] = []
+    id_to_loc: List[str] = []
+    count_item_rooms = 0
+    for map_index, room in enumerate(p.get_item_rooms()):
+        item_count = p.rom[room]
+        print(f"{map_index}: {item_count}")
+        if item_count == 0:
+            continue
+        item: ItemData = cast(ItemData, tuple(p.rom[room + 1: room + 9]))
+        if item[0] not in {KEYWORD, NORMAL, RESCUE}:
+            continue
+        assert item[3] // 2 == count_item_rooms, f"{map_index} {item[3]} {count_item_rooms}"
+        item_room_code = item[3] // 2
+        for row, y in enumerate(range(0x18, 0x99, 0x20)):  # 0x18, 0x38, 0x58, 0x78, 0x98
+            for col, x in enumerate(range(0x10, 0xe1, 0x10)):  # 0x10, 0x20, ... , 0xe0
+                location_id = item_room_code * 5 * 14 + row * 14 + col
+                location_name = make_loc_name(map_index, y, x)
+                loc_to_id.append(f'    "{location_name}": {location_id},')
+                id_to_loc.append(f'    {location_id}: "{location_name}",')
+
+        count_item_rooms += 1
+    print(f"item room count: {count_item_rooms}")
+
+    with open("src/zilliandomizer/low_resources/new_loc_id_maps.py", "wt") as file:
+        file.write('loc_to_id: Dict[str, int] = {\n')
+        for loc in loc_to_id:
+            file.write(loc)
+            file.write('\n')
+        file.write('}\n\n')
+
+        file.write('id_to_loc: Dict[int, str] = {\n')
+        for loc in id_to_loc:
+            file.write(loc)
+            file.write('\n')
+        file.write('}\n\n')
+
+
+def weird_vanilla_locations() -> None:
+    from zilliandomizer.low_resources.loc_id_maps import loc_to_id
+    p = Patcher()
+    for map_index, room in enumerate(p.get_item_rooms()):
+        for item in p.get_items(room):
+            if item[0] in {KEYWORD, NORMAL, RESCUE, MAIN}:
+                name = make_loc_name(map_index, item)
+                if name not in loc_to_id:
+                    print(name)
+
+
 def region_file_edit() -> None:
     lines: List[str] = []
     with open("src/zilliandomizer/logic_components/region_data.py", "r") as file:
@@ -157,4 +207,4 @@ def region_file_edit() -> None:
 
 
 if __name__ == "__main__":
-    region_file_edit()
+    weird_vanilla_locations()

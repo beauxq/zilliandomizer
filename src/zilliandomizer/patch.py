@@ -6,6 +6,7 @@ from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
+from zilliandomizer.low_resources.loc_id_maps import loc_to_id
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
@@ -56,6 +57,7 @@ class Patcher:
     aem: AlarmEntranceManager
 
     rescue_locations: Dict[int, RescueInfo] = {}
+    loc_memory_to_loc_id: Dict[int, int] = {}
 
     BANK_OFFSETS: ClassVar[Dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
@@ -466,6 +468,7 @@ class Patcher:
     def write_locations(self, start_region: Region, start_char: Chars) -> None:
         items_placed_in_map_index: Dict[int, int] = defaultdict(int)
         self.rescue_locations = {}
+        self.loc_memory_to_loc_id = {}
         for region in start_region.all.values():
             for loc in region.locations:
                 assert loc.item, "There should be an item placed in every location before " \
@@ -499,6 +502,8 @@ class Patcher:
                         else:
                             s = loc.item.id * 2 + 0x14
                         self.rescue_locations[loc.item.id] = RescueInfo(start_char, r, m)
+                    loc_memory = (r << 7) | m
+                    self.loc_memory_to_loc_id[loc_memory] = loc_to_id[loc.name]
                     g = max(0, loc.req.gun - 1)
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(rom_room + 1 + 8 * item_no, new_item_data)
