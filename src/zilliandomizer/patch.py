@@ -811,6 +811,11 @@ class Patcher:
             self.writes[addr] = new
 
     def set_continues(self, count: int) -> None:
+        """
+        set how many continues you can use before a game over
+
+        -1 is infinity (never game over)
+        """
         # TODO: change text that says "THE CONTINUE FEATURE CAN BE USED ONLY THREE TIMES"
         if count == -1:
             # infinity
@@ -1236,7 +1241,13 @@ class Patcher:
         self.writes[splice + 2] = new_code_addr >> 8
 
     def set_multiworld_items(self, loc_to_names: Dict[str, Tuple[str, str]]) -> None:
-        """ loc_to_names is { location_name: (item_name, player_name)} """
+        """
+        set the text to display for specific canisters
+
+        (These canisters should have the "EMPTY" item.)
+
+        loc_to_names is { location_name: (item_name, text_to_display)}
+        """
 
         # everything here happens with bank 5 already loaded (I hope)
         bank = 5

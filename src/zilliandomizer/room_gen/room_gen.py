@@ -41,8 +41,8 @@ class RoomGen:
     _canisters: Dict[int, List[Tuple[Coord, float]]]
     """ placed canisters { map_index: [(Coord, jump_blocks_required), ...] } """
 
-    _computers: Dict[int, Coord]
-    """ placed computers { map_index: Coord } """
+    _computers: Dict[int, Tuple[Coord, float]]
+    """ placed computers { map_index: (Coord, jump_blocks_required) } """
 
     _rooms: Dict[int, float]
     """ rooms generated {map_index: jump_blocks} """
@@ -224,6 +224,12 @@ class RoomGen:
         print()
 
         jump_blocks_required = 2 if g.solve(2) else (2.5 if g.solve(2.5) else 3)
+        # require jumping to computer
+        if map_index in self._computers:
+            computer_jump = self._computers[map_index][1]
+            jump_blocks_required = max(jump_blocks_required, computer_jump)
+        # TODO: unit test to make sure it will see if I can't jump to the computer to open the door
+
         # testing
         # TODO: make unit test for Grid.no_space
         # if map_index in (0x4b, 0x21):
@@ -332,13 +338,18 @@ class RoomGen:
                 sprite.y = y
             else:
                 self._logger.warn(f"sprite type {sprite.type[0]} unhandled in room {map_index}")
-        this_room = GEN_ROOMS[map_index]
-        if this_room.computer:
-            self._computers[map_index] = coords[cursor]
-            cursor += 1
-        # canisters
         goables_2 = grid.get_standing_goables(2)
         goables_25 = grid.get_standing_goables(2.5)
+        if GEN_ROOMS[map_index].computer:
+            y, x = coords[cursor]
+            # to make sure computer can be accessed to traverse room
+            state = (y, x, True)
+            jump = 2 if state in goables_2 else (
+                2.5 if state in goables_25 else 3
+            )
+            self._computers[map_index] = (coords[cursor], jump)
+            cursor += 1
+        # canisters
         cans: List[Tuple[Coord, float]] = []
         for coord in coords[cursor:]:
             y, x = coord
@@ -399,7 +410,7 @@ class RoomGen:
     def get_computer(self, map_index: int) -> bytes:
         """ see doc in utils for format of computer location data """
         if map_index in self._computers:
-            y, x = coord_to_pixel(self._computers[map_index])
+            y, x = coord_to_pixel(self._computers[map_index][0])
             v = y >> 3
             h = x >> 3
             tr = (v << 6) | (h << 1)
