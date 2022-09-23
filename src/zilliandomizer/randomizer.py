@@ -11,7 +11,9 @@ from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
 from zilliandomizer.room_gen.room_gen import RoomGen
-from zilliandomizer.utils import parse_reg_name
+from zilliandomizer.utils import parse_reg_name, parse_loc_name, make_room_name
+from zilliandomizer.utils.loc_name_matcher import loc_name_maker
+from zilliandomizer.utils.loc_name_maps import loc_to_id
 
 # this is used in math, not just an id
 # (in case someone is tempted to change it to 0-2 to match rom value)
@@ -25,6 +27,8 @@ class Randomizer:
     start: Region
     locations: Dict[str, Location]
     room_gen: Optional[RoomGen] = None
+    loc_name_2_pretty: Dict[str, str]
+    """ example: from "r02c6y88x50" to "B-7 bottom left" """
 
     class RollFail(RuntimeError):
         """ randomizing algorithm failed """
@@ -59,6 +63,24 @@ class Randomizer:
                             )
         self.start = start
         self.locations = locations
+
+        room_2_locs: Dict[int, List[str]] = defaultdict(list)
+        for loc in locations:
+            if loc == 'main':
+                continue
+            row, col, _, _ = parse_loc_name(loc)
+            map_index = row * 8 + col
+            room_2_locs[map_index].append(loc)
+        self.loc_name_2_pretty = {}
+        for map_index, loc_names in room_2_locs.items():
+            row = map_index // 8
+            col = map_index & 7
+            room_name = make_room_name(row, col)
+            room_name_map = loc_name_maker(loc_names)
+            for loc_name, pretty_in_room in room_name_map.items():
+                pretty_name = f"{room_name} {pretty_in_room}"
+                assert pretty_name in loc_to_id, f"{pretty_name} not in pre-made pretty names"
+                self.loc_name_2_pretty[loc_name] = pretty_name
 
         # I'm not that interested in requiring different numbers of red cards.
         locations['main'].req.red = 1

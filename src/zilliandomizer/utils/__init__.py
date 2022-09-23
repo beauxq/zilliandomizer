@@ -114,6 +114,11 @@ def make_loc_name(map_index: int, item_or_y: Union[ItemData, int], x: Optional[i
     return name
 
 
+def make_room_name(row: int, col: int) -> str:
+    """ pretty "B-7" style """
+    return f"{chr(ord('A') + row - 1)}-{col + 1}"
+
+
 def parse_reg_name(name: str) -> Tuple[int, int]:
     """ row and col from region name """
     assert name[0] == 'r' and name[3] == 'c', name

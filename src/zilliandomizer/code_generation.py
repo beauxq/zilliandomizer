@@ -8,6 +8,8 @@ from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
 from zilliandomizer.utils import make_loc_name, ItemData
 from zilliandomizer.patch import Patcher  # for access to rom data
 from zilliandomizer.logic_components.location_data import make_locations
+from zilliandomizer.utils.loc_name_matcher import all_locations_in_room
+from zilliandomizer.utils import make_room_name
 
 
 def make_location_code() -> None:
@@ -136,6 +138,8 @@ def big_location_ids() -> None:
     id_to_loc: List[str] = []
     count_item_rooms = 0
     for map_index, room in enumerate(p.get_item_rooms()):
+        row = map_index // 8
+        col = map_index & 7
         item_count = p.rom[room]
         print(f"{map_index}: {item_count}")
         if item_count == 0:
@@ -143,14 +147,21 @@ def big_location_ids() -> None:
         item: ItemData = cast(ItemData, tuple(p.rom[room + 1: room + 9]))
         if item[0] not in {KEYWORD, NORMAL, RESCUE}:
             continue
-        assert item[3] // 2 == count_item_rooms, f"{map_index} {item[3]} {count_item_rooms}"
         item_room_code = item[3] // 2
+        assert item_room_code == count_item_rooms, f"{map_index} {item[3]} {count_item_rooms}"
+        """
         for row, y in enumerate(range(0x18, 0x99, 0x20)):  # 0x18, 0x38, 0x58, 0x78, 0x98
             for col, x in enumerate(range(0x10, 0xe1, 0x10)):  # 0x10, 0x20, ... , 0xe0
                 location_id = item_room_code * 5 * 14 + row * 14 + col
                 location_name = make_loc_name(map_index, y, x)
                 loc_to_id.append(f'    "{location_name}": {location_id},')
                 id_to_loc.append(f'    {location_id}: "{location_name}",')
+        """
+        for in_room in all_locations_in_room():
+            location_id = len(loc_to_id)
+            location_name = f"{make_room_name(row, col)} {in_room}"
+            loc_to_id.append(f'    "{location_name}": {location_id},')
+            id_to_loc.append(f'    {location_id}: "{location_name}",')
 
         count_item_rooms += 1
     print(f"item room count: {count_item_rooms}")
@@ -170,7 +181,7 @@ def big_location_ids() -> None:
 
 
 def weird_vanilla_locations() -> None:
-    from zilliandomizer.low_resources.loc_id_maps import loc_to_id
+    from zilliandomizer.utils.loc_name_maps import loc_to_id
     p = Patcher()
     for map_index, room in enumerate(p.get_item_rooms()):
         for item in p.get_items(room):
@@ -207,4 +218,4 @@ def region_file_edit() -> None:
 
 
 if __name__ == "__main__":
-    weird_vanilla_locations()
+    big_location_ids()

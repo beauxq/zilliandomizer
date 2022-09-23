@@ -59,7 +59,7 @@ def generate(seed: int) -> None:
         a = Alarms(p.tc, logger)
         a.choose_all(modified_rooms)
 
-    p.write_locations(r.start, options.start_char)
+    p.write_locations(r.start, options.start_char, r.loc_name_2_pretty)
     p.all_fixes_and_options(options)
 
     # testing

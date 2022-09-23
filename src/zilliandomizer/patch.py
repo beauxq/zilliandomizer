@@ -6,12 +6,12 @@ from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
-from zilliandomizer.low_resources.loc_id_maps import loc_to_id
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
+from zilliandomizer.utils.loc_name_maps import loc_to_id
 
 ROM_NAME = "Zillion (UE) [!].sms"
 
@@ -58,6 +58,7 @@ class Patcher:
 
     rescue_locations: Dict[int, RescueInfo] = {}
     loc_memory_to_loc_id: Dict[int, int] = {}
+    """ memory location of canister to Archipelago location id number """
 
     BANK_OFFSETS: ClassVar[Dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
@@ -465,7 +466,7 @@ class Patcher:
             yield this_item
             start += 8
 
-    def write_locations(self, start_region: Region, start_char: Chars) -> None:
+    def write_locations(self, start_region: Region, start_char: Chars, loc_name_to_pretty: Dict[str, str]) -> None:
         items_placed_in_map_index: Dict[int, int] = defaultdict(int)
         self.rescue_locations = {}
         self.loc_memory_to_loc_id = {}
@@ -503,7 +504,7 @@ class Patcher:
                             s = loc.item.id * 2 + 0x14
                         self.rescue_locations[loc.item.id] = RescueInfo(start_char, r, m)
                     loc_memory = (r << 7) | m
-                    self.loc_memory_to_loc_id[loc_memory] = loc_to_id[loc.name]
+                    self.loc_memory_to_loc_id[loc_memory] = loc_to_id[loc_name_to_pretty[loc.name]]
                     g = max(0, loc.req.gun - 1)
                     new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(rom_room + 1 + 8 * item_no, new_item_data)

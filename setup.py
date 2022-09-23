@@ -9,6 +9,7 @@ if __name__ == "__main__":
         "zilliandomizer.logic_components",
         "zilliandomizer.map_gen",
         "zilliandomizer.room_gen",
+        "zilliandomizer.utils",
         "zilliandomizer.zri",
         "zilliandomizer.zri.asyncudp",
     ], use_scm_version=True)
