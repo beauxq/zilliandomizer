@@ -88,9 +88,9 @@ class Memory:
 
     _rai: RAInterface
     rescues: Dict[int, Tuple[int, int]]
-    """ { address: (room_code, mask) } """
+    """ { ram_char_status_address: (item_room_index, mask) } """
     loc_mem_to_loc_id: Dict[int, int]
-    """ { ((room_code << 7) | bit_mask): location_id } """
+    """ { ((item_room_index << 8) | bit_mask): location_id } """
     from_game_queue: "Optional[asyncio.Queue[EventFromGame]]"
     to_game_queue: "asyncio.Queue[EventToGame]"
 
@@ -122,7 +122,7 @@ class Memory:
                 address = ram_info.jj_status_c150 if rescue_id == 0 else ram_info.champ_status_c160
             else:  # start char Champ
                 address = ram_info.apple_status_c170 if rescue_id == 0 else ram_info.jj_status_c150
-            self.rescues[address] = (ri.room_code, ri.mask)
+            self.rescues[address] = (ri.room_code // 2, ri.mask)
 
         self.loc_mem_to_loc_id = loc_mem_to_loc_id
         self.from_game_queue = from_game_queue
@@ -167,12 +167,12 @@ class Memory:
         # indexes into rooms
         added_rooms = [i for i, b in enumerate(rooms) if b]
 
-        for room_i in added_rooms:
-            for can in bits(rooms[room_i]):
-                print(f"picked up canister {can} in room {room_i}")
+        for item_room_index in added_rooms:
+            for can in bits(rooms[item_room_index]):
+                print(f"picked up canister {can} in room {item_room_index}")
                 if self.from_game_queue is None:
                     continue
-                loc_memory = (room_i << 8) | (can)
+                loc_memory = (item_room_index << 8) | (can)
                 if loc_memory not in self.loc_mem_to_loc_id:
                     continue
                 loc_id = self.loc_mem_to_loc_id[loc_memory]
@@ -264,11 +264,11 @@ class Memory:
 
                     # rescues don't show up in canister state
                     for address, canister in self.rescues.items():
-                        index, mask = canister
+                        item_room_index, mask = canister
                         if ram[address] > 0:
-                            canisters[index] |= mask
+                            canisters[item_room_index] |= mask
                         else:  # not rescued
-                            canisters[index] &= (~mask)
+                            canisters[item_room_index] &= (~mask)
 
                     self._process_change(canisters)
                     self.known_cans = canisters

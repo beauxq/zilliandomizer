@@ -147,12 +147,12 @@ def big_location_ids() -> None:
         item: ItemData = cast(ItemData, tuple(p.rom[room + 1: room + 9]))
         if item[0] not in {KEYWORD, NORMAL, RESCUE}:
             continue
-        item_room_code = item[3] // 2
-        assert item_room_code == count_item_rooms, f"{map_index} {item[3]} {count_item_rooms}"
+        item_room_index = item[3] // 2
+        assert item_room_index == count_item_rooms, f"{map_index} {item[3]} {count_item_rooms}"
         """
         for row, y in enumerate(range(0x18, 0x99, 0x20)):  # 0x18, 0x38, 0x58, 0x78, 0x98
             for col, x in enumerate(range(0x10, 0xe1, 0x10)):  # 0x10, 0x20, ... , 0xe0
-                location_id = item_room_code * 5 * 14 + row * 14 + col
+                location_id = item_room_index * 5 * 14 + row * 14 + col
                 location_name = make_loc_name(map_index, y, x)
                 loc_to_id.append(f'    "{location_name}": {location_id},')
                 id_to_loc.append(f'    {location_id}: "{location_name}",')

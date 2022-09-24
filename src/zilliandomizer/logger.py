@@ -4,7 +4,7 @@ from typing import List
 class Logger:
     def __init__(self) -> None:
         self.spoiler_lines: List[str] = []
-        self.spoil_stdout: bool = True
+        self.spoil_stdout: bool = False
         self.debug_stdout: bool = False
 
     def spoil(self, line: str) -> None:

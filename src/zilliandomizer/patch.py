@@ -37,6 +37,7 @@ paths: List[List[str]] = [
 class RescueInfo:
     start_char: Chars
     room_code: int
+    """ 0-146 even numbers, double the item_room_index """
     mask: int
 
 
@@ -480,7 +481,7 @@ class Patcher:
                     rom_room = self.get_address_for_room(map_index)
                     item_no = items_placed_in_map_index[map_index]
                     try:
-                        room_code = next(self.get_items(rom_room))[3]  # different from map index
+                        room_code = next(self.get_items(rom_room))[3]  # different from map index and 2x item room index
                     except StopIteration:
                         # This is to keep unit tests from failing with no rom data
                         print(f"ERROR: no item data for rom room {rom_room} at map index {map_index}")
@@ -541,7 +542,7 @@ class Patcher:
             # so instead of verifying it, just make sure it's doesn't overflow
             assert new_code_addr_banked > rom_info.bank_6_second_demo_control_b14a, "overflow bank 6"
 
-        print(f"programming {code_len} bytes for new bank {bank_no} code at {hex(new_code_addr)}")
+        # print(f"programming {code_len} bytes for new bank {bank_no} code at {hex(new_code_addr)}")
         for i in range(code_len):
             write_addr = new_code_addr + i
             if self.verify and (bank_no != 6):

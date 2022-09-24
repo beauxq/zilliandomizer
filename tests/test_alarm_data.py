@@ -51,7 +51,7 @@ def all_blocks(a: Alarm) -> Iterator[int]:
 
 
 def test_disable() -> None:
-    for room_i, room in alarm_data.items():
+    for map_index, room in alarm_data.items():
         alarms_dict = {a.id: a for a in room}
         block_used_by: Dict[int, List[str]] = defaultdict(list)
         for a in room:
@@ -62,21 +62,21 @@ def test_disable() -> None:
                 assert len(a_ids) == 2
                 a_0 = alarms_dict[a_ids[0]]
                 a_1 = alarms_dict[a_ids[1]]
-                assert a_0.id in a_1.disables, f"room {room_i}: {a_0.id} not in disables of {a_1.id}"
-                assert a_1.id in a_0.disables, f"room {room_i}: {a_1.id} not in disables of {a_0.id}"
+                assert a_0.id in a_1.disables, f"room {map_index}: {a_0.id} not in disables of {a_1.id}"
+                assert a_1.id in a_0.disables, f"room {map_index}: {a_1.id} not in disables of {a_0.id}"
 
 
 @pytest.mark.usefixtures("fake_rom")
 def test_can_change() -> None:
     p = Patcher()
     tc = TerrainCompressor(p.rom)
-    for room_i, room in alarm_data.items():
-        compressed = tc.get_room(room_i)
+    for map_index, room in alarm_data.items():
+        compressed = tc.get_room(map_index)
         uncompressed = TerrainCompressor.decompress(compressed)
         assert len(uncompressed) == 96
         for a in room:
             for block in all_blocks(a):
-                assert block < 96, f"room {room_i}, alarm {a.id}"
+                assert block < 96, f"room {map_index}, alarm {a.id}"
                 assert uncompressed[block] in to_none
                 if a.vertical:
                     assert uncompressed[block] in to_vertical
@@ -89,10 +89,10 @@ def test_self_interaction() -> None:
     make sure each alarm isn't disabling or lessening itself
     (This isn't a problem, but it indicates a mistake.)
     """
-    for room_i, room in alarm_data.items():
+    for map_index, room in alarm_data.items():
         for a in room:
-            assert a.id not in a.disables, f"room {room_i}: {a.id}"
-            assert a.id not in a.lessens, f"room {room_i}: {a.id}"
+            assert a.id not in a.disables, f"room {map_index}: {a.id}"
+            assert a.id not in a.lessens, f"room {map_index}: {a.id}"
 
 
 # TODO: (different file test_alarms) Make sure it always chooses at least one

@@ -38,7 +38,7 @@ class Randomizer:
         self.options = options
         if logger is None:
             logger = Logger()
-            logger.spoil_stdout = True
+            logger.spoil_stdout = False
         self.logger = logger
 
         self.reset()
