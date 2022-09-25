@@ -1451,7 +1451,11 @@ class Patcher:
         self.writes[0x73ed] = code_hi
 
     def set_rom_to_ram_data(self, data: bytes) -> None:
-        """ put some specific data in ram, so it can be read externally """
+        """
+        put some specific data in ram, so it can be read externally
+
+        truncated to 16 bytes
+        """
         if len(data) > 16:
             data = data[:16]
         data = data + b'\x00'

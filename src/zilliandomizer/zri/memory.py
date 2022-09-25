@@ -103,8 +103,6 @@ class Memory:
     state: State
 
     def __init__(self,
-                 rescues: Dict[int, RescueInfo],
-                 loc_mem_to_loc_id: Dict[int, int],
                  from_game_queue: "Optional[asyncio.Queue[EventFromGame]]" = None,
                  to_game_queue: "Optional[asyncio.Queue[EventToGame]]" = None) -> None:
         """
@@ -114,6 +112,33 @@ class Memory:
         """
         self._rai = RAInterface()
 
+        self.from_game_queue = from_game_queue
+        self.to_game_queue = to_game_queue or asyncio.Queue()
+
+        self._restore_target = None
+
+        self.state = State()
+        self.reset()
+
+    async def check_for_player_name(self) -> bytes:
+        """
+        returns the data passed to zilliandomizer.patch.Patcher.set_rom_to_ram_data,
+        empty bytes if not available
+        """
+        ram = await self._rai.read()
+
+        if not ram.all_present():
+            return b''
+
+        name = ram[ram_info.rom_to_ram_data: ram_info.rom_to_ram_data + 16]
+        null_index = name.find(b'\x00')
+        if null_index == -1:
+            null_index = len(name)
+        return name[:null_index]
+
+    def set_generation_info(self,
+                            rescues: Dict[int, RescueInfo],
+                            loc_mem_to_loc_id: Dict[int, int]) -> None:
         self.rescues = {}
         for rescue_id, ri in rescues.items():
             if ri.start_char == "JJ":
@@ -125,13 +150,6 @@ class Memory:
             self.rescues[address] = (ri.room_code // 2, ri.mask)
 
         self.loc_mem_to_loc_id = loc_mem_to_loc_id
-        self.from_game_queue = from_game_queue
-        self.to_game_queue = to_game_queue or asyncio.Queue()
-
-        self._restore_target = None
-
-        self.state = State()
-        self.reset()
 
     def reset(self) -> None:
         self.known_in_game = False

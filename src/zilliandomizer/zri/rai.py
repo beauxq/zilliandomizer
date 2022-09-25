@@ -21,7 +21,7 @@ _range_reads: Dict[RangeName, Tuple[int, int]] = {
         ram_info.map_current_index_c198 + 1
     ),
     "new_ram": (
-        ram_info.item_pickup_queue,
+        ram_info.rom_to_ram_data,
         ram_info.opas_c2ee + 1
     ),
     "door_can": (
