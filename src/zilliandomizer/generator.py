@@ -75,6 +75,7 @@ def generate(seed: int) -> None:
     #         letter = (letter + 1) % 26
     #         print(f"{loc}: {name}")
     # p.set_multiworld_items(empties)
+    # p.set_rom_to_ram_data("MESSAGE TO RAM".encode())
 
     filename = f"zilliandomizer-{seed_str}.sms"
     p.write(filename)

@@ -518,7 +518,7 @@ class Patcher:
                 self.writes[computer_address] = region.computer[0]
                 self.writes[computer_address + 1] = region.computer[1]
 
-    def _use_bank(self, bank_no: int, code: bytearray) -> int:
+    def _use_bank(self, bank_no: int, code: bytes) -> int:
         """
         put `code` into rom in bank `bank_no`
 
@@ -1449,6 +1449,38 @@ class Patcher:
         self.writes[0x73eb] = asm.JP
         self.writes[0x73ec] = code_lo
         self.writes[0x73ed] = code_hi
+
+    def set_rom_to_ram_data(self, data: bytes) -> None:
+        """ put some specific data in ram, so it can be read externally """
+        if len(data) > 16:
+            data = data[:16]
+        data = data + b'\x00'
+
+        # at the splice point we use, we're already in bank 5
+        using_bank = 5
+
+        data_location = self._use_bank(using_bank, data)
+
+        destination_lo = ram_info.rom_to_ram_data & 0xff
+        destination_hi = ram_info.rom_to_ram_data // 256
+
+        startup_splice_address = rom_info.startup_splice_26e5
+
+        startup_splice_jump_lo = self.rom[startup_splice_address]
+        startup_splice_jump_hi = self.rom[startup_splice_address + 1]
+
+        code = bytearray([
+            asm.LDHL, data_location & 0xff, data_location // 256,
+            asm.LDDE, destination_lo, destination_hi,
+            asm.LDBC, len(data), 0x00,
+            asm.LDIR_LO, asm.LDIR_HI,
+            asm.JP, startup_splice_jump_lo, startup_splice_jump_hi,
+        ])
+
+        code_address = self._use_bank(using_bank, code)
+
+        self.writes[startup_splice_address] = code_address & 0xff
+        self.writes[startup_splice_address + 1] = code_address // 256
 
     def set_defense(self, skill: int) -> None:
         """ change the defense (damage taken) of the characters according to skill level """

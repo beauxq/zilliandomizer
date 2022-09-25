@@ -242,3 +242,10 @@ alarmed_enemy_entrance_data_7f86 = 0x7f86
 
 x, y, x velocity?, ff if falling?, enemy type, 12 from left - 13 from right - 11 from ceiling
 """
+
+startup_splice_26e5 = 0x26e5
+"""
+address of call instruction when game is booting up
+
+bank is set to 5 before this call instruction
+"""

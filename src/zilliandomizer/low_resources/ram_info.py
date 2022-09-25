@@ -62,4 +62,7 @@ deprecated_external_item_trigger_c2ea = 0xc2ea
 """ 3 rescue_0, 4 rescue_1 """
 guns_c2ec = 0xc2ec
 opas_c2ee = 0xc2ee
-max_level = 0xc2ed
+max_level = 0xc2ed  # not using this anymore, I think
+rom_to_ram_data = 0xc2c0
+""" can write up to 17 bytes here when game boots up """
+# 17th byte will overlap with `item_pickup_record`, but the 1st byte of that isn't used

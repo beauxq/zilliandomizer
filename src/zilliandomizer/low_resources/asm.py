@@ -22,6 +22,8 @@ LDCI = 0x0e
 """ load into c, immediate value """
 LDDE = 0x11
 """ load into de, immediate value """
+LDBC = 0x01
+""" load into BC, immediate value """
 LDHVHL = 0x66
 """ load into h, value at memory address hl """
 LDHI = 0x26
@@ -110,3 +112,12 @@ SRL_A_HI = 0x3f
 """ shift a right into carry, reset MSB """
 RST10 = 0xd7
 """ call 0x10 (dereference a data table in zillion) """
+LDIR_LO = 0xed
+""" This transfers a byte of data from the memory location addressed by the
+contents of the HL register pair to the memory location addressed by the DE
+register pair. Both these register pairs are incremented and the Byte Counter
+(BC) Register pair is decremented. If decrementing allows the BC to go to 0,
+the instruction is terminated. If BC is not 0, the program counter is
+decremented by two and the instruction is repeated."""
+LDIR_HI = 0xb0
+""" (2nd byte of LDIR_LO) """
