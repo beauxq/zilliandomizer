@@ -44,6 +44,7 @@ apple_hp_c173 = 0xc173
 apple_scope_c179 = 0xc179
 
 cutscene_selector_c183 = 0xc183
+in_room_transition_c186 = 0xc186
 map_current_index_c198 = 0xc198
 
 game_started_flag_c300 = 0xc300

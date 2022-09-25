@@ -1070,6 +1070,10 @@ class Patcher:
             asm.CP, 0x8b,
             asm.RETNZ,  # return if not in scene b (gameplay scene)
 
+            asm.LDAV, ram_info.in_room_transition_c186 % 256, ram_info.in_room_transition_c186 // 256,
+            asm.ORA,
+            asm.RETNZ,  # return if in room transition
+
             asm.LDHI, item_ram_hi,
         ])
         for item_id in range(0x03, 0x0c):
