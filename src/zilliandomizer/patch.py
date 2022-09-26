@@ -1040,11 +1040,10 @@ class Patcher:
             asm.LDVA, 0x83, 0xc1,  # scene selector
 
             # set music
-            # if c005 doesn't work well, can try this:
-            # ld a, $84
-            # call _SET_MUSIC_LABEL_689_
             asm.LDAI, 0x84,  # rescue music
-            asm.LDVA, 0x05, 0xc0,  # sound trigger
+            # asm.LDVA, 0x05, 0xc0,  # sound trigger - This didn't work well.
+            # It didn't go back to normal music after the cutscene.
+            asm.CALL, 0x89, 0x06,
 
             asm.LDAI, 0x06,  # cutscene
             asm.LDVA, 0x1e, 0xc1,  # scene trigger
