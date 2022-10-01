@@ -467,11 +467,14 @@ class Patcher:
             yield this_item
             start += 8
 
-    def write_locations(self, start_region: Region, start_char: Chars, loc_name_to_pretty: Dict[str, str]) -> None:
+    def write_locations(self,
+                        regions: Dict[str, Region],
+                        start_char: Chars,
+                        loc_name_to_pretty: Dict[str, str]) -> None:
         items_placed_in_map_index: Dict[int, int] = defaultdict(int)
         self.rescue_locations = {}
         self.loc_memory_to_loc_id = {}
-        for region in start_region.all.values():
+        for region in regions.values():
             for loc in region.locations:
                 assert loc.item, "There should be an item placed in every location before " \
                                  f"writing locations. {loc.name} is missing item."
@@ -988,9 +991,6 @@ class Patcher:
         This value should only ever be increased, never decreased.
         (You can't take back an item after it's given.)
         """
-        # TODO: rescues bugged
-        # Is music correct after rescue?
-
         # 3 into this interface is the apple rescue scene
         # 4 into this interface is the champ rescue scene
         # (These are normally keyword 4 and empty, which won't be sent.)

@@ -149,7 +149,7 @@ class RAInterface:
     _read_messages: Dict[RangeName, Tuple[bytes, bytes]]
 
     RETROARCH: ClassVar[asyncudp.Address] = ("127.0.0.1", 55355)
-    SMS_RAM_OFFSET: ClassVar[int] = 0xc000
+    SMS_RAM_OFFSET: ClassVar[Literal[0xc000]] = 0xc000
     READ: ClassVar[OP] = "READ_CORE_RAM"
     WRITE: ClassVar[OP] = "WRITE_CORE_RAM"
 

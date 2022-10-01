@@ -48,7 +48,7 @@ def generate(seed: int) -> None:
     if options.room_gen:
         jump_req_rooms = room_jump_requirements()
         p.aem.room_gen_mods()
-        room_gen = RoomGen(p.tc, p.sm, p.aem, logger, options.skill)
+        room_gen = RoomGen(p.tc, p.sm, p.aem, logger, options.skill, r.regions)
         room_gen.generate_all(jump_req_rooms)
         r.reset(room_gen)
         modified_rooms = room_gen.get_modified_rooms()
@@ -59,7 +59,7 @@ def generate(seed: int) -> None:
         a = Alarms(p.tc, logger)
         a.choose_all(modified_rooms)
 
-    p.write_locations(r.start, options.start_char, r.loc_name_2_pretty)
+    p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
     p.all_fixes_and_options(options)
 
     # testing

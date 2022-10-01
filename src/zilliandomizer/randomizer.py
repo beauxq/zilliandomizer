@@ -24,7 +24,7 @@ MAX_GUN = 3
 class Randomizer:
     options: Options
     logger: Logger
-    start: Region
+    regions: Dict[str, Region]
     locations: Dict[str, Location]
     room_gen: Optional[RoomGen] = None
     loc_name_2_pretty: Dict[str, str]
@@ -47,9 +47,9 @@ class Randomizer:
         if room_gen:
             self.room_gen = room_gen
         locations = self.room_gen.make_locations() if self.room_gen else make_locations()
-        start = make_regions(locations)
+        regions = make_regions(locations)
         if room_gen:
-            for region_name, region in start.all.items():
+            for region_name, region in regions.items():
                 if len(region_name) == 5 and region_name[0] == 'r' and region_name[3] == 'c':
                     row, col = parse_reg_name(region_name)
                     map_index = row * 8 + col
@@ -61,7 +61,7 @@ class Randomizer:
                             req.jump = 3 if jump_blocks == 3 else (
                                 2 if jump_blocks == 2.5 else 1
                             )
-        self.start = start
+        self.regions = regions
         self.locations = locations
 
         room_2_locs: Dict[int, List[str]] = defaultdict(list)
@@ -150,8 +150,8 @@ class Randomizer:
     def place_canister_gun_reqs(self) -> None:
         """ and place keywords """
         gun_reqs = self.room_door_gun_requirements()
-        for region_name in Region.all:
-            region = Region.all[region_name]
+        for region_name in self.regions:
+            region = self.regions[region_name]
             locs = region.locations[:]
             shuffle(locs)
             i = 0
@@ -186,7 +186,7 @@ class Randomizer:
         todo_queue: Deque[Region] = deque()
         regions_finished: Set[str] = set()
 
-        todo_queue.append(self.start)
+        todo_queue.append(self.regions["start"])
 
         while len(todo_queue):
             this_region = todo_queue.popleft()

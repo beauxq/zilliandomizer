@@ -54,12 +54,12 @@ class State:
 
     def anything_lost(self, old: "State") -> bool:
         _, door_lost, _ = get_changed_lost(self.doors, old.doors)
-        items_lost = any(self.received_items[i] < old.received_items[i]
-                         for i in range(ITEM_BYTE_COUNT))
+        # items_lost = any(self.received_items[i] < old.received_items[i]
+        #                  for i in range(ITEM_BYTE_COUNT))
 
         # self.diff_cache = StateDiffCache(door_change, door_lost, door_int)
 
-        return bool(door_lost) or bool(items_lost)
+        return bool(door_lost)  # or bool(items_lost)
 
 
 c11f_in_game_scenes = frozenset((
@@ -177,16 +177,21 @@ class Memory:
         return in_game
 
     def _process_change(self, new_cans: bytes) -> None:
+        """
+        Take the canister pickups from memory and find out what's new.
+
+        Put the acquire event in queue if a new canister has been picked up.
+        """
         # report
         change, _, new_int = get_changed_lost(new_cans, self.known_cans)
         added = change & new_int
-        rooms = added.to_bytes(CANISTER_ROOM_COUNT, BYTE_ORDER)
+        added_rooms = added.to_bytes(CANISTER_ROOM_COUNT, BYTE_ORDER)
 
-        # indexes into rooms
-        added_rooms = [i for i, b in enumerate(rooms) if b]
+        # indexes into `added_rooms`
+        added_room_indexes = [i for i, b in enumerate(added_rooms) if b]
 
-        for item_room_index in added_rooms:
-            for can in bits(rooms[item_room_index]):
+        for item_room_index in added_room_indexes:
+            for can in bits(added_rooms[item_room_index]):
                 print(f"picked up canister {can} in room {item_room_index}")
                 if self.from_game_queue is None:
                     continue
@@ -210,9 +215,11 @@ class Memory:
                 else:
                     print(f"WARNING: unhandled EventToGame {event}")
                 q.task_done()
+            # else not a good time to send something to game
+        # else queue empty
 
     async def _process_items(self, counts: typing.Counter[int]) -> None:
-        counts_to_ram = bytearray(0 for _ in range(0x0c))
+        counts_to_ram = bytearray(0 for _ in range(ITEM_BYTE_COUNT))
         for comm_item_id in counts:
             code = comm_item_id >> 8
             item_id = comm_item_id & 0xff
@@ -243,8 +250,6 @@ class Memory:
             self.state.received_items = counts_to_ram
         else:
             print(f"WARNING: sync problem - items lost {counts_to_ram} < {self.state.received_items}")
-            # else not a good time to send something to game
-        # else queue empty
 
     async def check(self) -> None:
         """ put info from game into from_game queue """
@@ -280,7 +285,8 @@ class Memory:
                     ])
                     assert len(canisters) == CANISTER_ROOM_COUNT
 
-                    # rescues don't show up in canister state
+                    # rescues don't show up in canister state,
+                    # so we set the canister bits here according to the character status
                     for address, canister in self.rescues.items():
                         item_room_index, mask = canister
                         if ram[address] > 0:
@@ -301,6 +307,9 @@ class Memory:
         # else not in game
 
     async def _restore(self, ram: RamData) -> None:
+        # TODO: Verify that this is fixed.
+        # When I finished a multi seed and then started up the game again.
+        # It kept trying to restore over and over again forever.
         if self._restore_target is None:
             return
         if ram.safe_to_write():

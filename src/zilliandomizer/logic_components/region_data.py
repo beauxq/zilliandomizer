@@ -4,9 +4,9 @@ from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.locations import Location, Req
 
 
-def make_regions(locations: Dict[str, Location]) -> Region:
-    """ return `start` region """
-    Region.all.clear()
+def make_regions(locations: Dict[str, Location]) -> Dict[str, Region]:
+    """ return { "region_name: region } """
+    Region.all_temp = {}
 
     reg_name_to_loc_name: Dict[str, List[str]] = defaultdict(list)
     for loc_name in locations.keys():
@@ -656,4 +656,4 @@ def make_regions(locations: Dict[str, Location]) -> Region:
     final_elevator.to(r13c6e)  # pick up red id card
     final_elevator.to(r10c5)  # main computer
 
-    return start
+    return Region.all_temp

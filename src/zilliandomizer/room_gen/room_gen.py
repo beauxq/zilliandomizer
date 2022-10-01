@@ -1,9 +1,7 @@
 from random import choice, gauss, random, randrange, sample, shuffle
 from typing import Dict, FrozenSet, List, Literal, Optional, Set, Tuple
 from zilliandomizer.alarm_data import ALARM_ROOMS
-from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.locations import Location, Req
-from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, SpriteType
 from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
@@ -50,18 +48,23 @@ class RoomGen:
     _alarm_rooms: FrozenSet[int]
     """ rooms that can have alarm lines """
 
+    _regions: Dict[str, Region]
+    """ the region dictionary for this seed """
+
     def __init__(self,
                  tc: TerrainCompressor,
                  sm: NPSpriteManager,
                  aem: AlarmEntranceManager,
                  logger: Logger,
-                 skill: int) -> None:
+                 skill: int,
+                 regions: Dict[str, Region]) -> None:
         self.tc = tc
         self.sm = sm
         self.aem = aem
         self._logger = logger
         self._skill = skill
         self._alarm_rooms = frozenset(ALARM_ROOMS)
+        self._regions = regions
 
         # testing
         # logger.spoil_stdout = True
@@ -73,9 +76,7 @@ class RoomGen:
         self._rooms = {}
 
     def generate_all(self, map_index_2_jump_level: Dict[int, int]) -> None:
-        if len(Region.all) == 0:
-            locations = make_locations()
-            make_regions(locations)
+        assert len(self._regions) > 0, "tried to start generating rooms with empty regions"
 
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
@@ -195,9 +196,9 @@ class RoomGen:
                 standing = [g for g in candidate_goables if g[2]]
                 placeables = [(y, x) for y, x, _ in standing if not candidate.in_exit(y, x)]
                 reg_name = make_reg_name(map_index)
-                assert (reg_name == "r08c1") or (reg_name in Region.all), \
+                assert (reg_name == "r08c1") or (reg_name in self._regions), \
                     f"generated terrain for non-region {reg_name}"
-                region_locations = Region.all[reg_name].locations if reg_name in Region.all else []
+                region_locations = self._regions[reg_name].locations if reg_name in self._regions else []
                 sprites = self.sm.get_room(map_index)
                 floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
                 placeable_count = (
@@ -400,7 +401,7 @@ class RoomGen:
                 locations[loc_name] = Location(loc_name, Req(gun=1, jump=jump_level))
 
         # copy locations from rooms that I didn't generate
-        for region in Region.all.values():
+        for region in self._regions.values():
             if region.name not in generated_regions:
                 for original_loc in region.locations:
                     locations[original_loc.name] = original_loc

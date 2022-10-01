@@ -11,7 +11,6 @@ from zilliandomizer.generator import some_options
 from zilliandomizer.logger import Logger
 from zilliandomizer.patch import Patcher
 from zilliandomizer.logic_components.locations import Req
-from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.region_data import make_regions
 
@@ -27,7 +26,7 @@ def test_randomizer() -> None:
     r.roll()
 
     p = Patcher()
-    p.write_locations(r.start, options.start_char, r.loc_name_2_pretty)
+    p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
     p.all_fixes_and_options(options)
     filename = f"zilliandomizer-{s:016x}.sms"
     # p.write(filename)
@@ -47,7 +46,7 @@ def test_infinite_continues_and_not() -> None:
         r.roll()
 
         p = Patcher()
-        p.write_locations(r.start, options.start_char, r.loc_name_2_pretty)
+        p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
         p.all_fixes_and_options(options)
         filename = f"zilliandomizer-{s:016x}.sms"
         # p.write(filename)
@@ -113,9 +112,9 @@ def test_get_locations() -> None:
 def test_connections() -> None:
     """ check to make sure connections go in both directions """
     locations = make_locations()
-    make_regions(locations)
-    for name in Region.all:
-        region = Region.all[name]
+    regions = make_regions(locations)
+    for name in regions:
+        region = regions[name]
         for neighbor in region.connections:
             assert region in neighbor.connections, f"{region.name} not in {neighbor.name}"
 
