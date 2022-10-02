@@ -87,21 +87,30 @@ class RoomGen:
         shuffled_gen_rooms = list(GEN_ROOMS.keys())
         shuffle(shuffled_gen_rooms)
 
+        # TODO: better source of this information, instead of
+        # magic number that won't be right if I change GEN_ROOMS
+        TOTAL_SPACE_LIMIT = len(GEN_ROOMS) * 59
         success = False  # generated all rooms without going over the byte limit
         while not success:
             self._logger.spoil("generating rooms...")
             total_space_taken = 0
-            total_space_limit = len(GEN_ROOMS) * 59
             for i, map_index in enumerate(shuffled_gen_rooms):
                 print(f"generating room {i + 1} / {len(GEN_ROOMS)}")
                 jump_block_ability = 2 if map_index_2_jump_level[map_index] == 1 else (
                     2.5 if map_index_2_jump_level[map_index] == 2 else 3
                 )
 
-                number_of_rooms_remaining = len(GEN_ROOMS) - i
-                ideal_space_limit = (total_space_limit - total_space_taken) / number_of_rooms_remaining
-                hard_space_limit = ideal_space_limit + (20 * (number_of_rooms_remaining - 1) / len(GEN_ROOMS)) - 1
-                # TODO: need to keep size limit above around 45
+                n_rooms_remaining = len(GEN_ROOMS) - i
+                space_remaining = TOTAL_SPACE_LIMIT - total_space_taken
+                space_target = space_remaining / n_rooms_remaining
+                # print(f"remain {n_rooms_remaining}  space {space_remaining}  target {space_target}")
+                # need to keep size limit above around 45
+                # That's the number of bytes required to encode a room
+                # that can be traversed from bottom to top.
+                limit_to_reserve_space = space_remaining - (n_rooms_remaining - 1) * 45
+                scaling_pad_on_target = space_target + (20 * (n_rooms_remaining - 1) / len(GEN_ROOMS)) - 1
+                hard_space_limit = min(limit_to_reserve_space, scaling_pad_on_target)
+                # print(f"save {important_space_save}  scale {scaling_pad_on_target}  hard {hard_space_limit}")
                 space_taken, jump_required = self._generate_room(map_index, jump_block_ability, hard_space_limit)
                 total_space_taken += space_taken
                 self._logger.debug(f"{space_taken} over 59" if space_taken > 59 else f"{space_taken} under 60")
@@ -178,6 +187,7 @@ class RoomGen:
         placed: List[Coord] = []
         alarm_blocks: Dict[int, Literal['v', 'h', 'n']] = {}
 
+        fail_count = 0
         while not g:
             try:
                 candidate = make_optimized_no_softlock()
@@ -217,11 +227,17 @@ class RoomGen:
                         sum_2 = sum(p[0] for p in placed_2)
                         placed = placed_1 if sum_1 < sum_2 else placed_2
                     alarm_blocks = self.place(placed, sprites, map_index, candidate)
+                    compressed = candidate.to_room_data(alarm_blocks)
+                    if len(compressed) > size_limit:
+                        raise MakeFailure("over size limit")
                     g = candidate
                     # testing - TODO: make unit test for Grid.no_space
                     # if map_index in (0x4b, 0x21):
             except MakeFailure:
                 print(".", end="")
+                fail_count += 1
+                if fail_count > 500:
+                    raise MakeFailure("too many failures in Zillion room generation - try generating again")
         print()
 
         jump_blocks_required = 2 if g.solve(2) else (2.5 if g.solve(2.5) else 3)
