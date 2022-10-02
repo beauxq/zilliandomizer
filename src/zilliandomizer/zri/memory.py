@@ -8,9 +8,9 @@ import typing
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
 from zilliandomizer.low_resources import ram_info
 from zilliandomizer.patch import RescueInfo
-from zilliandomizer.zri.events import EventFromGame, EventToGame, \
-    AcquireLocationEventFromGame, ItemEventToGame, DeathEventToGame, \
-    WinEventFromGame
+from zilliandomizer.zri.events import DeathEventFromGame, EventFromGame, \
+    EventToGame, AcquireLocationEventFromGame, ItemEventToGame, \
+    DeathEventToGame, WinEventFromGame
 from zilliandomizer.zri.rai import CANISTER_ROOM_COUNT, RAInterface, DOOR_BYTE_COUNT, RamData
 
 BYTE_ORDER: Final[Literal['little', 'big']] = sys.byteorder  # type: ignore
@@ -99,6 +99,7 @@ class Memory:
     known_cans: bytes
     known_in_game: bool
     known_win_state: bool
+    known_dead: bool
 
     state: State
 
@@ -154,6 +155,7 @@ class Memory:
     def reset(self) -> None:
         self.known_in_game = False
         self.known_win_state = False
+        self.known_dead = False
         self.known_cans = bytes(0 for _ in range(CANISTER_ROOM_COUNT))
 
         self.state.reset()
@@ -175,6 +177,24 @@ class Memory:
             print(f"in game: {in_game}")
             self.known_in_game = in_game
         return in_game
+
+    def _died(self, scene: int, cutscene: int, hp: int) -> bool:
+        """
+        given the scene (c11f), cutscene (c183), and hp (c143)
+        return whether the player just died
+        """
+        # checking a few different parts of the death sequence,
+        # just in case we miss the 0 hp in gameplay scene
+        scene = scene & 0x7f
+        dead = hp == 0 and (scene in {0x0b, 0x09} or (
+            scene == 0x06 and cutscene in {2, 7}  # snnff and he he he
+        ))
+        event = False
+        if dead and (dead != self.known_dead):
+            print("death")
+            event = True
+        self.known_dead = dead
+        return event
 
     def _process_change(self, new_cans: bytes) -> None:
         """
@@ -267,6 +287,11 @@ class Memory:
 
                 # TODO: check for base explosion timer? boss dead?
                 # AcquireLocationEventFromGame(0)
+
+                hp = ram[ram_info.current_hp_c143]  # BCD
+                cutscene = ram[ram_info.cutscene_selector_c183]
+                if self._died(current_scene, cutscene, hp) and not (self.from_game_queue is None):
+                    self.from_game_queue.put_nowait(DeathEventFromGame())
 
                 current_state = State(ram)
 
