@@ -1,15 +1,10 @@
 import os
 from random import seed as random_seed
-from typing import FrozenSet
-from zilliandomizer.map_gen.jump import room_jump_requirements
+from zilliandomizer.system import System
 from zilliandomizer.ver import version_hash, date
-from zilliandomizer.alarms import Alarms
-from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.options import Options, ID
 from zilliandomizer.options.parsing import parse_options
 from zilliandomizer.logger import Logger
-from zilliandomizer.patch import Patcher
-from zilliandomizer.room_gen.room_gen import RoomGen
 
 some_options = Options(item_counts={
     ID.card: 50,
@@ -26,7 +21,8 @@ some_options = Options(item_counts={
 
 def generate(seed: int) -> None:
     seed_str = f"{seed:016x}"
-    p = Patcher()
+    system = System()
+    p = system.make_patcher()
     options: Options = some_options
     options_file = p.rom_path + os.sep + "options.yaml"
     if os.path.exists(options_file):
@@ -40,24 +36,15 @@ def generate(seed: int) -> None:
     logger.spoil(str(options))
     logger.spoil(f"seed {seed_str}")
     logger.spoil(f"zilliandomizer version: {version_hash} {date}")
-    r = Randomizer(options, logger)
+    r = system.make_randomizer(options, logger)
 
     random_seed(seed)
 
-    modified_rooms: FrozenSet[int] = frozenset()
-    if options.room_gen:
-        jump_req_rooms = room_jump_requirements()
-        p.aem.room_gen_mods()
-        room_gen = RoomGen(p.tc, p.sm, p.aem, logger, options.skill, r.regions)
-        room_gen.generate_all(jump_req_rooms)
-        r.reset(room_gen)
-        modified_rooms = room_gen.get_modified_rooms()
+    system.make_map()
 
     r.roll()
 
-    if options.randomize_alarms:
-        a = Alarms(p.tc, logger)
-        a.choose_all(modified_rooms)
+    system.post_fill()
 
     p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
     p.all_fixes_and_options(options)
