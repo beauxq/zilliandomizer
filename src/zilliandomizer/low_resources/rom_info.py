@@ -113,6 +113,9 @@ increment_gun_code_4af8 = 0x4af8
 code_after_increment_gun_7c1e = 0x7c1e
 """ code to run after incrementing gun level """
 
+increment_scope_code_4b07 = 0x4b07
+""" code to acquire scope """
+
 terrain_index_13725 = 0x13725
 """
 starting at `_DATA_13725_` is 65 bytes for each of the 17 rows

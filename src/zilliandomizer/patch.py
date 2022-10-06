@@ -690,6 +690,90 @@ class Patcher:
         self.writes[entry] = new_code_addr % 256
         self.writes[entry + 1] = new_code_addr // 256
 
+    def set_scope_distribute(self) -> None:
+        """
+        if current character already has scope, give scope to Apple, Champ, JJ
+
+        It might go to the current character twice,
+        if the character status database isn't updated.
+        (Shouldn't be a big problem: default has 4 scopes, can avoid by pausing after you get scope.)
+        """
+
+        new_get_scope_code = bytearray([
+            asm.LDHL, ram_info.curr_scope_c149 & 0xff, ram_info.curr_scope_c149 // 256,
+            asm.LDAVHL,
+            asm.ORA,
+            asm.JRZ, 20,  # jump to increment
+            # check apple
+            asm.LDHL, ram_info.apple_scope_c179 & 0xff, ram_info.apple_scope_c179 // 256,
+            asm.LDAVHL,
+            asm.ORA,
+            asm.JRZ, 13,  # jump to increment
+            # check champ
+            asm.LDHL, ram_info.champ_scope_c169 & 0xff, ram_info.champ_scope_c169 // 256,
+            asm.LDAVHL,
+            asm.ORA,
+            asm.JRZ, 6,  # jump to increment
+            # check jj
+            asm.LDHL, ram_info.jj_scope_c159 & 0xff, ram_info.jj_scope_c159 // 256,
+            asm.LDAVHL,
+            asm.ORA,
+            asm.RETNZ,
+            # increment this one
+            asm.INCVHL,
+            # make alarms visible in current room (copied from original increment scope code)
+            # only necessary for c149 (should already be set for the others),
+            # but it doesn't hurt to do it with all
+            asm.LDHL, ram_info.alarm_status_c26a & 0xff, ram_info.alarm_status_c26a // 256,
+            asm.SET_B_HL_LO, asm.SET_7_HL_HI,
+            asm.RET
+        ])
+        using_bank = 6
+        get_scope_addr = self._use_bank(using_bank, new_get_scope_code)
+
+        # original increment scope code
+        inc_scope_lo = rom_info.increment_scope_code_4b07 & 0xff
+        inc_scope_hi = rom_info.increment_scope_code_4b07 // 256
+
+        # We just need the beginning of the (save bank, set new bank, call, restore bank) pattern.
+        # The rest will replace the original increment scope code.
+        save_bank_code = bytearray([
+            asm.LDAV, 0xff, 0xff,
+            asm.PUSHAF,
+            asm.JP, inc_scope_lo, inc_scope_hi,
+        ])
+
+        bank_switch_to_scope = self._use_bank(0, save_bank_code)
+
+        # change jump table to point at new code
+        # table at 4ABC, 2 bytes for each entry, we want entry for scope
+        entry = rom_info.item_pickup_jump_table_4abc + 2 * ID.scope
+        if self.verify:
+            assert self.rom[entry] == inc_scope_lo
+            assert self.rom[entry + 1] == inc_scope_hi
+        self.writes[entry] = bank_switch_to_scope & 0xff
+        self.writes[entry + 1] = bank_switch_to_scope // 256
+
+        replacing_increment_scope = bytearray([
+            asm.LDAI, using_bank,
+            asm.LDVA, 0xff, 0xff,
+            asm.CALL, get_scope_addr & 0xff, get_scope_addr // 256,
+            asm.POPAF,
+            asm.LDVA, 0xff, 0xff,
+            asm.RET  # this 1 byte already there
+        ])
+
+        original_inc_scope_code = new_get_scope_code[:5] + bytearray([asm.RETNZ]) + new_get_scope_code[-7:]
+        print(list(original_inc_scope_code))
+
+        assert len(replacing_increment_scope) == len(original_inc_scope_code), "scope code doesn't fit right"
+
+        for i in range(len(replacing_increment_scope)):
+            address = rom_info.increment_scope_code_4b07 + i
+            if self.verify:
+                assert self.rom[address] == original_inc_scope_code[i]
+            self.writes[address] = replacing_increment_scope[i]
+
     def set_jump_levels(self, jump_option: VBLR) -> None:
         # because of r13c1y98x10, this function also sets speed to 1 higher than jump
         # speed is the byte after jump in stats_per_level_table_7cc8
@@ -1622,3 +1706,4 @@ class Patcher:
             self.set_defense(options.skill)
         self.set_explode_timer(options.skill)
         self.set_starting_cards(options.starting_cards)
+        self.set_scope_distribute()

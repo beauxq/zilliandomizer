@@ -47,6 +47,9 @@ cutscene_selector_c183 = 0xc183
 in_room_transition_c186 = 0xc186
 map_current_index_c198 = 0xc198
 
+alarm_status_c26a = 0xc26a
+""" bit 7 set means alarms are visible """
+
 game_started_flag_c300 = 0xc300
 """ 129 after game started """
 

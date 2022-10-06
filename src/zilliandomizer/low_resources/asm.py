@@ -68,6 +68,8 @@ SET_B_HL_LO = 0xcb
 """ set bit b of value in address hl, low byte """
 SET_0_HL_HI = 0xc6 | (0 << 3)
 """ set bit 0 of value in address hl, high byte """
+SET_7_HL_HI = 0xc6 | (7 << 3)
+""" set bit 7 of value in address hl, high byte """
 JRZ = 0x28
 """ jump relative if zero """
 JRNZ = 0x20
@@ -80,6 +82,8 @@ JR = 0x18
 """ jump relative """
 JP = 0xc3
 """ jump """
+JPZ = 0xca
+""" jump if zero """
 JPNZ = 0xc2
 """ jump if not zero """
 JPNC = 0xd2

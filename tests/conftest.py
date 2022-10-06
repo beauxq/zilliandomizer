@@ -101,6 +101,13 @@ def set_verified_bytes(b: bytearray) -> None:
     b[gun_inc + 8] = rom_info.code_after_increment_gun_7c1e % 256
     b[gun_inc + 9] = rom_info.code_after_increment_gun_7c1e // 256
 
+    scope_inc = rom_info.increment_scope_code_4b07
+    scope_code = [33, 73, 193, 126, 183, 192, 52, 33, 106, 194, 203, 254, 201]
+    for i in range(13):
+        b[scope_inc + i] = scope_code[i]
+    b[rom_info.item_pickup_jump_table_4abc + 2 * ID.scope] = scope_inc & 0xff
+    b[rom_info.item_pickup_jump_table_4abc + 2 * ID.scope + 1] = scope_inc // 256
+
     # jump and speed data
     init_table_jump = rom_info.char_init_7b98 + 8  # index 8 is jump
     init_table_speed = init_table_jump - 1
