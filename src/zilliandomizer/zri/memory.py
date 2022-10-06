@@ -88,7 +88,7 @@ class Memory:
     """
 
     _rai: RamInterface
-    rescues: Dict[int, Tuple[int, int]]
+    rescues: Dict[int, Tuple[int, int]] = {}
     """ { ram_char_status_address: (item_room_index, mask) } """
     loc_mem_to_loc_id: Dict[int, int]
     """ { ((item_room_index << 8) | bit_mask): location_id } """
