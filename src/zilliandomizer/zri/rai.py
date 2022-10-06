@@ -1,35 +1,15 @@
 import asyncio
 import bisect
 from collections import defaultdict
-from dataclasses import dataclass
 import time
 from typing import Dict, List, Tuple, ClassVar, Literal, Union, Iterable, Optional, overload
 
 from zilliandomizer.low_resources import ram_info
 from zilliandomizer.zri import asyncudp
+from zilliandomizer.zri.ram_interface import RamData, RamInterface
 
 OP = Literal["READ_CORE_RAM", "WRITE_CORE_RAM"]
 DOOR_BYTE_COUNT = 62
-CANISTER_ROOM_COUNT = 74
-
-RangeName = Literal["basic", "new_ram", "door_can"]
-
-# important that this is sorted by address
-_range_reads: Dict[RangeName, Tuple[int, int]] = {
-    "basic": (
-        ram_info.current_scene_c11f,
-        ram_info.map_current_index_c198 + 1
-    ),
-    "new_ram": (
-        ram_info.rom_to_ram_data,
-        ram_info.opas_c2ee + 1
-    ),
-    "door_can": (
-        ram_info.door_state_d600,
-        ram_info.canister_state_d700 + CANISTER_ROOM_COUNT * 2
-    )
-}
-""" name: (first address, last address + 1) """
 
 
 def bcd_decode(x: int) -> int:
@@ -46,11 +26,14 @@ def bcd_encode(x: int) -> int:
     return (hi << 4) | lo
 
 
-@dataclass
-class RamData:
-    data: List[bytes]
+class RamDataWrapper:
+    rd: RamData
     base_addr: List[int]
     """ sorted list of the beginning of each range """
+
+    def __init__(self, rd: RamData) -> None:
+        self.rd = rd
+        self.base_addr = [range_[0] for range_ in rd.RANGE_READS]
 
     @overload
     def __getitem__(self, addr: int) -> int: ...
@@ -63,7 +46,7 @@ class RamData:
         if chunk_index == -1:
             raise IndexError(f"{hex(slc.start)} below bottom range ({self.base_addr[0]})")
 
-        chunk_length = len(self.data[chunk_index])
+        chunk_length = len(self.rd.data[chunk_index])
         chunk_start = self.base_addr[chunk_index]
         chunk_stop = chunk_start + chunk_length
 
@@ -79,21 +62,21 @@ class RamData:
                 message = f"above top range {this_range_str}"
             else:  # between ranges
                 next_start = self.base_addr[chunk_index + 1]
-                next_stop = next_start + len(self.data[chunk_index + 1])
+                next_stop = next_start + len(self.rd.data[chunk_index + 1])
                 message = f"between {this_range_str} and {range_str(next_start, next_stop)}"
             raise IndexError(f"{hex(slc.start)} {message}")
 
         local_start = slc.start - chunk_start
         local_stop = slc.stop - chunk_start
 
-        result = self.data[chunk_index][local_start: local_stop: slc.step]
+        result = self.rd.data[chunk_index][local_start: local_stop: slc.step]
 
         if isinstance(addr, int):
             return result[0]
         return result
 
     def all_present(self) -> bool:
-        return all(len(each_data) for each_data in self.data)
+        return all(len(each_data) for each_data in self.rd.data)
 
     def in_win(self) -> bool:
         scene_selector = self[ram_info.cutscene_selector_c183]
@@ -142,11 +125,11 @@ class NoSpamLog:
             print(s)
 
 
-class RAInterface:
-    sock: Optional[asyncudp.Socket]
-    lock: asyncio.Lock
+class RAInterface(RamInterface):
+    _sock: Optional[asyncudp.Socket]
+    _lock: asyncio.Lock
 
-    _read_messages: Dict[RangeName, Tuple[bytes, bytes]]
+    _read_messages: Dict[Tuple[int, int], Tuple[bytes, bytes]]
 
     RETROARCH: ClassVar[asyncudp.Address] = ("127.0.0.1", 55355)
     SMS_RAM_OFFSET: ClassVar[Literal[0xc000]] = 0xc000
@@ -154,12 +137,12 @@ class RAInterface:
     WRITE: ClassVar[OP] = "WRITE_CORE_RAM"
 
     def __init__(self) -> None:
-        self.sock = None
-        self.lock = asyncio.Lock()
+        self._sock = None
+        self._lock = asyncio.Lock()
 
         self._read_messages = {
-            name: RAInterface._build_message(RAInterface.READ, r[0], r[1] - r[0])
-            for name, r in _range_reads.items()
+            r: RAInterface._build_message(RAInterface.READ, r[0], r[1] - r[0])
+            for r in RamData.RANGE_READS
         }
 
     @staticmethod
@@ -190,21 +173,21 @@ class RAInterface:
         message = prefix + params
         # gun_message = message.find(b" 0a") != -1
         # t = 0.0
-        if not self.sock:
+        if not self._sock:
             try:
                 # print("try create")
-                self.sock = await asyncudp.create_socket(remote_addr=RAInterface.RETROARCH)
+                self._sock = await asyncudp.create_socket(remote_addr=RAInterface.RETROARCH)
             except ConnectionRefusedError:
                 print("create_socket... no connection")
                 return b''
-        async with self.lock:
+        async with self._lock:
             while True:
                 # if gun_message:
                 #     print(f"rai message {message}")
                 #     t = time.perf_counter()
                 try:
                     # print("try send")
-                    self.sock.sendto(message, RAInterface.RETROARCH)
+                    self._sock.sendto(message, RAInterface.RETROARCH)
                 except (asyncudp.ClosedError, ConnectionRefusedError):
                     print("send... no connection")
                 # if gun_message:
@@ -217,7 +200,7 @@ class RAInterface:
                     # if gun_message:
                     #     t = time.perf_counter()
                     # print("try receive")
-                    res, _ = await self.sock.recvfrom()
+                    res, _ = await self._sock.recvfrom()
                     # print("receive success")
                     # if gun_message:
                     #     t1 = time.perf_counter()
@@ -258,10 +241,12 @@ class RAInterface:
     async def read(self) -> RamData:
         """ returns the ram that I have registered to read """
         data_tr: List[bytes] = []
-        bases_tr: List[int] = []
-        for name in _range_reads:
-            prefix, params = self._read_messages[name]
+        for range_ in RamData.RANGE_READS:
+            prefix, params = self._read_messages[range_]
             res = await self._message(prefix, params)
             data_tr.append(res)
-            bases_tr.append(_range_reads[name][0])
-        return RamData(data_tr, bases_tr)
+        return RamData(data_tr)
+
+    def close(self) -> None:
+        if self._sock:
+            self._sock.close()

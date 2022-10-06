@@ -6,12 +6,13 @@ from typing import Dict, Final, Literal, Optional, Tuple, Iterator
 import typing
 
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
-from zilliandomizer.low_resources import ram_info
+from zilliandomizer.low_resources import ram_info, rom_info
 from zilliandomizer.patch import RescueInfo
 from zilliandomizer.zri.events import DeathEventFromGame, EventFromGame, \
     EventToGame, AcquireLocationEventFromGame, ItemEventToGame, \
     DeathEventToGame, WinEventFromGame
-from zilliandomizer.zri.rai import CANISTER_ROOM_COUNT, RAInterface, DOOR_BYTE_COUNT, RamData
+from zilliandomizer.zri.rai import RAInterface, DOOR_BYTE_COUNT, RamDataWrapper
+from zilliandomizer.zri.ram_interface import RamInterface
 
 BYTE_ORDER: Final[Literal['little', 'big']] = sys.byteorder  # type: ignore
 # mypy doesn't see literal types of byteorder
@@ -39,7 +40,7 @@ class State:
     received_items: bytearray
     """ index is item id (rescues 3 and 4) """
 
-    def __init__(self, ram: Optional[RamData] = None) -> None:
+    def __init__(self, ram: Optional[RamDataWrapper] = None) -> None:
         if ram:
             self.doors = ram[ram_info.door_state_d600: ram_info.door_state_d600 + DOOR_BYTE_COUNT]
             self.received_items = bytearray(
@@ -86,7 +87,7 @@ class Memory:
     consumes to_game_queue
     """
 
-    _rai: RAInterface
+    _rai: RamInterface
     rescues: Dict[int, Tuple[int, int]]
     """ { ram_char_status_address: (item_room_index, mask) } """
     loc_mem_to_loc_id: Dict[int, int]
@@ -126,7 +127,7 @@ class Memory:
         returns the data passed to zilliandomizer.patch.Patcher.set_rom_to_ram_data,
         empty bytes if not available
         """
-        ram = await self._rai.read()
+        ram = RamDataWrapper(await self._rai.read())
 
         if not ram.all_present():
             return b''
@@ -156,7 +157,7 @@ class Memory:
         self.known_in_game = False
         self.known_win_state = False
         self.known_dead = False
-        self.known_cans = bytes(0 for _ in range(CANISTER_ROOM_COUNT))
+        self.known_cans = bytes(0 for _ in range(rom_info.CANISTER_ROOM_COUNT))
 
         self.state.reset()
 
@@ -164,8 +165,7 @@ class Memory:
         return self
 
     def close(self) -> None:
-        if self._rai.sock:
-            self._rai.sock.close()
+        self._rai.close()
 
     def __exit__(self, type: type, value: Exception, traceback: TracebackType) -> None:
         self.close()
@@ -205,7 +205,7 @@ class Memory:
         # report
         change, _, new_int = get_changed_lost(new_cans, self.known_cans)
         added = change & new_int
-        added_rooms = added.to_bytes(CANISTER_ROOM_COUNT, BYTE_ORDER)
+        added_rooms = added.to_bytes(rom_info.CANISTER_ROOM_COUNT, BYTE_ORDER)
 
         # indexes into `added_rooms`
         added_room_indexes = [i for i, b in enumerate(added_rooms) if b]
@@ -223,7 +223,7 @@ class Memory:
                     AcquireLocationEventFromGame(loc_id)
                 )
 
-    async def _process_to_game_queue(self, ram: RamData, q: "asyncio.Queue[EventToGame]") -> None:
+    async def _process_to_game_queue(self, ram: RamDataWrapper, q: "asyncio.Queue[EventToGame]") -> None:
         if q.qsize():
             if ram.safe_to_write():
                 event = q.get_nowait()
@@ -273,7 +273,7 @@ class Memory:
 
     async def check(self) -> None:
         """ put info from game into from_game queue """
-        ram = await self._rai.read()
+        ram = RamDataWrapper(await self._rai.read())
 
         if not ram.all_present():
             return  # TODO: signal when data isn't retrieved?
@@ -305,10 +305,10 @@ class Memory:
 
                     canisters = bytearray(ram[
                         ram_info.canister_state_d700 + 1:
-                        ram_info.canister_state_d700 + CANISTER_ROOM_COUNT * 2:
+                        ram_info.canister_state_d700 + rom_info.CANISTER_ROOM_COUNT * 2:
                         2
                     ])
-                    assert len(canisters) == CANISTER_ROOM_COUNT
+                    assert len(canisters) == rom_info.CANISTER_ROOM_COUNT
 
                     # rescues don't show up in canister state,
                     # so we set the canister bits here according to the character status
@@ -331,7 +331,7 @@ class Memory:
                     await self._process_to_game_queue(ram, self.to_game_queue)
         # else not in game
 
-    async def _restore(self, ram: RamData) -> None:
+    async def _restore(self, ram: RamDataWrapper) -> None:
         # TODO: Verify that this is fixed.
         # When I finished a multi seed and then started up the game again.
         # It kept trying to restore over and over again forever.
@@ -358,7 +358,7 @@ class Memory:
             # restore doors
             await self._rai.write(ram_info.door_state_d600, to_write)
 
-    def _check_win(self, ram: RamData) -> None:
+    def _check_win(self, ram: RamDataWrapper) -> None:
         """
         check for win state in game and
         if a new win state is found, put win event in from queue

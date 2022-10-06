@@ -12,10 +12,12 @@ class ClosedError(Exception):
 
 
 class _SocketProtocol(asyncio.BaseProtocol):
+    _packets: "asyncio.Queue[Optional[Tuple[bytes, Address]]]"
+    _error: Optional[Exception]
 
     def __init__(self) -> None:
-        self._packets: asyncio.Queue[Optional[Tuple[bytes, Address]]] = asyncio.Queue()
-        self._error: Optional[Exception] = None
+        self._packets = asyncio.Queue()
+        self._error = None
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         pass
@@ -48,6 +50,8 @@ class Socket:
     instance of this class.
 
     """
+    _transport: asyncio.DatagramTransport
+    _protocol: _SocketProtocol
 
     def __init__(self,
                  transport: asyncio.DatagramTransport,

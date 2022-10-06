@@ -1,3 +1,6 @@
+CANISTER_ROOM_COUNT = 74
+""" how many rooms have canisters in them """
+
 bank_7_free_space_1ffdb = 0x1ffdb
 """ from here to the end looks like free space """
 free_space_end_7e00 = 0x7e00
