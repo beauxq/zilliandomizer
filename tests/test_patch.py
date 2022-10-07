@@ -113,10 +113,12 @@ def no_rom() -> Iterator[None]:
         os.rename(path_temp, path_original)
 
 
-@pytest.mark.usefixtures("no_rom")
-def test_no_rom() -> None:
-    with pytest.raises(FileNotFoundError):
-        Patcher()
+# testing always makes fake rom now
+# TODO: figure out a way to run tests with real rom
+# @pytest.mark.usefixtures("no_rom")
+# def test_no_rom() -> None:
+#     with pytest.raises(FileNotFoundError):
+#         Patcher()
 
 
 @pytest.mark.usefixtures("fake_rom")

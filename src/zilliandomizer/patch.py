@@ -2,6 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import os
 from random import randrange, shuffle
+import __main__
 from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
@@ -11,6 +12,7 @@ from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.terrain_compressor import TerrainCompressor
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
+from zilliandomizer.utils.file_verification import set_verified_bytes
 from zilliandomizer.utils.loc_name_maps import loc_to_id
 
 ROM_NAME = "Zillion (UE) [!].sms"
@@ -99,11 +101,18 @@ class Patcher:
             if not os.path.exists(os.path.join(self.rom_path, ROM_NAME)):
                 self.rom_path = ""
         if self.rom_path == "":
-            raise FileNotFoundError(f'unable to find original rom "{ROM_NAME}"')
-        print(f"found rom at {self.rom_path}{os.sep}{ROM_NAME}")
+            print(__main__.__file__)
+            if "test" in __main__.__file__:
+                self.rom = bytearray(0x20000)
+                set_verified_bytes(self.rom)
+                Patcher.checksum(self.rom, True)
+            else:
+                raise FileNotFoundError(f'unable to find original rom "{ROM_NAME}"')
+        else:
+            print(f"found rom at {self.rom_path}{os.sep}{ROM_NAME}")
 
-        with open(f"{self.rom_path}{os.sep}{ROM_NAME}", "rb") as file:
-            self.rom = bytearray(file.read())
+            with open(f"{self.rom_path}{os.sep}{ROM_NAME}", "rb") as file:
+                self.rom = bytearray(file.read())
         assert Patcher.checksum(self.rom), "incorrect data in rom - invalid checksum"
 
         self.tc = TerrainCompressor(self.rom)

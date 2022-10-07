@@ -1558,6 +1558,7 @@ loc_to_id: Dict[str, int] = {
     "P-3 bottom far right": 1553,
     "J-6 bottom far left": 1554,
 }
+""" ids starting with 0 """
 
 id_to_loc: Dict[int, str] = {
     0: "A-3 top far left",
@@ -3116,3 +3117,4 @@ id_to_loc: Dict[int, str] = {
     1553: "P-3 bottom far right",
     1554: "J-6 bottom far left",
 }
+""" ids starting with 0 """
