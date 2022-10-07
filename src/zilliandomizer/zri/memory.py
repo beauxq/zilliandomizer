@@ -276,7 +276,7 @@ class Memory:
         ram = RamDataWrapper(await self._rai.read())
 
         if not ram.all_present():
-            return  # TODO: signal when data isn't retrieved?
+            return
 
         current_scene = ram[ram_info.current_scene_c11f]
         if self._in_game(current_scene):
@@ -284,9 +284,6 @@ class Memory:
                 await self._restore(ram)
             else:
                 self._check_win(ram)
-
-                # TODO: check for base explosion timer? boss dead?
-                # AcquireLocationEventFromGame(0)
 
                 hp = ram[ram_info.current_hp_c143]  # BCD
                 cutscene = ram[ram_info.cutscene_selector_c183]
@@ -332,9 +329,6 @@ class Memory:
         # else not in game
 
     async def _restore(self, ram: RamDataWrapper) -> None:
-        # TODO: Verify that this is fixed.
-        # When I finished a multi seed and then started up the game again.
-        # It kept trying to restore over and over again forever.
         if self._restore_target is None:
             return
         if ram.safe_to_write():
@@ -368,7 +362,6 @@ class Memory:
             print("found win")
             self.known_win_state = current_win_state
             if not (self.from_game_queue is None):
-                # TODO: move acquire main to when boss is dead, or something like that
                 self.from_game_queue.put_nowait(
                     AcquireLocationEventFromGame(0)
                 )

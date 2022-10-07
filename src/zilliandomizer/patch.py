@@ -764,7 +764,7 @@ class Patcher:
         ])
 
         original_inc_scope_code = new_get_scope_code[:5] + bytearray([asm.RETNZ]) + new_get_scope_code[-7:]
-        print(list(original_inc_scope_code))
+        # print(list(original_inc_scope_code))
 
         assert len(replacing_increment_scope) == len(original_inc_scope_code), "scope code doesn't fit right"
 
