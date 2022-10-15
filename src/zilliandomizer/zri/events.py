@@ -21,6 +21,12 @@ class WinEventFromGame(EventFromGame):
     pass
 
 
+@dataclass
+class DoorEventFromGame(EventFromGame):
+    """ These are the doors I've opened. """
+    doors: bytes
+
+
 class EventToGame(abc.ABC):
     ...
 
@@ -32,3 +38,9 @@ class ItemEventToGame(EventToGame):
 
 class DeathEventToGame(EventToGame):
     pass
+
+
+@dataclass
+class DoorEventToGame(EventToGame):
+    """ At least these doors should be open. """
+    doors: bytes

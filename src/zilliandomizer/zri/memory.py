@@ -8,9 +8,9 @@ import typing
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
 from zilliandomizer.low_resources import ram_info, rom_info
 from zilliandomizer.patch import RescueInfo
-from zilliandomizer.zri.events import DeathEventFromGame, EventFromGame, \
-    EventToGame, AcquireLocationEventFromGame, ItemEventToGame, \
-    DeathEventToGame, WinEventFromGame
+from zilliandomizer.zri.events import DeathEventFromGame, DoorEventFromGame, \
+    DoorEventToGame, EventFromGame, EventToGame, AcquireLocationEventFromGame, \
+    ItemEventToGame, DeathEventToGame, WinEventFromGame
 from zilliandomizer.zri.rai import RAInterface, DOOR_BYTE_COUNT, RamDataWrapper
 from zilliandomizer.zri.ram_interface import RamInterface
 
@@ -97,6 +97,7 @@ class Memory:
 
     _restore_target: Optional[State]
 
+    known_doors: bytes
     known_cans: bytes
     known_in_game: bool
     known_win_state: bool
@@ -157,6 +158,7 @@ class Memory:
         self.known_in_game = False
         self.known_win_state = False
         self.known_dead = False
+        self.known_doors = bytes(0 for _ in range(DOOR_BYTE_COUNT))
         self.known_cans = bytes(0 for _ in range(rom_info.CANISTER_ROOM_COUNT))
 
         self.state.reset()
@@ -232,6 +234,11 @@ class Memory:
                     await self._process_items(counts)
                 elif isinstance(event, DeathEventToGame):
                     await self._rai.write(0xc308, [0x84])
+                elif isinstance(event, DoorEventToGame):
+                    if len(event.doors) == len(self.state.doors):
+                        self.state.doors = bytes_or(self.state.doors, event.doors)
+                    else:
+                        print(f"WARNING: invalid DoorEventToGame, length: {len(event.doors)}")
                 else:
                     print(f"WARNING: unhandled EventToGame {event}")
                 q.task_done()
@@ -299,6 +306,10 @@ class Memory:
                     self._restore_target = self.state
                 else:
                     self.state.doors = bytes_or(current_state.doors, self.state.doors)
+                    if self.known_doors != current_state.doors:
+                        self.known_doors = current_state.doors
+                        if self.from_game_queue:
+                            self.from_game_queue.put_nowait(DoorEventFromGame(self.state.doors))
 
                     canisters = bytearray(ram[
                         ram_info.canister_state_d700 + 1:
