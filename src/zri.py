@@ -5,7 +5,8 @@ from zilliandomizer.zri.memory import Memory
 async def main() -> None:
     m = Memory()
     while True:
-        await m.check()
+        ram = await m.read()
+        await m.process_ram(ram)
         await asyncio.sleep(0.09375)
 
 

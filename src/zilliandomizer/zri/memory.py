@@ -118,18 +118,18 @@ class Memory:
         self.from_game_queue = from_game_queue
         self.to_game_queue = to_game_queue or asyncio.Queue()
 
-        self._restore_target = None
-
         self.state = State()
-        self.reset()
+        self.reset_game_state()
 
-    async def check_for_player_name(self) -> bytes:
+    async def read(self) -> RamDataWrapper:
+        return RamDataWrapper(await self._rai.read())
+
+    def get_player_name(self, ram: RamDataWrapper) -> bytes:
         """
+        given the ram from `read()`,
         returns the data passed to zilliandomizer.patch.Patcher.set_rom_to_ram_data,
         empty bytes if not available
         """
-        ram = RamDataWrapper(await self._rai.read())
-
         if not ram.all_present():
             return b''
 
@@ -154,7 +154,15 @@ class Memory:
 
         self.loc_mem_to_loc_id = loc_mem_to_loc_id
 
-    def reset(self) -> None:
+    def have_generation_info(self) -> bool:
+        return len(self.loc_mem_to_loc_id) > 0
+
+    def reset_game_state(self) -> None:
+        self.rescues = {}
+        self.loc_mem_to_loc_id = {}
+
+        self._restore_target = None
+
         self.known_in_game = False
         self.known_win_state = False
         self.known_dead = False
@@ -278,10 +286,8 @@ class Memory:
         else:
             print(f"WARNING: sync problem - items lost {counts_to_ram} < {self.state.received_items}")
 
-    async def check(self) -> None:
-        """ put info from game into from_game queue """
-        ram = RamDataWrapper(await self._rai.read())
-
+    async def process_ram(self, ram: RamDataWrapper) -> None:
+        """ put info from game (that came from `read()`) into `from_game` queue """
         if not ram.all_present():
             return
 
