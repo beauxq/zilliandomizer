@@ -194,7 +194,11 @@ class Randomizer:
                 continue
             count_keywords = 0
             for loc in this_region.locations:
-                if have >= loc.req:
+                loc_req = loc.req
+                if loc.item and loc.item.code == RESCUE:
+                    # having a rescue in a location removes the gun requirement
+                    loc_req.gun = 0
+                if have >= loc_req:
                     found_locations.append(loc)
                     if loc.item and loc.item.code == KEYWORD:
                         count_keywords += 1

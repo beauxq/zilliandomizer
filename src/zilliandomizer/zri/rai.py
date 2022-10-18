@@ -188,7 +188,7 @@ class RAInterface(RamInterface):
                 try:
                     # print("try send")
                     self._sock.sendto(message, RAInterface.RETROARCH)
-                except (asyncudp.ClosedError, ConnectionRefusedError):
+                except (asyncudp.ClosedError, ConnectionRefusedError, OSError):
                     print("send... no connection")
                 # if gun_message:
                 #     t1 = time.perf_counter()
@@ -200,12 +200,12 @@ class RAInterface(RamInterface):
                     # if gun_message:
                     #     t = time.perf_counter()
                     # print("try receive")
-                    res, _ = await self._sock.recvfrom()
+                    res, _ = await asyncio.wait_for(self._sock.recvfrom(), timeout=0.3)
                     # print("receive success")
                     # if gun_message:
                     #     t1 = time.perf_counter()
                     #     print(f" got res {res}  recv time {t1 - t}")
-                except (asyncudp.ClosedError, ConnectionRefusedError):
+                except (asyncudp.ClosedError, ConnectionRefusedError, OSError, asyncio.TimeoutError):
                     # if gun_message:
                     #     t1 = time.perf_counter()
                     #     print(f"timed out  time {t1 - t}")
