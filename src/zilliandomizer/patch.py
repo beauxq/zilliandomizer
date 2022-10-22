@@ -62,6 +62,7 @@ class Patcher:
     rescue_locations: Dict[int, RescueInfo] = {}
     loc_memory_to_loc_id: Dict[int, int] = {}
     """ memory location of canister to Archipelago location id number """
+    _init_code: bytearray
 
     BANK_OFFSETS: ClassVar[Dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
@@ -76,6 +77,7 @@ class Patcher:
     def __init__(self, path_to_rom: str = "") -> None:
         self.writes = {}
         self.verify = True
+        self._init_code = bytearray()
 
         # 1st used byte after an unused section
         self.end_of_available_banked = {
@@ -435,6 +437,7 @@ class Patcher:
 
     def get_patched_bytes(self) -> bytearray:
         new_rom = bytearray(self.rom)  # copy
+        self._finalize_init()
         for address in self.writes:
             new_rom[address] = self.writes[address]
 
@@ -561,6 +564,36 @@ class Patcher:
                 assert self.rom[write_addr] == 0xff, "overflow"
             self.writes[write_addr] = code[i]
         return new_code_addr_banked
+
+    def _run_at_init(self, code: bytes) -> None:
+        """
+        set code to run when start button is pressed on title screen, to initialize game
+
+        bank 5
+        """
+        self._init_code.extend(code)
+
+    def _finalize_init(self) -> None:
+        if (
+            rom_info.init_splice_address_0ac3 + 1 in self.writes or
+            rom_info.init_splice_address_0ac3 + 2 in self.writes
+        ):
+            print("WARNING: Either someone spliced into init manually, "
+                  "or they're getting the patched bytes more than once.")
+            return
+
+        self._init_code.extend([
+            asm.JP, rom_info.init_splice_target_2e7d & 0xff, rom_info.init_splice_target_2e7d // 256
+        ])
+
+        # bank 5 is loaded at init (I hope)
+        init_address = self._use_bank(5, self._init_code)
+
+        if self.verify:
+            assert self.rom[rom_info.init_splice_address_0ac3 + 1] == rom_info.init_splice_target_2e7d & 0xff
+            assert self.rom[rom_info.init_splice_address_0ac3 + 2] == rom_info.init_splice_target_2e7d // 256
+        self.writes[rom_info.init_splice_address_0ac3 + 1] = init_address & 0xff
+        self.writes[rom_info.init_splice_address_0ac3 + 2] = init_address // 256
 
     def set_new_opa_level_system(self, opas_per_level: int, hp_per_level: int = 20, max_level: int = 8) -> None:
         """
@@ -1550,10 +1583,10 @@ class Patcher:
         """
         put some specific data in ram, so it can be read externally
 
-        truncated to 16 bytes
+        truncated to 95 bytes
         """
-        if len(data) > 16:
-            data = data[:16]
+        if len(data) > 95:
+            data = data[:95]
         data = data + b'\x00'
 
         # at the splice point we use, we're already in bank 5
@@ -1581,6 +1614,10 @@ class Patcher:
 
         self.writes[startup_splice_address] = code_address & 0xff
         self.writes[startup_splice_address + 1] = code_address // 256
+
+        # game init clears out that ram, so need to write it again
+        code = code[:-3]
+        self._run_at_init(code)
 
     def set_defense(self, skill: int) -> None:
         """ change the defense (damage taken) of the characters according to skill level """
@@ -1666,16 +1703,8 @@ class Patcher:
 
         card_init = bytearray([
             asm.CALL, card_floor_address & 0xff, card_floor_address // 256,
-            asm.JP, rom_info.init_splice_target_2e7d & 0xff, rom_info.init_splice_target_2e7d // 256
         ])
-
-        card_init_address = self._use_bank(0, card_init)
-
-        if self.verify:
-            assert self.rom[rom_info.init_splice_address_0ac3 + 1] == rom_info.init_splice_target_2e7d & 0xff
-            assert self.rom[rom_info.init_splice_address_0ac3 + 2] == rom_info.init_splice_target_2e7d // 256
-        self.writes[rom_info.init_splice_address_0ac3 + 1] = card_init_address & 0xff
-        self.writes[rom_info.init_splice_address_0ac3 + 2] = card_init_address // 256
+        self._run_at_init(card_init)
 
         # also call card floor at ship refill
         refill_replacement = bytearray([

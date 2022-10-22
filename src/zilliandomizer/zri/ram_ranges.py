@@ -4,6 +4,8 @@ from zilliandomizer.low_resources import ram_info, rom_info
 
 RangeName = Literal["basic", "new_ram", "door_can"]
 
+assert ram_info.item_pickup_record == 0xc2d0, "moving item_pickup_record invalidates ram range reads"
+
 
 RANGE_READS: Tuple[Tuple[int, int], ...] = (
     # basic
@@ -13,7 +15,7 @@ RANGE_READS: Tuple[Tuple[int, int], ...] = (
     ),
     # new ram
     (
-        ram_info.rom_to_ram_data,
+        ram_info.item_pickup_record,
         ram_info.opas_c2ee + 1
     ),
     # doors and canisters

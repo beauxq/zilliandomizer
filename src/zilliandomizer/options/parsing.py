@@ -26,6 +26,10 @@ def validate(op: Options) -> None:
     if op.floppy_req > op.item_counts[ID.floppy]:
         error(f"floppy_req {op.floppy_req} > item_counts: floppy {op.item_counts[ID.floppy]}")
 
+    if (op.skill == 0 and op.max_level < 8) or (op.skill == 1 and op.max_level < 3):
+        # because of hp requirement on final boss
+        error(f"not allowed to lower max level to {op.max_level} with skill {op.skill}")
+
 
 valid_choices: Dict[str, Container[Any]] = {
     "jump_levels": VBLR_CHOICES,

@@ -124,20 +124,17 @@ class Memory:
     async def read(self) -> RamDataWrapper:
         return RamDataWrapper(await self._rai.read())
 
-    def get_player_name(self, ram: RamDataWrapper) -> bytes:
+    def get_rom_to_ram_data(self, ram: RamDataWrapper) -> bytes:
         """
         given the ram from `read()`,
         returns the data passed to zilliandomizer.patch.Patcher.set_rom_to_ram_data,
-        empty bytes if not available
+        padded with null (0x00) at end,
+        empty (len 0) bytes if not available
         """
         if not ram.all_present():
             return b''
 
-        name = ram[ram_info.rom_to_ram_data: ram_info.rom_to_ram_data + 16]
-        null_index = name.find(b'\x00')
-        if null_index == -1:
-            null_index = len(name)
-        return name[:null_index]
+        return ram[ram_info.rom_to_ram_data: ram_info.rom_to_ram_data + 96]
 
     def set_generation_info(self,
                             rescues: Dict[int, RescueInfo],

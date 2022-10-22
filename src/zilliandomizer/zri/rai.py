@@ -186,7 +186,7 @@ class RAInterface(RamInterface):
                 #     print(f"rai message {message}")
                 #     t = time.perf_counter()
                 try:
-                    # print("try send")
+                    # print(f"try send {message}")
                     self._sock.sendto(message, RAInterface.RETROARCH)
                 except (asyncudp.ClosedError, ConnectionRefusedError, OSError):
                     print("send... no connection")
