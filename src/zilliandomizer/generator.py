@@ -1,5 +1,4 @@
 import os
-from random import seed as random_seed
 from zilliandomizer.system import System
 from zilliandomizer.ver import version_hash, date
 from zilliandomizer.options import Options, ID
@@ -38,7 +37,7 @@ def generate(seed: int) -> None:
     logger.spoil(f"zilliandomizer version: {version_hash} {date}")
     r = system.make_randomizer(options, logger)
 
-    random_seed(seed)
+    system.seed(seed)
 
     system.make_map()
 

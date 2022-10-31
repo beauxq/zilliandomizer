@@ -1,4 +1,5 @@
-from typing import FrozenSet, Optional
+import random
+from typing import FrozenSet, Optional, Union
 
 from .alarms import Alarms
 from .logger import Logger
@@ -14,6 +15,11 @@ class System:
     randomizer: Optional[Randomizer] = None
     patcher: Optional[Patcher] = None
     _modified_rooms: FrozenSet[int] = frozenset()
+    _seed: Optional[Union[int, str]] = None
+
+    def seed(self, seed: Optional[Union[int, str]]) -> None:
+        self._seed = seed
+        random.seed(seed)
 
     def make_patcher(self, path_to_rom: str = "") -> Patcher:
         self.patcher = Patcher(path_to_rom)

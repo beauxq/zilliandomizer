@@ -638,7 +638,7 @@ def make_regions(locations: Dict[str, Location]) -> Dict[str, Region]:
     r12c4.to(r12c5n, door=r12c4.door, jump=2)
     r12c5n.to(r12c6n, door=r12c5s.door)  # pre-opened door
     r12c6n.to(r11c6ne, door=r12c6s.door)  # pre-opened door
-    r11c6ne.to(r11c5e, door=r11c6ne.door)  # Champ
+    r11c6ne.to(r11c5e, door=r11c6ne.door, jump=3)  # Champ - jump req here because exit logic doesn't work
     r11c5e.connections[r11c6ne].jump = 3  # This is why Champ couldn't get out.
     r11c5e.connections[r11c6ne].skill = 2  # hard jump - TODO: find out if this requires speed
     # TODO: or jump 5 to get out

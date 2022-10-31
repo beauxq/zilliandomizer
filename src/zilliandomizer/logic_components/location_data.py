@@ -261,13 +261,13 @@ def make_locations() -> Dict[str, Location]:
         "r11c4y18x90": Location("r11c4y18x90", Req(gun=1)),
         "r11c4y18xa0": Location("r11c4y18xa0", Req(gun=1)),
         "r11c4y98xa0": Location("r11c4y98xa0", Req(gun=1)),
-        "r11c4y58xe0": Location("r11c4y58xe0", Req(gun=1, hp=240), Req(jump=3)),
+        "r11c4y58xe0": Location("r11c4y58xe0", Req(gun=1)),
         "r11c5y38x30": Location("r11c5y38x30", Req(gun=2, jump=3)),
         "r11c5y58x50": Location("r11c5y58x50", Req(gun=3, hp=240), Req(jump=3)),
         "r11c5y98x50": Location("r11c5y98x50", Req(gun=2)),
         "r11c5y18x60": Location("r11c5y18x60", Req(gun=2, jump=3)),
         "r11c5y98x40": Location("r11c5y98x40", Req(gun=2)),
-        "r11c5y58x60": Location("r11c5y58x60", Req(gun=1)),
+        "r11c5y58x60": Location("r11c5y58x60", Req(gun=1, hp=240), Req(jump=3)),
         "r11c6y18x20": Location("r11c6y18x20", Req(gun=1)),
         "r11c6y98x30": Location("r11c6y98x30", Req(gun=3)),
         "r11c6y98x50": Location("r11c6y98x50", Req(gun=3)),
@@ -307,15 +307,14 @@ def make_locations() -> Dict[str, Location]:
         "r12c6y58xa0": Location("r12c6y58xa0", Req(gun=2)),
         "r12c6y98xb0": Location("r12c6y98xb0", Req(gun=1)),
         "r12c6y98xe0": Location("r12c6y98xe0", Req(gun=3)),
-        # TODO: find out whether it's possible to get out of this room with jump 1
         # to get out of this room, I think requires speed > jump
         # I tried a lot with speed 3 and jump 3 and couldn't do it.
         # I usually don't have much trouble with speed 4 and jump 3.
         # I was able to do it with speed 3 and jump 2.
         # Since "get out" logic is not used, moving it to "get in".
         "r13c1y98x10": Location("r13c1y98x10",
-                                Req(gun=1, hp=240, jump=2, union=(Req(skill=3), Req(jump=5))),
-                                Req(hp=240, jump=2, union=(Req(skill=3), Req(jump=5)))),
+                                Req(gun=1, hp=240, jump=2, union=(Req(skill=2), Req(jump=5))),
+                                Req(hp=240, jump=2, union=(Req(skill=2), Req(jump=5)))),
         "r13c1y18x70": Location("r13c1y18x70", Req(gun=1)),
         "r13c1y18x80": Location("r13c1y18x80", Req(gun=1)),
         "r13c1y58x90": Location("r13c1y58x90", Req(gun=1)),
