@@ -405,6 +405,53 @@ def test_jump_from_walkway() -> None:
     assert not g5.solve(2)
 
 
+@pytest.mark.usefixtures("fake_rom")
+def test_low_skill_jump_1_distance_5() -> None:
+    p = Patcher()
+    tc = TerrainCompressor(p.rom)
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends = [BOT_LEFT, TOP_LEFT]
+    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g.data = [
+        list("              "),
+        list("_____         "),
+        list("              "),
+        list("         _ _ _"),
+        list("       _      "),
+        list("______________"),
+    ]
+    assert not g.solve(2), "jump 1, skill 2, distance 5"
+
+    setattr(g, "_skill", 5)
+
+    assert g.solve(2), "jump 1, skill 5, distance 5"
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_low_skill_jump_1_distance_4() -> None:
+    p = Patcher()
+    tc = TerrainCompressor(p.rom)
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends = [(1, 7), BOT_RIGHT]
+    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g.data = [
+        list("||            "),
+        list("___    _______"),
+        list("|||   ___    |"),
+        list("|      ||     "),
+        list("___           "),
+        list("______________"),
+    ]
+    assert not g.softlock_exists()
+    assert g.solve(2), "jump 1, skill 2, distance 4"
+
+
 if __name__ == "__main__":
     test_navigation()
     test_jump_requirements()
@@ -414,3 +461,5 @@ if __name__ == "__main__":
     test_skill_required_for_jumps()
     test_long_distance_jumps()
     test_jump_from_walkway()
+    test_low_skill_jump_1_distance_5()
+    test_low_skill_jump_1_distance_4()

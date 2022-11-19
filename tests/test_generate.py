@@ -1,7 +1,9 @@
 import os
 from typing import Iterator
 import pytest
-from zilliandomizer.generator import generate
+from zilliandomizer.generator import generate, some_options
+from zilliandomizer.options import Options
+from zilliandomizer.system import System
 
 
 @pytest.fixture
@@ -19,16 +21,37 @@ def no_options_file() -> Iterator[None]:
 
 @pytest.mark.usefixtures("fake_rom")
 def test_all() -> None:
-    # looking for seeds that see all conditions...
-    # I don't know if I can guarantee 100% branch coverage after any changes
+    # looking for seeds that see lots of conditions...
     generate(0x42069428)
     generate(0x42069429)
-    generate(0x42069430)
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_with_room_gen() -> None:
+    system = System()
+    p = system.make_patcher()
+    options: Options = some_options
+    options.room_gen = True
+
+    r = system.make_randomizer(options)
+
+    system.seed(0x42069429)
+
+    system.make_map()
+
+    r.roll()
+
+    system.post_fill()
+
+    p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
+    p.all_fixes_and_options(options)
+
+    p.write(os.devnull)
 
 
 @pytest.mark.usefixtures("fake_rom", "no_options_file")
 def test_default_options() -> None:
-    generate(0x42069427)
+    generate(0x42069428)
 
 
 # TODO: make sure the same seed with the same options generates the same output

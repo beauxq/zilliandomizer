@@ -229,7 +229,7 @@ class Grid:
                     # h 2 d 6 w ceiling not hard (maybe skill > 0)
 
                     # include distance 4 and 5 only if skill is high
-                    for distance in range(1, 6 if self._skill > 4 else 4):
+                    for distance in range(1, 6 if self._skill > 3 else 5):
                         # only jump distance 2 or 3 from moving walkways
                         if is_walkway and distance not in (2, 3):
                             continue

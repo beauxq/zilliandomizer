@@ -446,11 +446,16 @@ class Patcher:
         return new_rom
 
     def write(self, filename: str) -> None:
-        if not filename.endswith(".sms"):
+        if (filename != os.devnull) and (not filename.endswith(".sms")):
             filename += ".sms"
         new_rom = self.get_patched_bytes()
 
-        with open(f"{self.rom_path}{os.sep}{filename}", "wb") as file:
+        if filename == os.devnull:
+            full_path = filename
+        else:
+            full_path = f"{self.rom_path}{os.sep}{filename}"
+
+        with open(full_path, "wb") as file:
             file.write(new_rom)
 
     def get_address_for_room(self, map_index: int) -> int:
