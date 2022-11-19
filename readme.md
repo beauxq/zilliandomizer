@@ -9,11 +9,25 @@ Zillion is a metroidvania style game released in 1987 for the 8-bit Sega Master 
 
 It's based on the anime Zillion (赤い光弾ジリオン, Akai Koudan Zillion).
 
-This is a randomizer for this game.
+This is a randomizer for the Zillion game.
 
 ---
 
-You might be able to find me on the [Randomizer Central discord](https://discord.gg/QeP4wQQBdp) (username beauxq) There's a help-center there to get help with any randomizer. (Most other people there will not be familiar with this randomizer.)
+You might be able to find me on the [Archipelago discord](https://discord.gg/archipelago) or the [Randomizer Central discord](https://discord.gg/QeP4wQQBdp) (username beauxq)
+
+---
+
+## Archipelago
+
+Zillion is now on [Archipelago](https://archipelago.gg/)
+
+Archipelago is a system for turning games into multiplayer online co-op randomizers,
+but it also works for single player randomizers, so that's one way you could play.
+
+Archipelago has a Zillion setup guide here:
+[https://archipelago.gg/tutorial/#Zillion](https://archipelago.gg/tutorial/#Zillion)
+
+If you want to play without the Archipelago system, instructions follow...
 
 ---
 
@@ -52,7 +66,7 @@ The randomized rom will output into the same directory as the original rom (with
 
 The way the original game lets the player choose who to level up has a few drawbacks in a randomizer:
  - possible softlock from making bad choices (example: nobody has jump 3 when it's required)
- - In multiworld (Archipelago support coming soon), you won't be able to choose because you won't know it's coming beforehand.
+ - In multiworld (Archipelago supported), you won't be able to choose because you won't know it's coming beforehand.
 
 So this randomizer uses a new level-up system:
  - Everyone levels up together (even if they're not rescued yet).
