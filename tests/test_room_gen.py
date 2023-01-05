@@ -406,6 +406,56 @@ def test_jump_from_walkway() -> None:
 
 
 @pytest.mark.usefixtures("fake_rom")
+def test_stand_in_moving_walkway() -> None:
+    p = Patcher()
+    tc = TerrainCompressor(p.rom)
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends = [BOT_LEFT, TOP_RIGHT]
+    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g.data = [
+        list("____          "),
+        list("|_ ____     __"),
+        list("            _ "),
+        list("    _   ______"),
+        list("         |||||"),
+        list("__________|___"),
+    ]
+
+    assert (3, 13, True) in g.get_standing_goables(3), "stand in small space"
+
+    g.is_walkway[3][13] = 2
+
+    assert (3, 13, True) not in g.get_standing_goables(3), "stand in small space from moving walkway"
+
+    g.data = [
+        list("____          "),
+        list("|_ ____    ___"),
+        list("           _  "),
+        list("    _   ______"),
+        list("         |||||"),
+        list("__________|___"),
+    ]
+
+    g.is_walkway[3][12] = 2
+
+    assert (3, 13, True) in g.get_standing_goables(3), "stand in larger space from moving walkway"
+
+    g.data = [
+        list("____          "),
+        list("|_ ____    ___"),
+        list("           _ _"),
+        list("    _   ______"),
+        list("         |||||"),
+        list("__________|___"),
+    ]
+
+    assert (3, 12, True) not in g.get_standing_goables(3), "stand in small space from moving walkway away from wall"
+
+
+@pytest.mark.usefixtures("fake_rom")
 def test_low_skill_jump_1_distance_5() -> None:
     p = Patcher()
     tc = TerrainCompressor(p.rom)

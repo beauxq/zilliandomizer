@@ -144,7 +144,25 @@ class Grid:
 
         if not standing:
             # can change to standing
-            if self.data[row - 1][col] == Cell.space:
+            if (
+                self.data[row - 1][col] == Cell.space and
+                (
+                    # no moving walkway
+                    self.is_walkway[row][col] == 0 or
+
+                    # moving walkway but more than one column available to stand
+                    (
+                        col < RIGHT and
+                        self.data[row - 1][col + 1] == Cell.space and
+                        self.data[row][col + 1] == Cell.floor
+                    ) or
+                    (
+                        col > LEFT and
+                        self.data[row - 1][col - 1] == Cell.space and
+                        self.data[row][col - 1] == Cell.floor
+                    )
+                )
+            ):
                 yield row, col, True
 
             # move left or right crawling
