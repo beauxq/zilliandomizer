@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import os
 from random import randrange, shuffle
 import __main__
-from typing import ClassVar, Dict, Generator, List, Tuple, cast, Union
+from typing import ClassVar, Dict, Generator, List, Set, Tuple, cast, Union
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
@@ -1391,19 +1391,7 @@ class Patcher:
         # to match "EMPTY" in rom
         name_length = 5
 
-        player_names = {p for _, p in loc_to_names.values()}
-
-        # make table of names:
-        # 0x05 - 5 letters - 0x05 - 5 letters - 0x05 - 5 letters - ...
-        # so the table looks the same as entries from 77d2 - 11 bytes for each name
-        name_tile_table = bytearray()
-
-        # enumeration of player names
-        name_tile_indexes: Dict[str, int] = {}
-
-        for i, player_name in enumerate(player_names):
-            name_tile_indexes[player_name] = i
-
+        def clean_name_for_rom(player_name: str) -> str:
             cleaned = ""
             for char in player_name:
                 char = char.upper()
@@ -1414,6 +1402,33 @@ class Patcher:
                     break
             while len(cleaned) < name_length:
                 cleaned += ' '
+            return cleaned
+
+        name_to_clean_name: Dict[str, str] = {}
+        clean_names: Set[str] = set()
+
+        for _, player_name in loc_to_names.values():
+            # In tests, I was able to put 93 names in the rom without overflow.
+            # But let's leave some margin for things to change.
+            if len(clean_names) > 70:
+                cleaned = "AP   "
+            else:
+                cleaned = clean_name_for_rom(player_name)
+            assert len(cleaned) == name_length
+
+            name_to_clean_name[player_name] = cleaned
+            clean_names.add(cleaned)
+
+        # make table of names:
+        # 0x05 - 5 letters - 0x05 - 5 letters - 0x05 - 5 letters - ...
+        # so the table looks the same as entries from 77d2 - 11 bytes for each name
+        name_tile_table = bytearray()
+
+        # enumeration of player names
+        clean_name_to_tile_index: Dict[str, int] = {}
+
+        for i, cleaned in enumerate(sorted(clean_names)):
+            clean_name_to_tile_index[cleaned] = i
 
             name_tile_table.append(name_length)
             for char in cleaned:
@@ -1429,10 +1444,10 @@ class Patcher:
 
         # make a table like 75fe - 2 bytes for each name
         # address pointing to entry in name_tile_table
-        name_table = bytearray(2 * len(name_tile_indexes))
+        name_table = bytearray(2 * len(clean_name_to_tile_index))
 
         tile_entry_length = 1 + 2 * name_length
-        for table_index in name_tile_indexes.values():
+        for table_index in clean_name_to_tile_index.values():
             tile_addr = banked_name_tile_table_addr + table_index * tile_entry_length
             name_table[table_index * 2] = tile_addr & 0xff
             name_table[table_index * 2 + 1] = tile_addr >> 8
@@ -1446,7 +1461,7 @@ class Patcher:
         # the address of 4 entries behind the entry
         entry_to_hl: Dict[int, int] = {
             i: banked_name_table_addr + (i - 4) * 2
-            for i in range(len(name_tile_indexes))
+            for i in range(len(clean_name_to_tile_index))
         }
 
         # identify a canister with 2 bytes: room and coord (y hi nybble and x hi nybble)
@@ -1464,7 +1479,7 @@ class Patcher:
 
             group_id = room >> 4
 
-            hl = entry_to_hl[name_tile_indexes[player_name]]
+            hl = entry_to_hl[clean_name_to_tile_index[name_to_clean_name[player_name]]]
             hl_lo = hl & 0xff
             hl_hi = hl >> 8
 

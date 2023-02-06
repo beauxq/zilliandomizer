@@ -50,18 +50,21 @@ def generate(seed: int) -> None:
 
     # testing
     # from typing import Dict, Tuple
+    # from random import randrange
     # p.set_external_item_interface(options.start_char, options.max_level)
     # empties: Dict[str, Tuple[str, str]] = {}
     # letter = 0
     # for loc in r.locations:
     #     item = r.locations[loc].item
     #     if item and item.id == ID.empty:
-    #         name = f"{chr(ord('A') + letter)}kq"
+    #         name = f"{chr(ord('A') + letter)}{chr(ord('a') + randrange(26))}q"
     #         empties[loc] = ("", name)
     #         letter = (letter + 1) % 26
     #         print(f"{loc}: {name}")
+    # print(f"empty count: {len(empties)}  unique: {len(set(empties.values()))}  "
+    #       f"uppered: {len(set(n.upper() for _, n in empties.values()))}")
     # p.set_multiworld_items(empties)
-    # p.set_rom_to_ram_data("MESSAGE TO RAM".encode())
+    # p.set_rom_to_ram_data("𝄞𝄵𝄫𝅘𝅥𝅮𝆓𝆑𝆑𝄐𝄻𝄡𝄆𝄇𝆲𝄶𝄂".encode())  # "MESSAGE TO RAM".encode())
 
     filename = f"zilliandomizer-{seed_str}.sms"
     p.write(filename)
