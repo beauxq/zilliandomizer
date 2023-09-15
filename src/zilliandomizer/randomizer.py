@@ -177,6 +177,18 @@ class Randomizer:
                     locs[i].req.gun = choice(choices)
                 i += 1
 
+            if region_name == "r02c0":
+                # This is part of making sure 1st sphere is not empty.
+                # from pprint import pprint
+                # pprint(locs)
+                no_jump_locs = [loc for loc in locs if loc.req.jump <= 1]
+                assert len(no_jump_locs) > 0, (
+                    "all locations in r02c0 require jump levels - "
+                    f"RoomGen was supposed to ensure this didn't happen at `if map_index == 0x10:` {locs}"
+                )
+                # locs was shuffled above, so this is shuffled
+                no_jump_locs[0].req.gun = 1
+
     def _get_locations_inner(self, have: Req) -> List[Location]:
         """ adds doors to `have`  - see get_locations """
         # Python set order is determined by OS memory state,

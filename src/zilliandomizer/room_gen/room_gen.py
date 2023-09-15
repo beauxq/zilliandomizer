@@ -227,6 +227,16 @@ class RoomGen:
                         sum_2 = sum(p[0] for p in placed_2)
                         placed = placed_1 if sum_1 < sum_2 else placed_2
                     alarm_blocks = self.place(placed, sprites, map_index, candidate)
+
+                    if map_index == 0x10:
+                        # This is part of making sure 1st sphere is not empty.
+                        placed_cans = self._canisters[map_index]
+                        assert len(placed_cans) == 5, f"{map_index=} {len(placed_cans)=}"
+                        good = any(can[1] <= 2 for can in placed_cans)
+                        # can get to at least 1 can without any jump levels
+                        if not good:
+                            raise MakeFailure("need location in r02c0 that doesn't require jump levels")
+
                     compressed = candidate.to_room_data(alarm_blocks)
                     if len(compressed) > size_limit:
                         raise MakeFailure("over size limit")

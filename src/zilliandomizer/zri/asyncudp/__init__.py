@@ -130,8 +130,8 @@ async def create_socket(local_addr: Optional[Address] = None,
         local_addr=local_addr,
         remote_addr=remote_addr)
 
-    # both mypy and pyright don't see this type
-    dgram_transport = cast(asyncio.DatagramTransport, transport)
+    # mypy doesn't see this type
+    dgram_transport = cast(asyncio.DatagramTransport, transport)  # type: ignore
     # mypy doesn't see this type
     s_protocol = cast(_SocketProtocol, protocol)  # type: ignore
 

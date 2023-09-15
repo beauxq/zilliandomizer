@@ -1,8 +1,8 @@
 from typing import Any, Callable, Dict, List
 from random import choice, randrange
 
-from zilliandomizer.options import Chars, chars, Options, VBLR, ID, VBLR_CHOICES,\
-    char_to_jump, char_to_gun
+from zilliandomizer.options import Chars, chars, Options, VBLR, ID, \
+    VBLR_CHOICES, char_to_jump, char_to_gun
 
 
 def random_jump_levels(opts: Options) -> VBLR:

@@ -158,10 +158,10 @@ class Alarms:
                 # if I have have a reason to turn verify off in Patcher.
                 if a.vanilla and erase:
                     if a.vertical:
-                        assert _bytes[block_index] == to_vertical[_bytes[block_index]],\
+                        assert _bytes[block_index] == to_vertical[_bytes[block_index]], \
                             f"vanilla vertical map {map_index} block {block_index}"
                     else:  # horizontal
-                        assert _bytes[block_index] == to_horizontal[_bytes[block_index]],\
+                        assert _bytes[block_index] == to_horizontal[_bytes[block_index]], \
                             f"vanilla horizontal map {map_index} block {block_index}"
                 # else not vanilla - can't verify because it might cross a vanilla
 
