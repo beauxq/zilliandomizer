@@ -2,8 +2,8 @@ from collections import defaultdict
 from dataclasses import dataclass
 import os
 from random import randrange, shuffle
-import __main__
 from typing import ClassVar, Dict, Generator, List, Set, Tuple, cast, Union
+
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
@@ -33,6 +33,24 @@ paths: List[List[str]] = [
 
 # TODO: fix Champ rescue sprite in top rooms
 # TODO: lots of JJ rescue graphic work
+
+
+def detect_test() -> bool:
+    """
+    Parts of generation that are in unit tests need the rom.
+    This is to detect whether we are running unit tests
+    so we can work around the need for the rom.
+    """
+    import __main__
+    try:
+        if "pytest" in __main__.__file__ or "unittest" in __main__.__file__:
+            return True
+    except AttributeError:
+        # In multiprocessing, __main__ doesn't have __file__
+        import sys
+        if "pytest" in sys.modules:
+            return True  # probably pytest-xdist
+    return False
 
 
 @dataclass
@@ -103,8 +121,7 @@ class Patcher:
             if not os.path.exists(os.path.join(self.rom_path, ROM_NAME)):
                 self.rom_path = ""
         if self.rom_path == "":
-            print(__main__.__file__)
-            if "test" in __main__.__file__:
+            if detect_test():
                 self.rom = bytearray(0x20000)
                 set_verified_bytes(self.rom)
                 Patcher.checksum(self.rom, True)
