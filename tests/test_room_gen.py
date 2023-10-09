@@ -1,21 +1,19 @@
-import pytest
+from typing import List
+
 from zilliandomizer.logger import Logger
-from zilliandomizer.patch import Patcher
-from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT
+from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT, Coord
 from zilliandomizer.room_gen.maze import Grid, Cell
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_navigation() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     skill = 5
-    ends = [BOT_LEFT, BOT_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, BOT_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, skill, [])
     g.data = [
         list("        |||__|"),
@@ -69,10 +67,8 @@ def test_navigation() -> None:
     g.is_walkway[2][9] = False
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_jump_requirements() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
@@ -91,11 +87,9 @@ def test_jump_requirements() -> None:
     print("3 true")
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_softlock_detect() -> None:
     """ jumping to known softlock """
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
@@ -126,16 +120,14 @@ def test_softlock_detect() -> None:
     assert g.softlock_exists(), "jump 2 can get trapped in that hole"
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_hard_jumps() -> None:
     """ jumping to known softlock """
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [BOT_LEFT, TOP_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 5, [])
     g.data = [
         list("              "),
@@ -195,16 +187,14 @@ def test_hard_jumps() -> None:
     assert g.solve(4)
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_from_early_dev() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     skill = 5
-    ends = [BOT_LEFT, TOP_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, skill, [])
     g.data = [
         list("| _   _       "),
@@ -230,15 +220,13 @@ def test_from_early_dev() -> None:
     assert g.solve(3)
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_skill_required_for_jumps() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [BOT_LEFT, TOP_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 0, [])
     g.data = [
         list("              "),
@@ -308,15 +296,13 @@ def test_skill_required_for_jumps() -> None:
     assert not g.solve(3)
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_long_distance_jumps() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [BOT_LEFT, TOP_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 0, [])
     g.data = [
         list("              "),
@@ -372,15 +358,13 @@ def test_long_distance_jumps() -> None:
     assert g.solve(2.5), "height 0 distance 6, jump blocks 2.5"
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_jump_from_walkway() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [BOT_LEFT, TOP_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
     g0 = Grid(ends, ends, 0x31, tc, log, 0, [])
     g0.data = [
         list("              "),
@@ -405,15 +389,13 @@ def test_jump_from_walkway() -> None:
     assert not g5.solve(2)
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_stand_in_moving_walkway() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [BOT_LEFT, TOP_RIGHT]
+    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [])
     g.data = [
         list("____          "),
@@ -455,15 +437,13 @@ def test_stand_in_moving_walkway() -> None:
     assert (3, 12, True) not in g.get_standing_goables(3), "stand in small space from moving walkway away from wall"
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_low_skill_jump_1_distance_5() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [BOT_LEFT, TOP_LEFT]
+    ends: List[Coord] = [BOT_LEFT, TOP_LEFT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [])
     g.data = [
         list("              "),
@@ -480,15 +460,13 @@ def test_low_skill_jump_1_distance_5() -> None:
     assert g.solve(2), "jump 1, skill 5, distance 5"
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_low_skill_jump_1_distance_4() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends = [(1, 7), BOT_RIGHT]
+    ends: List[Coord] = [(1, 7), BOT_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [])
     g.data = [
         list("||            "),

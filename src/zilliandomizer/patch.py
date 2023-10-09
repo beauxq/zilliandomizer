@@ -2,7 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import os
 from random import randrange, shuffle
-from typing import ClassVar, Dict, Generator, List, Set, Tuple, cast, Union
+from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, cast, Union
 
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
@@ -10,7 +10,7 @@ from zilliandomizer.low_resources import asm, ram_info, rom_info
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
 from zilliandomizer.utils.file_verification import set_verified_bytes
 from zilliandomizer.utils.loc_name_maps import loc_to_id
@@ -73,7 +73,7 @@ class Patcher:
 
     rom_path: str
     rom: bytes
-    tc: TerrainCompressor
+    tc: TerrainModifier
     sm: NPSpriteManager
     aem: AlarmEntranceManager
 
@@ -122,8 +122,9 @@ class Patcher:
                 self.rom_path = ""
         if self.rom_path == "":
             if detect_test():
-                self.rom = bytearray(0x20000)
-                set_verified_bytes(self.rom)
+                decoy = bytearray(0x20000)
+                set_verified_bytes(decoy)
+                self.rom = bytes(decoy)
                 Patcher.checksum(self.rom, True)
             else:
                 raise FileNotFoundError(f'unable to find original rom "{ROM_NAME}"')
@@ -131,10 +132,10 @@ class Patcher:
             print(f"found rom at {self.rom_path}{os.sep}{ROM_NAME}")
 
             with open(f"{self.rom_path}{os.sep}{ROM_NAME}", "rb") as file:
-                self.rom = bytearray(file.read())
+                self.rom = file.read()
         assert Patcher.checksum(self.rom), "incorrect data in rom - invalid checksum"
 
-        self.tc = TerrainCompressor(self.rom)
+        self.tc = TerrainModifier()
         self.sm = NPSpriteManager(self.rom)
         self.aem = AlarmEntranceManager(self.rom)
 
@@ -555,7 +556,7 @@ class Patcher:
                 self.writes[computer_address] = region.computer[0]
                 self.writes[computer_address + 1] = region.computer[1]
 
-    def _use_bank(self, bank_no: int, code: bytes) -> int:
+    def _use_bank(self, bank_no: int, code: Sequence[int]) -> int:
         """
         put `code` into rom in bank `bank_no`
 
@@ -587,7 +588,7 @@ class Patcher:
             self.writes[write_addr] = code[i]
         return new_code_addr_banked
 
-    def _run_at_init(self, code: bytes) -> None:
+    def _run_at_init(self, code: Iterable[int]) -> None:
         """
         set code to run when start button is pressed on title screen, to initialize game
 

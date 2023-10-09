@@ -1,8 +1,9 @@
 from random import random, choice
-from typing import Dict, Final, FrozenSet, List, Literal, Set
+from typing import Dict, FrozenSet, List, Literal, Set
 from zilliandomizer.alarm_data import ALARM_ROOMS, Alarm, alarm_data, to_horizontal, to_vertical, to_none
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 from zilliandomizer.logger import Logger
+from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
 
 
 class Alarms:
@@ -10,18 +11,18 @@ class Alarms:
     Anything else modifying terrain needs to be done before initializing this object,
     because this could use all of the space for terrain.
     """
-    tc: TerrainCompressor
-    _space_pacer_init: Final[float]
+    tc: TerrainModifier
+    _space_pacer_init: float  # I wanted to use `typing.Final` here, but mypy doesn't allow that
     """ how many extra bytes we start with before choosing alarms """
     _space_pacer: float
     """ what the space available should be if using the space gradually """
-    _space_per_room: Final[float]
+    _space_per_room: float  # I wanted to use `typing.Final` here, but mypy doesn't allow that
     """
     the ideal number of extra bytes to use for each room
     """
     _logger: Logger
 
-    def __init__(self, tc: TerrainCompressor, logger: Logger) -> None:
+    def __init__(self, tc: TerrainModifier, logger: Logger) -> None:
         self.tc = tc
         self._space_pacer_init = tc.get_space()
         self._space_pacer = self._space_pacer_init

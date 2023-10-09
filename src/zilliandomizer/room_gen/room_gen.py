@@ -10,7 +10,7 @@ from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS
 from zilliandomizer.room_gen.maze import Cell, Grid, MakeFailure
 from zilliandomizer.room_gen.sprite_placing import alarm_places, auto_gun_places, barrier_places, choose_alarms
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 from zilliandomizer.utils import make_loc_name, make_reg_name
 from zilliandomizer.logger import Logger
 
@@ -29,7 +29,7 @@ class RoomGen:
     Anything else modifying terrain needs to be done before initializing this object,
     because this could use all of the space for terrain.
     """
-    tc: TerrainCompressor
+    tc: TerrainModifier
     sm: NPSpriteManager
     aem: AlarmEntranceManager
     _logger: Logger
@@ -52,7 +52,7 @@ class RoomGen:
     """ the region dictionary for this seed """
 
     def __init__(self,
-                 tc: TerrainCompressor,
+                 tc: TerrainModifier,
                  sm: NPSpriteManager,
                  aem: AlarmEntranceManager,
                  logger: Logger,

@@ -1,9 +1,9 @@
 from collections import defaultdict
-import pytest
 from typing import Dict, Iterator, List
+
 from zilliandomizer.alarm_data import Alarm, alarm_data, to_vertical, to_horizontal, to_none
-from zilliandomizer.patch import Patcher
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 
 
 def test_sets() -> None:
@@ -66,10 +66,8 @@ def test_disable() -> None:
                 assert a_1.id in a_0.disables, f"room {map_index}: {a_1.id} not in disables of {a_0.id}"
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_can_change() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     for map_index, room in alarm_data.items():
         compressed = tc.get_room(map_index)
         uncompressed = TerrainCompressor.decompress(compressed)

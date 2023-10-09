@@ -7,7 +7,8 @@ from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
 from zilliandomizer.low_resources.terrain_tiles import Tile
 from zilliandomizer.room_gen.common import Coord
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 
 LEFT = 0
 RIGHT = 13
@@ -47,7 +48,7 @@ class Grid:
     """ moving walkway - 0 normal floor - 1 right - 2 left """
     no_space: FrozenSet[Coord]
     """ special places that I'm not allowed to put space """
-    _tc: TerrainCompressor
+    _tc: TerrainModifier
     _logger: Logger
     _skill: int
     """ skill from options """
@@ -56,7 +57,7 @@ class Grid:
                  exits: List[Coord],
                  ends: List[Coord],
                  map_index: int,
-                 tc: TerrainCompressor,
+                 tc: TerrainModifier,
                  logger: Logger,
                  skill: int,
                  no_space: Iterable[Coord]) -> None:

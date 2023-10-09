@@ -1,18 +1,16 @@
-import pytest
+from typing import List
+
 from zilliandomizer.logger import Logger
-from zilliandomizer.patch import Patcher
-from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT
+from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, Coord
 from zilliandomizer.room_gen.maze import Grid
 from zilliandomizer.room_gen.sprite_placing import alarm_places
-from zilliandomizer.terrain_compressor import TerrainCompressor
+from zilliandomizer.terrain_modifier import TerrainModifier
 
 
-@pytest.mark.usefixtures("fake_rom")
 def test_alarm_places() -> None:
-    p = Patcher()
-    tc = TerrainCompressor(p.rom)
+    tc = TerrainModifier()
     logger = Logger()
-    exits = [BOT_LEFT, BOT_RIGHT]
+    exits: List[Coord] = [BOT_LEFT, BOT_RIGHT]
     g = Grid(exits, exits, 0x0a, tc, logger, 5, [])
     g.data = [
         list("              "),
