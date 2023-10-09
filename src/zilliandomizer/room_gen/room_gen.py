@@ -399,6 +399,9 @@ class RoomGen:
                     if grid.data[0][col] == Cell.space:
                         self._logger.debug(f"map index {map_index} alarm entrance col {col}")
                         self.aem.indexes[map_index] = i
+                        # If there are no spaces in ceiling for alarm entrance, aem index doesn't change,
+                        # so it will still be pointing at one of the ceiling entrances.
+                        # (The order of the ceiling entrance data doesn't change.)
                         break
             mu = 0.25 * (map_index // 8) + 0.75
             count = 0

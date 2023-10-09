@@ -137,7 +137,7 @@ class Patcher:
 
         self.tc = TerrainModifier()
         self.sm = NPSpriteManager(self.rom)
-        self.aem = AlarmEntranceManager(self.rom)
+        self.aem = AlarmEntranceManager()
 
     def fix_floppy_req(self) -> None:
         """

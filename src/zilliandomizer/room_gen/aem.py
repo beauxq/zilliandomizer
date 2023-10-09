@@ -1,36 +1,24 @@
-from dataclasses import dataclass
+from copy import deepcopy
 from random import shuffle
 from typing import Dict, Iterator, List, Optional, Tuple
+
 from zilliandomizer.low_resources import rom_info
-
-
-@dataclass
-class AlarmEntrance:
-    ceiling: bool
-    x: int
-    level: int
+from .alarm_entrance_data import AlarmEntrance, data, indexes
 
 
 class AlarmEntranceManager:
     indexes: List[int]
-    """ bytes pointing to data """
+    """ bytes pointing to data - all multiples of 6 because an AlarmEntrance is 6 bytes long """
     data: List[Optional[AlarmEntrance]]
+    """
+    The order of this data must not change,
+    because if there is no ceiling space in one of the rooms,
+    the index that points to this list doesn't change.
+    """
 
-    def __init__(self, rom: bytes) -> None:
-        self.indexes = list(rom[
-            rom_info.alarmed_enemy_entrance_table_7f04:
-            rom_info.alarmed_enemy_entrance_table_7f04 + 136
-        ])
-        self.data = []
-        for i in range(16):
-            address = rom_info.alarmed_enemy_entrance_data_7f86 + (6 * (i + 1))
-            x = rom[address]
-            if x != 0 and x != 0xff:
-                level = rom[address + 4]
-                ceiling = rom[address + 1] == 0xa0
-                self.data.append(AlarmEntrance(ceiling, x, level))
-            else:  # null
-                self.data.append(None)
+    def __init__(self) -> None:
+        self.indexes = indexes.copy()
+        self.data = deepcopy(data)
 
     def get_ceiling_entrances(self, level: int) -> Iterator[Tuple[int, int]]:
         """
