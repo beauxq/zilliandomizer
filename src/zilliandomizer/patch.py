@@ -10,7 +10,6 @@ from zilliandomizer.low_resources import asm, ram_info, rom_info
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
 from zilliandomizer.resource_managers import ResourceManagers
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
-from zilliandomizer.utils.file_verification import set_verified_bytes
 from zilliandomizer.utils.loc_name_maps import loc_to_id
 
 ROM_NAME = "Zillion (UE) [!].sms"
@@ -31,24 +30,6 @@ paths: List[List[str]] = [
 
 # TODO: fix Champ rescue sprite in top rooms
 # TODO: lots of JJ rescue graphic work
-
-
-def detect_test() -> bool:
-    """
-    Parts of generation that are in unit tests need the rom.
-    This is to detect whether we are running unit tests
-    so we can work around the need for the rom.
-    """
-    import __main__
-    try:
-        if "pytest" in __main__.__file__ or "unittest" in __main__.__file__:
-            return True
-    except AttributeError:
-        # In multiprocessing, __main__ doesn't have __file__
-        import sys
-        if "pytest" in sys.modules:
-            return True  # probably pytest-xdist
-    return False
 
 
 @dataclass
@@ -116,13 +97,7 @@ class Patcher:
             if not os.path.exists(os.path.join(self.rom_path, ROM_NAME)):
                 self.rom_path = ""
         if self.rom_path == "":
-            if detect_test():
-                decoy = bytearray(0x20000)
-                set_verified_bytes(decoy)
-                self.rom = bytes(decoy)
-                Patcher.checksum(self.rom, True)
-            else:
-                raise FileNotFoundError(f'unable to find original rom "{ROM_NAME}"')
+            raise FileNotFoundError(f'unable to find original rom "{ROM_NAME}"')
         else:
             print(f"found rom at {self.rom_path}{os.sep}{ROM_NAME}")
 
