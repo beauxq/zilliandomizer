@@ -13,6 +13,10 @@ from zilliandomizer.patch import Patcher
 from zilliandomizer.logic_components.locations import Req
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.region_data import make_regions
+from zilliandomizer.np_sprite_manager import NPSpriteManager
+from zilliandomizer.resource_managers import ResourceManagers
+from zilliandomizer.room_gen.aem import AlarmEntranceManager
+from zilliandomizer.terrain_modifier import TerrainModifier
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -26,8 +30,9 @@ def test_randomizer() -> None:
     r.roll()
 
     p = Patcher()
+    rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
     p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
-    p.all_fixes_and_options(options)
+    p.all_fixes_and_options(options, rm)
     filename = f"zilliandomizer-{s:016x}.sms"
     # p.write(filename)
     print(f"generated: {filename}")
@@ -46,8 +51,9 @@ def test_infinite_continues_and_not() -> None:
         r.roll()
 
         p = Patcher()
+        rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
         p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
-        p.all_fixes_and_options(options)
+        p.all_fixes_and_options(options, rm)
         filename = f"zilliandomizer-{s:016x}.sms"
         # p.write(filename)
         print(f"generated: {filename}")

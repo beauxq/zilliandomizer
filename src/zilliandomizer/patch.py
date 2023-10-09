@@ -7,10 +7,8 @@ from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tup
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.low_resources import asm, ram_info, rom_info
-from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
-from zilliandomizer.room_gen.aem import AlarmEntranceManager
-from zilliandomizer.terrain_modifier import TerrainModifier
+from zilliandomizer.resource_managers import ResourceManagers
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
 from zilliandomizer.utils.file_verification import set_verified_bytes
 from zilliandomizer.utils.loc_name_maps import loc_to_id
@@ -73,9 +71,6 @@ class Patcher:
 
     rom_path: str
     rom: bytes
-    tc: TerrainModifier
-    sm: NPSpriteManager
-    aem: AlarmEntranceManager
 
     rescue_locations: Dict[int, RescueInfo] = {}
     loc_memory_to_loc_id: Dict[int, int] = {}
@@ -134,10 +129,6 @@ class Patcher:
             with open(f"{self.rom_path}{os.sep}{ROM_NAME}", "rb") as file:
                 self.rom = file.read()
         assert Patcher.checksum(self.rom), "incorrect data in rom - invalid checksum"
-
-        self.tc = TerrainModifier()
-        self.sm = NPSpriteManager()
-        self.aem = AlarmEntranceManager()
 
     def fix_floppy_req(self) -> None:
         """
@@ -1761,10 +1752,10 @@ class Patcher:
 
         # not changing the number of cards from a continue (3)
 
-    def all_fixes_and_options(self, options: Options) -> None:
-        self.writes.update(self.tc.get_writes())
-        self.writes.update(self.sm.get_writes())
-        self.writes.update(self.aem.get_writes())
+    def all_fixes_and_options(self, options: Options, rm: ResourceManagers) -> None:
+        self.writes.update(rm.tm.get_writes())
+        self.writes.update(rm.sm.get_writes())
+        self.writes.update(rm.aem.get_writes())
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()
