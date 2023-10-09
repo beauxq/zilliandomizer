@@ -3,8 +3,9 @@ from typing import Dict, FrozenSet, List, Literal, Optional, Set, Tuple
 from zilliandomizer.alarm_data import ALARM_ROOMS
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.low_resources.sprite_data import RoomSprites
 from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, SpriteType
-from zilliandomizer.np_sprite_manager import NPSpriteManager, RoomSprites
+from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.room_gen.common import FOUR_CORNERS, Coord, coord_to_pixel
 from zilliandomizer.room_gen.data import GEN_ROOMS

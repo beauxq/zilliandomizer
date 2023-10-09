@@ -136,7 +136,7 @@ class Patcher:
         assert Patcher.checksum(self.rom), "incorrect data in rom - invalid checksum"
 
         self.tc = TerrainModifier()
-        self.sm = NPSpriteManager(self.rom)
+        self.sm = NPSpriteManager()
         self.aem = AlarmEntranceManager()
 
     def fix_floppy_req(self) -> None:
