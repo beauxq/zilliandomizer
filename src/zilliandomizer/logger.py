@@ -2,10 +2,14 @@ from typing import List
 
 
 class Logger:
+    spoiler_lines: List[str]
+    spoil_stdout: bool
+    debug_stdout: bool
+
     def __init__(self) -> None:
-        self.spoiler_lines: List[str] = []
-        self.spoil_stdout: bool = False
-        self.debug_stdout: bool = False
+        self.spoiler_lines = []
+        self.spoil_stdout = False
+        self.debug_stdout = False
 
     def spoil(self, line: str) -> None:
         self.spoiler_lines.append(line)
