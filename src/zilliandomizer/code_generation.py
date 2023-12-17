@@ -3,7 +3,7 @@ I used code to generate python code for location and region data.
 Most of it is outdated and will not generate the correct format for the current code.
 """
 
-from typing import List, Dict, Set, cast
+from typing import List, Dict, Set
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
 from zilliandomizer.utils import make_loc_name, ItemData
 from zilliandomizer.patch import Patcher  # for access to rom data
@@ -18,11 +18,11 @@ def make_location_code() -> None:
     room_no = 0
     for room in p.get_item_rooms():
         for item in p.get_items(room):
-            if item[0] in {KEYWORD, NORMAL, RESCUE, MAIN}:
+            if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
                 name = make_loc_name(room_no, item)
                 if name.startswith("x"):
                     name = "0" + name[1:]
-                locs.append(f'    "{name}": Location("{name}", Req(gun={item[7] + 1})),')
+                locs.append(f'    "{name}": Location("{name}", Req(gun={item.gun + 1})),')
         room_no += 1
     for loc in locs:
         print(loc)
@@ -111,12 +111,12 @@ def location_ids() -> None:
     room_no = 0
     for room in p.get_item_rooms():
         for item in p.get_items(room):
-            if item[0] in {KEYWORD, NORMAL, RESCUE, MAIN}:
+            if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
                 name = make_loc_name(room_no, item)
-                # item[3] is even number for each room that has items
+                # item.room_code is even number for each room that has items
                 # 0 in both r01c2 and main,
-                # but main has 0 in item[4] so still unique
-                loc_id = (item[3] << 7) | (item[4])
+                # but main has 0 in item.mask so still unique
+                loc_id = (item.room_code << 7) | (item.mask)
                 loc_to_id.append(f'    "{name}": {loc_id},')
                 id_to_loc.append(f'    {loc_id}: "{name}",')
         room_no += 1
@@ -144,11 +144,11 @@ def big_location_ids() -> None:
         print(f"{map_index}: {item_count}")
         if item_count == 0:
             continue
-        item: ItemData = cast(ItemData, tuple(p.rom[room + 1: room + 9]))
-        if item[0] not in {KEYWORD, NORMAL, RESCUE}:
+        item = ItemData(*p.rom[room + 1: room + 9])
+        if item.code not in {KEYWORD, NORMAL, RESCUE}:
             continue
-        item_room_index = item[3] // 2
-        assert item_room_index == count_item_rooms, f"{map_index} {item[3]} {count_item_rooms}"
+        item_room_index = item.room_code // 2
+        assert item_room_index == count_item_rooms, f"{map_index} {item.room_code} {count_item_rooms}"
         """
         for row, y in enumerate(range(0x18, 0x99, 0x20)):  # 0x18, 0x38, 0x58, 0x78, 0x98
             for col, x in enumerate(range(0x10, 0xe1, 0x10)):  # 0x10, 0x20, ... , 0xe0
@@ -185,7 +185,7 @@ def weird_vanilla_locations() -> None:
     p = Patcher()
     for map_index, room in enumerate(p.get_item_rooms()):
         for item in p.get_items(room):
-            if item[0] in {KEYWORD, NORMAL, RESCUE, MAIN}:
+            if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
                 name = make_loc_name(map_index, item)
                 if name not in loc_to_id:
                     print(name)

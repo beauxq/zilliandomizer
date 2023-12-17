@@ -2,7 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import os
 from random import randrange, shuffle
-from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, cast, Union
+from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, Union
 
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
 from zilliandomizer.logic_components.regions import Region
@@ -464,7 +464,7 @@ class Patcher:
         """ parameter is from `get_address_for_room` or `get_item_rooms` """
         start = rom_index + 1
         for _ in range(self.item_count(rom_index)):
-            this_item: ItemData = cast(ItemData, tuple(self.rom[v] for v in range(start, start + 8)))
+            this_item = ItemData(*(self.rom[v] for v in range(start, start + 8)))
             yield this_item
             start += 8
 
@@ -485,7 +485,8 @@ class Patcher:
                     rom_room = self.get_address_for_room(map_index)
                     item_no = items_placed_in_map_index[map_index]
                     try:
-                        room_code = next(self.get_items(rom_room))[3]  # different from map index and 2x item room index
+                        # different from map index and 2x item room index
+                        room_code = next(self.get_items(rom_room)).room_code
                     except StopIteration:
                         # This is to keep unit tests from failing with no rom data
                         print(f"ERROR: no item data for rom room {rom_room} at map index {map_index}")
@@ -511,7 +512,7 @@ class Patcher:
                     loc_memory = (r << 7) | m
                     self.loc_memory_to_loc_id[loc_memory] = loc_to_id[loc_name_to_pretty[loc.name]]
                     g = max(0, loc.req.gun - 1)
-                    new_item_data: ItemData = (loc.item.code, y, x, r, m, i, s, g)
+                    new_item_data = ItemData(loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(rom_room + 1 + 8 * item_no, new_item_data)
                     items_placed_in_map_index[map_index] += 1
             if region.computer != b'\xff':

@@ -9,6 +9,7 @@ from zilliandomizer.patch import ROM_NAME, Patcher
 from zilliandomizer.resource_managers import ResourceManagers
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.terrain_modifier import TerrainModifier
+from zilliandomizer.utils import ItemData
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -21,10 +22,10 @@ def test_read_items_from_rom() -> None:
     for room in p.get_item_rooms():
         item_count = p.item_count(room)
         items = list(p.get_items(room))
-        if item_count > 0 and (item_count > 1 or items[0][0] != 0x2b):
+        if item_count > 0 and (item_count > 1 or items[0].code != 0x2b):
             found_non_keywords = 0
             for item in items:
-                if item[0] != 0x0a:
+                if item.code != 0x0a:
                     found_non_keywords += 1
                 else:  # keyword
                     door_code_rooms.add(col)
@@ -33,7 +34,7 @@ def test_read_items_from_rom() -> None:
             else:
                 print("- ", end="")
             for item in items:
-                totals[item[5]] += 1
+                totals[item.item_id] += 1
         else:
             print("  ", end="")
         if col % 8 == 7:
@@ -129,7 +130,7 @@ def no_rom() -> Iterator[None]:
 @pytest.mark.usefixtures("fake_rom")
 def test_set_item() -> None:
     p = Patcher()
-    p.set_item(23, (-1, 0, 1, 2, 254, 255, 256, 257))
+    p.set_item(23, ItemData(-1, 0, 1, 2, 254, 255, 256, 257))
 
 
 @pytest.mark.usefixtures("fake_rom")

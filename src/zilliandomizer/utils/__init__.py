@@ -1,71 +1,16 @@
 import math
-from typing import Optional, Tuple, Union, overload
+from typing import NamedTuple, Optional, Tuple, Union, overload
 
 from zilliandomizer.logic_components.items import RESCUE
 
 """
 some rom data documentation:
 
-
-codes for type of data in item data (index 0):
-0A keyword
-26 normal item
-2A rescue (Apple/Champ)
-0D door to main computer
-2B hallway to shoot open
-2E unknown in final boss room  $2E $78 $90    $00 $00 $00 $00 $1B
-3D unknown in final boss room  $3D $08 $F8/08 $00 $00 $00 $00 $00
-
-
-item ids:
-00-03 keywords
-04 empty
-05 card
-06 red card
-07 floppy
-08 bread
-09 opo
-0A gun
-0B scope
-0C something glitched (do I need any custom items? ;)
-
-00 Apple
-01 Champ
- (this item ID with the 2A code (1st byte of data structure) determines which char is rescued)
- (sprite doesn't matter, Y coord can be the extra 8 pixels up or not)
-
-00 main computer and stuff in final boss room
-
-
-The byte after item id is the sprite of the location (canister or rescue)
-02 blue area gun1 canister
-04 blue area gun2 canister
-06 blue area gun3 canister
-08 red gun1 canister
-0A red gun2 canister
-0C red gun3 canister
-0E paperclip gun1
-10 paperclip gun2
-12 paperclip gun3
-14 Apple
-16 Champ
-LSB is set to display it already opened (only display, canister is still closed - opening it increments the image)
-
-
 room item data structure:
     first byte is number of items (canisters and rescues) in the room
-    then that many copies of this data structure:
-        C Y X R M I S G
-        C - code for type of data (see list above)
-        Y - Y coordinate of canister in room (normal canister levels are 18, 38, 58, 78, 98)
-            Apple is at 10, Champ is at 50 (because sprite is 8 pixels taller?)
-        X - X coordinate of canister in room
-            (10 - E0 normally - don't know if any are not multiples of x10 - main computer door is 18)
-        R - room code? different even number for each room that has canisters - 94 is hallways that can be shot open
-        M - mask for this item (keep track of open/got - ascending in this array (rescues use one also))
-        I - item code (see list above)
-        S - Sprite (see list above)
-        G - gun required to open (Apple 01, Champ 00 - guessing it doesn't matter, but...)
+
+    then that many copies of ItemData structure
+
     then after the list of items is complete:
         either 1 byte 0xff for no computer
         or 2 bytes to tell the location of the computer:
@@ -85,8 +30,89 @@ room item data structure:
                 (0, 1, 29, 30 put holes in the walls)
 """
 
-ItemData = Tuple[int, int, int, int, int, int, int, int]
-""" C Y X R M I S G (see above) """
+
+class ItemData(NamedTuple):
+    """
+    item data structure
+
+    1 byte for each of these values C Y X R M I S G
+    """
+    code: int
+    """
+    codes for type of data in item data (index 0):
+    - 0A keyword
+    - 26 normal item
+    - 2A rescue (Apple/Champ)
+    - 0D door to main computer
+    - 2B hallway to shoot open
+    - 2E unknown in final boss room  $2E $78 $90    $00 $00 $00 $00 $1B
+    - 3D unknown in final boss room  $3D $08 $F8/08 $00 $00 $00 $00 $00
+    """
+    y: int
+    """
+    Y coordinate of canister in room (normal canister levels are 18, 38, 58, 78, 98)
+
+    Apple is at 10, Champ is at 50 (because sprite is 8 pixels taller?)
+    """
+    x: int
+    """
+    X coordinate of canister in room
+
+    (10 - E0 normally - main computer door is 18)
+    """
+    room_code: int
+    """
+    room code
+
+    different even number for each room that has canisters - 94 is hallways that can be shot open
+    """
+    mask: int
+    """
+    mask for this item (keep track of open/got - ascending in this array (rescues use one also))
+    """
+    item_id: int
+    """
+    - 00-03 keywords
+    - 04 empty
+    - 05 card
+    - 06 red card
+    - 07 floppy
+    - 08 bread
+    - 09 opo
+    - 0A gun
+    - 0B scope
+    - 0C something glitched (do I need any custom items? ;)
+    ---
+    - 00 Apple
+    - 01 Champ
+
+    (this item ID with the 2A code (1st byte of data structure) determines which char is rescued)
+    (sprite doesn't matter, Y coord can be the extra 8 pixels up or not)
+    ---
+    - 00 main computer and stuff in final boss room
+    """
+    sprite: int
+    """
+    - 02 blue area gun1 canister
+    - 04 blue area gun2 canister
+    - 06 blue area gun3 canister
+    - 08 red gun1 canister
+    - 0A red gun2 canister
+    - 0C red gun3 canister
+    - 0E paperclip gun1
+    - 10 paperclip gun2
+    - 12 paperclip gun3
+    - 14 Apple
+    - 16 Champ
+
+    LSB is set to display it already opened (only display, canister is still closed - opening it increments the image)
+    """
+    gun: int
+    """
+    gun required to open (0, 1, 2)  TODO: confirm (0, 1, 2)
+
+    (Apple 01, Champ 00 - I don't know that this value is used for rescues.)
+    """
 
 
 def make_reg_name(map_index: int) -> str:
@@ -107,8 +133,8 @@ def make_loc_name(map_index: int, item_or_y: Union[ItemData, int], x: Optional[i
         y = item_or_y
     else:
         # adjust height of rescues so they match with other items
-        y = item_or_y[1] + 8 if item_or_y[0] == RESCUE else item_or_y[1]
-        x = item_or_y[2]
+        y = item_or_y.y + 8 if item_or_y.code == RESCUE else item_or_y.y
+        x = item_or_y.x
 
     name = f"{make_reg_name(map_index)}y{hex(y)[-2:]}x{hex(x)[-2:]}"
     return name
