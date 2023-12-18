@@ -4,23 +4,23 @@ from typing import FrozenSet, Optional, Union
 from .alarms import Alarms
 from .logger import Logger
 from .map_gen.jump import room_jump_requirements
-from .np_sprite_manager import NPSpriteManager
 from .options import Options
 from .patch import Patcher
 from .randomizer import Randomizer
 from .resource_managers import ResourceManagers
-from .room_gen.aem import AlarmEntranceManager
 from .room_gen.room_gen import RoomGen
-from .terrain_modifier import TerrainModifier
 
 
 class System:
     """ composition of the highest level components """
     randomizer: Optional[Randomizer] = None
-    resource_managers: Optional[ResourceManagers] = None
+    resource_managers: ResourceManagers
     patcher: Optional[Patcher] = None
     _modified_rooms: FrozenSet[int] = frozenset()
     _seed: Optional[Union[int, str]] = None
+
+    def __init__(self) -> None:
+        self.resource_managers = ResourceManagers()
 
     def seed(self, seed: Optional[Union[int, str]]) -> None:
         self._seed = seed
@@ -31,8 +31,6 @@ class System:
         return self.patcher
 
     def make_randomizer(self, options: Options, logger: Optional[Logger] = None) -> Randomizer:
-        """ and resource_managers """
-        self.resource_managers = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
         self.randomizer = Randomizer(options, logger)
         return self.randomizer
 
@@ -43,7 +41,6 @@ class System:
         if options.room_gen:
             print("Zillion room gen enabled - generating rooms...")  # this takes time
             rm = self.resource_managers
-            assert rm, "initialization step was skipped - resource_manager"
             jump_req_rooms = room_jump_requirements()
             rm.aem.room_gen_mods()
             room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self.randomizer.logger, options.skill, self.randomizer.regions)
@@ -53,8 +50,15 @@ class System:
             print("Zillion room gen complete")
 
     def post_fill(self) -> None:
-        assert self.resource_managers and self.randomizer, "initialization step was skipped"
+        assert self.randomizer, "initialization step was skipped"
         options = self.randomizer.options
         if options.randomize_alarms:
             a = Alarms(self.resource_managers.tm, self.randomizer.logger)
             a.choose_all(self._modified_rooms)
+
+        def choose_escape_time(skill: int) -> int:
+            """ based on skill - WR did escape in 160 - skill 5 could require 165-194 """
+            low = 300 - (skill * 27)
+            return random.randrange(low, low + 30)
+
+        self.resource_managers.escape_time = choose_escape_time(options.skill)

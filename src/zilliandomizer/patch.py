@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 import os
-from random import randrange, shuffle
+from random import shuffle
 from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, Union
 
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
@@ -1662,11 +1662,8 @@ class Patcher:
                     assert self.rom[address] == vanilla[char][level]
                 self.writes[address] = balanced[skill + difficulty_mod][level]
 
-    def set_explode_timer(self, skill: int) -> None:
-        """ set the amount of time to escape based on skill """
-        # WR did in 160
-        low = 300 - (skill * 27)
-        time = randrange(low, low + 30)
+    def set_explode_timer(self, time: int) -> None:
+        """ set the amount of time to escape """
         if self.verify:
             assert self.rom[rom_info.base_explosion_timer_init_207b] == 0x00
             assert self.rom[rom_info.base_explosion_timer_init_207b + 1] == 0x03
@@ -1747,6 +1744,6 @@ class Patcher:
         self.set_new_game_over(options.continues)
         if (options.balance_defense):
             self.set_defense(options.skill)
-        self.set_explode_timer(options.skill)
+        self.set_explode_timer(rm.escape_time)
         self.set_starting_cards(options.starting_cards)
         self.set_scope_distribute()

@@ -3,12 +3,9 @@ import pytest
 from typing import Counter as _Counter, Iterator, Set
 from collections import Counter
 from zilliandomizer.low_resources import rom_info
-from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import Options
 from zilliandomizer.patch import ROM_NAME, Patcher
 from zilliandomizer.resource_managers import ResourceManagers
-from zilliandomizer.room_gen.aem import AlarmEntranceManager
-from zilliandomizer.terrain_modifier import TerrainModifier
 from zilliandomizer.utils import ItemData
 
 
@@ -72,7 +69,7 @@ def test_patches() -> None:
 def test_patches_default_options() -> None:
     o = Options()
     p = Patcher()
-    rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
+    rm = ResourceManagers()
     p.all_fixes_and_options(o, rm)
 
 
@@ -138,7 +135,7 @@ def test_defense() -> None:
     o = Options()
     o.balance_defense = False
     p = Patcher()
-    rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
+    rm = ResourceManagers()
     p.all_fixes_and_options(o, rm)
 
     for level in range(8):
@@ -149,14 +146,14 @@ def test_defense() -> None:
     o.balance_defense = True
     o.skill = 0
     p = Patcher()
-    rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
+    rm = ResourceManagers()
     p.all_fixes_and_options(o, rm)
     apple_level_1_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 0 * 4 + 3
     assert p.writes[apple_level_1_damage_taken] < 4
 
     o.skill = 5
     p = Patcher()
-    rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
+    rm = ResourceManagers()
     p.all_fixes_and_options(o, rm)
     assert p.writes[apple_level_1_damage_taken] == 4
     apple_level_4_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 3 * 4 + 3
@@ -164,7 +161,7 @@ def test_defense() -> None:
 
     o.skill = 2
     p = Patcher()
-    rm = ResourceManagers(TerrainModifier(), NPSpriteManager(), AlarmEntranceManager())
+    rm = ResourceManagers()
     p.all_fixes_and_options(o, rm)
     assert p.writes[apple_level_1_damage_taken] == 4
     apple_level_2_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 1 * 4 + 3
