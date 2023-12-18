@@ -26,7 +26,7 @@ class Randomizer:
     logger: Logger
     regions: Dict[str, Region]
     locations: Dict[str, Location]
-    room_gen: Optional[RoomGen] = None
+    _room_gen: Optional[RoomGen] = None
     loc_name_2_pretty: Dict[str, str]
     """ example: from "r02c6y88x50" to "B-7 bottom left" """
 
@@ -45,8 +45,8 @@ class Randomizer:
 
     def reset(self, room_gen: Optional[RoomGen] = None) -> None:
         if room_gen:
-            self.room_gen = room_gen
-        locations = self.room_gen.make_locations() if self.room_gen else make_locations()
+            self._room_gen = room_gen
+        locations = self._room_gen.make_locations() if self._room_gen else make_locations()
         regions = make_regions(locations)
         if room_gen:
             for region_name, region in regions.items():
