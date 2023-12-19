@@ -56,7 +56,7 @@ def test_patches() -> None:
     p.set_jump_levels("restrictive")
     p.set_new_gun_system_and_levels("restrictive")
     p.set_required_floppies(18)
-    p.set_start_char("Apple")
+    p.set_start_char(("Apple", "JJ", "Champ"))
     p.set_continues(-1)
     p.set_new_game_over(3)
 
@@ -94,7 +94,7 @@ def test_no_verify() -> None:
     p.set_jump_levels("low")
     p.set_new_gun_system_and_levels("balanced")
     p.set_required_floppies(180)
-    p.set_start_char("Champ")
+    p.set_start_char(("Champ", "JJ", "Apple"))
     p.set_continues(7)
     p.set_new_game_over(7)
 

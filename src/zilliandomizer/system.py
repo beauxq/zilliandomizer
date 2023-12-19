@@ -1,10 +1,10 @@
 import random
-from typing import FrozenSet, Optional, Union
+from typing import FrozenSet, List, Optional, Tuple, Union
 
 from .alarms import Alarms
 from .logger import Logger
 from .map_gen.jump import room_jump_requirements
-from .options import Options
+from .options import Chars, Options, chars
 from .patch import Patcher
 from .randomizer import Randomizer
 from .resource_managers import ResourceManagers
@@ -62,3 +62,16 @@ class System:
             return random.randrange(low, low + 30)
 
         self.resource_managers.escape_time = choose_escape_time(options.skill)
+
+        def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
+            """
+            choose the order that the captured characters appear in the intro text
+
+            returns `start_char, captured_1, captured_2`
+            """
+            captured: List[Chars] = [each_char for each_char in chars if each_char != start_char]
+            assert len(captured) == 2, f"{captured=}"
+            random.shuffle(captured)
+            return (start_char, captured[0], captured[1])
+
+        self.resource_managers.char_order = choose_capture_order(options.start_char)

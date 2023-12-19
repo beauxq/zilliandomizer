@@ -1,7 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
 import os
-from random import shuffle
 from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, Union
 
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
@@ -292,8 +291,14 @@ class Patcher:
         # 0x1d09 should be [dd, 36, 05, 4c] by default
         self.writes[address] = write
 
-    def set_start_char(self, char: Chars) -> None:
-        """ set which character you start the game with """
+    def set_start_char(self, char_order: Tuple[Chars, Chars, Chars]) -> None:
+        """
+        set which character you start the game with
+
+        `char_order` is `start_char, captured_1, captured_2`
+        """
+
+        start_char, captured_1, captured_2 = char_order
 
         # c127 is current character: 0 jj, 1 champ, 2 apple
         # label AA9 sets c127 to 0 when "press start button" with ldir
@@ -310,7 +315,7 @@ class Patcher:
             "JJ": 0x00,
             "Apple": 0x02,
             "Champ": 0x01
-        }[char]
+        }[start_char]
 
         # TODO: important!!! change the color of the tiny sprite that comes out of the ship
 
@@ -330,13 +335,13 @@ class Patcher:
             assert self.rom[apple_rescue] == 0x00
             assert self.rom[apple_rescue_code] == 0x70
             assert self.rom[champ_rescue_code] == 0x60
-        self.writes[jj_rescue] = int(char == "JJ")
-        self.writes[champ_rescue] = int(char == "Champ")
-        self.writes[apple_rescue] = int(char == "Apple")
-        if char == "Apple":
+        self.writes[jj_rescue] = int(start_char == "JJ")
+        self.writes[champ_rescue] = int(start_char == "Champ")
+        self.writes[apple_rescue] = int(start_char == "Apple")
+        if start_char == "Apple":
             # rescue JJ instead of Apple
             self.writes[apple_rescue_code] = 0x50
-        elif char == "Champ":
+        elif start_char == "Champ":
             # rescue JJ instead of Champ
             self.writes[champ_rescue_code] = 0x50
 
@@ -375,17 +380,15 @@ class Patcher:
                 old, _ = champ_text[addr]
                 for i in range(len(old)):
                     assert self.rom[addr + i] == old[i]
-        if char != "JJ":
-            text = apple_text if char == "Apple" else champ_text
+        if start_char != "JJ":
+            text = apple_text if start_char == "Apple" else champ_text
             for addr in text:
                 _, new = text[addr]
                 for i in range(len(new)):
                     self.writes[addr + i] = new[i]
 
         # starting text says who has been captured
-        captured: List[str] = [each_char.upper() for each_char in chars if each_char != char]
-        shuffle(captured)
-        replace_text = f"{captured[0]} AND {captured[1]} ARE"
+        replace_text = f"{captured_1.upper()} AND {captured_2.upper()} ARE"
         need_space = len(rom_info.intro_rescue_text) - len(replace_text)
         replace_text += (" " * need_space)
         replace_text_bytes = replace_text.encode("ascii")
@@ -1735,7 +1738,7 @@ class Patcher:
         self.fix_spoiling_demos()
         self.fix_white_knights()
         self.set_display_computer_codes_default(options.tutorial)
-        self.set_start_char(options.start_char)
+        self.set_start_char(rm.char_order)
         self.set_required_floppies(options.floppy_req)
         self.set_new_opa_level_system(options.opas_per_level, 20, options.max_level)
         self.set_new_gun_system_and_levels(options.gun_levels)
