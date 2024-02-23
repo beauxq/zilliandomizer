@@ -4,6 +4,8 @@ LDHL = 0x21
 """ load into hl these 2 bytes """
 LDAVHL = 0x7e
 """ load into a the value at memory address hl """
+LDVHLA = 0x77
+""" `ld (hl), a` - copy a into memory at address hl """
 LDVHLI = 0x36
 """ load into address at hl, the immediate byte value """
 LDAV = 0x3a

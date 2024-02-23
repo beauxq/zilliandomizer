@@ -1728,6 +1728,12 @@ class Patcher:
 
         # not changing the number of cards from a continue (3)
 
+    def set_infinite_hallway_bread(self) -> None:
+        """ by resetting the room, you can pick up hallway bread an infinite number of times """
+        if self.verify:
+            assert self.rom[rom_info.save_hallway_bread_4714] == asm.LDVHLA
+        self.writes[rom_info.save_hallway_bread_4714] = asm.NOP
+
     def all_fixes_and_options(self, options: Options, rm: ResourceManagers) -> None:
         self.writes.update(rm.tm.get_writes())
         self.writes.update(rm.sm.get_writes())
@@ -1750,3 +1756,4 @@ class Patcher:
         self.set_explode_timer(rm.escape_time)
         self.set_starting_cards(options.starting_cards)
         self.set_scope_distribute()
+        self.set_infinite_hallway_bread()

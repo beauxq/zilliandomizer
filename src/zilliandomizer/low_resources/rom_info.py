@@ -255,3 +255,6 @@ address of call instruction when game is booting up
 
 bank is set to 5 before this call instruction
 """
+
+save_hallway_bread_4714 = 0x4714
+""" `ld (hl), a` (machine code 0x77) saves information that hallway bread was picked up """

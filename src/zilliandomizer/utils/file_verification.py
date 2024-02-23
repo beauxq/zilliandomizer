@@ -176,6 +176,8 @@ def set_verified_bytes(b: bytearray) -> None:
     b[rom_info.refill_card_injection_address_1389 + 1] = ram_info.card_count_c129 & 0xff
     b[rom_info.refill_card_injection_address_1389 + 2] = ram_info.card_count_c129 // 256
 
+    b[rom_info.save_hallway_bread_4714] = asm.LDVHLA
+
     alarm_entrances = [
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x08, 0x98, 0x01, 0x00, 0x00, 0x12,
