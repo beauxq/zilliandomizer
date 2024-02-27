@@ -472,7 +472,7 @@ def make_sprite_rooms(o: bytes) -> None:
 
 
 def make_sprite_data(o: bytes) -> None:
-    data = {}
+    data: Dict[int, RoomSprites] = {}
 
     for map_index, room_address in enumerate(sprite_rooms):
         room_sprites: RoomSprites = []
