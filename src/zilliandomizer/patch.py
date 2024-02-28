@@ -1,5 +1,6 @@
 from collections import defaultdict
 import os
+from pathlib import Path
 from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, Union
 
 from zilliandomizer.game import Game
@@ -56,7 +57,7 @@ class Patcher:
         7: 0x14000,
     }
 
-    def __init__(self, path_to_rom: str = "") -> None:
+    def __init__(self, path_to_rom: Union[str, Path] = "") -> None:
         self.writes = {}
         self.verify = True
         self._init_code = bytearray()
@@ -72,7 +73,12 @@ class Patcher:
         }
         self.demos_disabled = False
 
-        self.rom_path = path_to_rom
+        if path_to_rom != "":
+            path_to_rom = Path(path_to_rom)
+            if str(path_to_rom).lower().endswith(".sms"):
+                path_to_rom = path_to_rom.parent
+
+        self.rom_path = str(path_to_rom)
         if self.rom_path == "":
             for path_list in paths:
                 assert len(path_list)  # use "." for current directory
