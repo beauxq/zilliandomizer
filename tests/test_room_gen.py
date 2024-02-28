@@ -480,6 +480,31 @@ def test_low_skill_jump_1_distance_4() -> None:
     assert g.solve(2), "jump 1, skill 2, distance 4"
 
 
+def test_skill_horizontal_jump_from_walkway() -> None:
+    tc = TerrainModifier()
+    log = Logger()
+    log.debug_stdout = True
+    log.spoil_stdout = True
+
+    ends: List[Coord] = [BOT_LEFT, TOP_LEFT]
+    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g.data = [
+        list("              "),
+        list("___ _  _      "),
+        list("|||           "),
+        list("|          ___"),
+        list("              "),
+        list("______________"),
+    ]
+    assert g.solve(2), "jump 2, skill 2, over 2 gap"
+    g.is_walkway[1][7] = 2
+    assert not g.solve(2), "jump 2 with walkway"
+    assert not g.solve(3), "jump 3 with walkway"
+    setattr(g, "_skill", 5)
+    assert g.solve(2), "jump 2 skill 5 with walkway"
+    assert g.solve(3), "jump 3 skill 5 with walkway"
+
+
 if __name__ == "__main__":
     test_navigation()
     test_jump_requirements()
@@ -491,3 +516,4 @@ if __name__ == "__main__":
     test_jump_from_walkway()
     test_low_skill_jump_1_distance_5()
     test_low_skill_jump_1_distance_4()
+    test_skill_horizontal_jump_from_walkway()

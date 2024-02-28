@@ -284,8 +284,11 @@ class Grid:
             for dir in (-1, 1):
                 # check move
                 next_col = col + dir
-                if next_col >= LEFT and next_col <= RIGHT and \
-                        self.data[row - 1][next_col] == Cell.space:
+                if (
+                    next_col >= LEFT and
+                    next_col <= RIGHT and
+                    self.data[row - 1][next_col] == Cell.space
+                ):
                     if self.data[row][next_col] == Cell.floor:
                         yield row, next_col, True
                     # horizontal jump over gap of 1
@@ -303,10 +306,21 @@ class Grid:
                             self.data[row][next_next_col] == Cell.space and \
                             self.data[row - 1][nnn_col] == Cell.space and \
                             self.data[row][nnn_col] == Cell.floor:
-                        if row == 1 or not self.is_walkway[row][col] or (
-                            self.data[row - 2][next_col] != Cell.space and self._skill > 2
-                        ):
+                        if not self.is_walkway[row][col]:
                             yield row, nnn_col, True
+                        else:
+                            # from moving walkway
+                            if self._skill > 2 and (row == 1 or self.data[row - 2][next_col] != Cell.space):
+                                # can bonk ceiling
+                                yield row, nnn_col, True
+                            elif (
+                                row > 1 and
+                                # don't need skill if there is space above me
+                                (self._skill > 2 or self.data[row - 2][col] == Cell.space) and
+                                self.data[row - 2][next_col] == Cell.space and
+                                self.data[row - 2][next_next_col] == Cell.space
+                            ):
+                                yield row, nnn_col, True
                     # horizontal jump over gap of 3
                     # this is only used on top row
                     # because it requires jump 3 for the speed
