@@ -180,6 +180,18 @@ def big_location_ids() -> None:
         file.write('}\n\n')
 
 
+def item_room_codes() -> None:
+    p = Patcher()
+    for map_index, room in enumerate(p.get_item_rooms()):
+        item_count = p.rom[room]
+        if item_count == 0:
+            continue
+        item = ItemData(*p.rom[room + 1: room + 9])
+        if item.code not in {KEYWORD, NORMAL, RESCUE}:
+            continue
+        print(f"    0x{map_index:02x}: 0x{item.room_code:02x},")
+
+
 def weird_vanilla_locations() -> None:
     from zilliandomizer.utils.loc_name_maps import loc_to_id
     p = Patcher()

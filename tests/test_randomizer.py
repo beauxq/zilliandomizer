@@ -4,15 +4,16 @@ from collections import Counter
 import pytest
 from random import seed
 
-from zilliandomizer.randomizer import Randomizer
-from zilliandomizer.options import ID, Options, char_to_gun, char_to_jump
-from zilliandomizer.options.parsing import parse_options
+from zilliandomizer.game import Game
 from zilliandomizer.generator import some_options
 from zilliandomizer.logger import Logger
-from zilliandomizer.patch import Patcher
 from zilliandomizer.logic_components.locations import Req
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logic_components.region_data import make_regions
+from zilliandomizer.options import ID, Options, char_to_gun, char_to_jump
+from zilliandomizer.options.parsing import parse_options
+from zilliandomizer.patch import Patcher
+from zilliandomizer.randomizer import Randomizer
 from zilliandomizer.resource_managers import ResourceManagers
 
 
@@ -26,10 +27,12 @@ def test_randomizer() -> None:
     seed(s)
     r.roll()
 
-    p = Patcher()
     rm = ResourceManagers()
-    p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
-    p.all_fixes_and_options(options, rm)
+    game = Game(options, rm.escape_time, rm.char_order, r.loc_name_2_pretty, r.get_region_data(), rm.get_writes())
+
+    p = Patcher()
+    p.write_locations(game.regions, options.start_char)
+    p.all_fixes_and_options(game)
     filename = f"zilliandomizer-{s:016x}.sms"
     # p.write(filename)
     print(f"generated: {filename}")
@@ -47,10 +50,12 @@ def test_infinite_continues_and_not() -> None:
         seed(s)
         r.roll()
 
-        p = Patcher()
         rm = ResourceManagers()
-        p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
-        p.all_fixes_and_options(options, rm)
+        game = Game(options, rm.escape_time, rm.char_order, r.loc_name_2_pretty, r.get_region_data(), rm.get_writes())
+
+        p = Patcher()
+        p.write_locations(game.regions, options.start_char)
+        p.all_fixes_and_options(game)
         filename = f"zilliandomizer-{s:016x}.sms"
         # p.write(filename)
         print(f"generated: {filename}")

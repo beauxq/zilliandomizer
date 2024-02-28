@@ -45,10 +45,10 @@ def generate(seed: int) -> None:
 
     system.post_fill()
 
-    p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
-    rm = system.resource_managers
-    assert rm, "resource_managers not initialized"
-    p.all_fixes_and_options(options, rm)
+    game = system.get_game()
+
+    p.write_locations(game.regions, options.start_char)
+    p.all_fixes_and_options(game)
 
     # testing
     # from typing import Dict, Tuple

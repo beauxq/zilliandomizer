@@ -1,13 +1,14 @@
 import asyncio
 from collections import Counter
+from dataclasses import dataclass
 import sys
 from types import TracebackType
-from typing import Dict, Final, Literal, Optional, Tuple, Iterator
+from typing import Dict, Final, Iterable, Literal, Optional, Tuple, Iterator
 import typing
 
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
 from zilliandomizer.low_resources import ram_info, rom_info
-from zilliandomizer.patch import RescueInfo
+from zilliandomizer.options import Chars
 from zilliandomizer.zri.events import DeathEventFromGame, DoorEventFromGame, \
     DoorEventToGame, EventFromGame, EventToGame, AcquireLocationEventFromGame, \
     ItemEventToGame, DeathEventToGame, WinEventFromGame
@@ -19,6 +20,14 @@ BYTE_ORDER: Final[Literal['little', 'big']] = sys.byteorder  # type: ignore
 
 ITEM_BYTE_COUNT = 0x0c
 """ highest item id is 0x0b, using from 0 to 0x0b """
+
+
+@dataclass
+class RescueInfo:
+    start_char: Chars
+    room_code: int
+    """ 0-146 even numbers, double the item_room_index """
+    mask: int
 
 
 def bits(n: int) -> Iterator[int]:
@@ -69,7 +78,7 @@ c11f_in_game_scenes = frozenset((
 ))
 
 
-def get_changed_lost(new: bytes, old: bytes) -> Tuple[int, int, int]:
+def get_changed_lost(new: Iterable[int], old: Iterable[int]) -> Tuple[int, int, int]:
     """
     changed bits, lost bits, new bits as `int`
     """
@@ -98,7 +107,7 @@ class Memory:
     _restore_target: Optional[State]
 
     known_doors: bytes
-    known_cans: bytes
+    known_cans: Iterable[int]
     known_in_game: bool
     known_win_state: bool
     known_dead: bool
@@ -203,7 +212,7 @@ class Memory:
         self.known_dead = dead
         return event
 
-    def _process_change(self, new_cans: bytes) -> None:
+    def _process_change(self, new_cans: Iterable[int]) -> None:
         """
         Take the canister pickups from memory and find out what's new.
 

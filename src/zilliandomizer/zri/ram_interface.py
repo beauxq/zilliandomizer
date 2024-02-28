@@ -1,6 +1,6 @@
 import abc
 from dataclasses import dataclass
-from typing import ClassVar, Iterable, List, Tuple, Union
+from typing import ClassVar, Iterable, List, Tuple
 
 from zilliandomizer.zri.ram_ranges import RANGE_READS as _RANGE_READS
 
@@ -45,7 +45,7 @@ class RamData:
 class RamInterface(abc.ABC):
 
     @abc.abstractmethod
-    async def write(self, addr: int, b: Union[bytes, List[int]]) -> None:
+    async def write(self, addr: int, b: Iterable[int]) -> None:
         """ starting at ram address `addr`, write bytes `b` """
         ...
 

@@ -1,15 +1,14 @@
 from collections import defaultdict
-from dataclasses import dataclass
 import os
 from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, Union
 
+from zilliandomizer.game import Game
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
-from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.logic_components.regions import RegionData
 from zilliandomizer.low_resources import asm, ram_info, rom_info
-from zilliandomizer.options import ID, VBLR, Chars, Options, char_to_jump, char_to_gun, chars
-from zilliandomizer.resource_managers import ResourceManagers
+from zilliandomizer.low_resources.item_rooms import item_room_codes
+from zilliandomizer.options import ID, VBLR, Chars, char_to_jump, char_to_gun, chars
 from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
-from zilliandomizer.utils.loc_name_maps import loc_to_id
 
 ROM_NAME = "Zillion (UE) [!].sms"
 
@@ -31,14 +30,6 @@ paths: List[List[str]] = [
 # TODO: lots of JJ rescue graphic work
 
 
-@dataclass
-class RescueInfo:
-    start_char: Chars
-    room_code: int
-    """ 0-146 even numbers, double the item_room_index """
-    mask: int
-
-
 class Patcher:
     writes: Dict[int, int]  # address to byte
     verify: bool
@@ -52,8 +43,6 @@ class Patcher:
     rom_path: str
     rom: bytes
 
-    rescue_locations: Dict[int, RescueInfo] = {}
-    loc_memory_to_loc_id: Dict[int, int] = {}
     """ memory location of canister to Archipelago location id number """
     _init_code: bytearray
 
@@ -472,13 +461,10 @@ class Patcher:
             start += 8
 
     def write_locations(self,
-                        regions: Dict[str, Region],
-                        start_char: Chars,
-                        loc_name_to_pretty: Dict[str, str]) -> None:
+                        regions: Iterable[RegionData],
+                        start_char: Chars) -> None:
         items_placed_in_map_index: Dict[int, int] = defaultdict(int)
-        self.rescue_locations = {}
-        self.loc_memory_to_loc_id = {}
-        for region in regions.values():
+        for region in regions:
             for loc in region.locations:
                 assert loc.item, "There should be an item placed in every location before " \
                                  f"writing locations. {loc.name} is missing item."
@@ -490,6 +476,7 @@ class Patcher:
                     try:
                         # different from map index and 2x item room index
                         room_code = next(self.get_items(rom_room)).room_code
+                        assert room_code == item_room_codes[map_index], f"{room_code=} {item_room_codes[map_index]=}"
                     except StopIteration:
                         # This is to keep unit tests from failing with no rom data
                         print(f"ERROR: no item data for rom room {rom_room} at map index {map_index}")
@@ -500,7 +487,7 @@ class Patcher:
                     r = room_code
                     m = 1 << item_no
                     i = loc.item.id
-                    s = loc.req.gun * 2
+                    s = loc.req_gun * 2
                     # different sprite for red and paperclip
                     if map_index >= 80:
                         s += 12
@@ -511,10 +498,7 @@ class Patcher:
                             s = 0x16  # use Champ rescue sprite for both JJ and Champ
                         else:
                             s = loc.item.id * 2 + 0x14
-                        self.rescue_locations[loc.item.id] = RescueInfo(start_char, r, m)
-                    loc_memory = (r << 7) | m
-                    self.loc_memory_to_loc_id[loc_memory] = loc_to_id[loc_name_to_pretty[loc.name]]
-                    g = max(0, loc.req.gun - 1)
+                    g = max(0, loc.req_gun - 1)
                     new_item_data = ItemData(loc.item.code, y, x, r, m, i, s, g)
                     self.set_item(rom_room + 1 + 8 * item_no, new_item_data)
                     items_placed_in_map_index[map_index] += 1
@@ -1734,17 +1718,16 @@ class Patcher:
             assert self.rom[rom_info.save_hallway_bread_4714] == asm.LDVHLA
         self.writes[rom_info.save_hallway_bread_4714] = asm.NOP
 
-    def all_fixes_and_options(self, options: Options, rm: ResourceManagers) -> None:
-        self.writes.update(rm.tm.get_writes())
-        self.writes.update(rm.sm.get_writes())
-        self.writes.update(rm.aem.get_writes())
+    def all_fixes_and_options(self, game: Game) -> None:
+        options = game.options
+        self.writes.update(game.resource_writes)
         self.fix_floppy_display()
         self.fix_floppy_req()
         self.fix_rescue_tile_load()
         self.fix_spoiling_demos()
         self.fix_white_knights()
         self.set_display_computer_codes_default(options.tutorial)
-        self.set_start_char(rm.char_order)
+        self.set_start_char(game.char_order)
         self.set_required_floppies(options.floppy_req)
         self.set_new_opa_level_system(options.opas_per_level, 20, options.max_level)
         self.set_new_gun_system_and_levels(options.gun_levels)
@@ -1753,7 +1736,7 @@ class Patcher:
         self.set_new_game_over(options.continues)
         if (options.balance_defense):
             self.set_defense(options.skill)
-        self.set_explode_timer(rm.escape_time)
+        self.set_explode_timer(game.escape_time)
         self.set_starting_cards(options.starting_cards)
         self.set_scope_distribute()
         self.set_infinite_hallway_bread()

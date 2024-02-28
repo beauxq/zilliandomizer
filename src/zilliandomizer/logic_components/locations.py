@@ -1,5 +1,7 @@
-from dataclasses import dataclass
-from typing import Any, List, Literal, Optional, Set, Tuple, TypedDict
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict
 
 from zilliandomizer.logic_components.items import Item
 
@@ -127,3 +129,32 @@ class Location:
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Location) and self.name == other.name
+
+
+@dataclass
+class LocationData:
+    name: str
+    item: Item
+    req_gun: int
+
+    @staticmethod
+    def from_location(location: Location) -> LocationData:
+        item = location.item
+        if not item:
+            raise ValueError(f"location {location.name} didn't get item")
+        return LocationData(
+            location.name,
+            item,
+            location.req.gun
+        )
+
+    def to_jsonable(self) -> Dict[str, Any]:
+        dct = asdict(self)
+        dct["item"] = asdict(self.item)
+        return dct
+
+    @staticmethod
+    def from_jsonable(dct: Dict[str, Any]) -> LocationData:
+        ld = LocationData(**dct)
+        ld.item = Item(**dct["item"])
+        return ld

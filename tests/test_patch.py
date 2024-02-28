@@ -2,6 +2,7 @@ import os
 import pytest
 from typing import Counter as _Counter, Iterator, Set
 from collections import Counter
+from zilliandomizer.game import Game
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.options import Options
 from zilliandomizer.patch import ROM_NAME, Patcher
@@ -68,9 +69,10 @@ def test_patches() -> None:
 @pytest.mark.usefixtures("fake_rom")
 def test_patches_default_options() -> None:
     o = Options()
-    p = Patcher()
     rm = ResourceManagers()
-    p.all_fixes_and_options(o, rm)
+    game = Game(o, rm.escape_time, rm.char_order, {}, [], rm.get_writes())
+    p = Patcher()
+    p.all_fixes_and_options(game)
 
 
 @pytest.mark.usefixtures("fake_rom")
@@ -134,9 +136,10 @@ def test_set_item() -> None:
 def test_defense() -> None:
     o = Options()
     o.balance_defense = False
-    p = Patcher()
     rm = ResourceManagers()
-    p.all_fixes_and_options(o, rm)
+    game = Game(o, rm.escape_time, rm.char_order, {}, [], rm.get_writes())
+    p = Patcher()
+    p.all_fixes_and_options(game)
 
     for level in range(8):
         for char_i in range(3):
@@ -146,23 +149,20 @@ def test_defense() -> None:
     o.balance_defense = True
     o.skill = 0
     p = Patcher()
-    rm = ResourceManagers()
-    p.all_fixes_and_options(o, rm)
+    p.all_fixes_and_options(game)
     apple_level_1_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 0 * 4 + 3
     assert p.writes[apple_level_1_damage_taken] < 4
 
     o.skill = 5
     p = Patcher()
-    rm = ResourceManagers()
-    p.all_fixes_and_options(o, rm)
+    p.all_fixes_and_options(game)
     assert p.writes[apple_level_1_damage_taken] == 4
     apple_level_4_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 3 * 4 + 3
     assert p.writes[apple_level_4_damage_taken] == 4
 
     o.skill = 2
     p = Patcher()
-    rm = ResourceManagers()
-    p.all_fixes_and_options(o, rm)
+    p.all_fixes_and_options(game)
     assert p.writes[apple_level_1_damage_taken] == 4
     apple_level_2_damage_taken = rom_info.stats_per_level_table_7cc8 + 2 * 32 + 1 * 4 + 3
     assert p.writes[apple_level_2_damage_taken] < 4

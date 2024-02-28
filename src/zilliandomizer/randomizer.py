@@ -7,7 +7,7 @@ from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logger import Logger
 from zilliandomizer.options import ID, Chars, Options, char_to_hp, char_to_gun, char_to_jump
 from zilliandomizer.logic_components.region_data import make_regions
-from zilliandomizer.logic_components.regions import Region
+from zilliandomizer.logic_components.regions import Region, RegionData
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
 from zilliandomizer.room_gen.room_gen import RoomGen
@@ -399,3 +399,7 @@ class Randomizer:
                 print("WARNING: check failed when algorithm didn't see failure")
         if not success:
             raise Randomizer.RollFail(f"roll attempts timed out with {fail_count} failures")
+
+    def get_region_data(self) -> List[RegionData]:
+        """ after end of generation, get region/location/item data needed to write output """
+        return [RegionData.from_region(r) for r in self.regions.values()]

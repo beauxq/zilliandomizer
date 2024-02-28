@@ -2,6 +2,7 @@ import random
 from typing import FrozenSet, List, Optional, Tuple, Union
 
 from .alarms import Alarms
+from .game import Game
 from .logger import Logger
 from .map_gen.jump import room_jump_requirements
 from .options import Chars, Options, chars
@@ -75,3 +76,15 @@ class System:
             return (start_char, captured[0], captured[1])
 
         self.resource_managers.char_order = choose_capture_order(options.start_char)
+
+    def get_game(self) -> Game:
+        assert self.randomizer, "initialization step was skipped"
+        rm = self.resource_managers
+        return Game(
+            self.randomizer.options,
+            rm.escape_time,
+            rm.char_order,
+            self.randomizer.loc_name_2_pretty,
+            self.randomizer.get_region_data(),
+            rm.get_writes()
+        )

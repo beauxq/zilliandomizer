@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
 from typing import ClassVar, Dict, List, Any
 # some changes here for working on region connections
 # from typing_extensions import Unpack  # type: ignore
-from zilliandomizer.logic_components.locations import Req, Location  # , ReqArgs
+
+from zilliandomizer.logic_components.locations import Location, LocationData, Req  # , ReqArgs
 
 
 class Region:
@@ -35,3 +39,33 @@ class Region:
         """
         self.connections[other] = Req(**req_args)
         other.connections[self] = Req(**req_args)  # Is it bad that I'm not making a deep copy of the union?
+
+
+@dataclass
+class RegionData:
+    """ just what's needed for output, serializable """
+    name: str
+    door: int
+    locations: List[LocationData]
+    computer: bytes
+
+    @staticmethod
+    def from_region(region: Region) -> RegionData:
+        return RegionData(
+            region.name,
+            region.door,
+            [LocationData.from_location(loc) for loc in region.locations],
+            region.computer
+        )
+
+    def to_jsonable(self) -> Dict[str, Any]:
+        dct = asdict(self)
+        dct["computer"] = list(self.computer)
+        return dct
+
+    @staticmethod
+    def from_jsonable(dct: Dict[str, Any]) -> RegionData:
+        rd = RegionData(**dct)
+        rd.locations = [LocationData.from_jsonable(loc) for loc in dct["locations"]]
+        rd.computer = bytes(rd.computer)
+        return rd

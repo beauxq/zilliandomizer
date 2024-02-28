@@ -233,7 +233,7 @@ class RAInterface(RamInterface):
         except ValueError:
             return b''
 
-    async def write(self, addr: int, b: Union[bytes, List[int]]) -> None:
+    async def write(self, addr: int, b: Iterable[int]) -> None:
         prefix, params = self._build_message(RAInterface.WRITE, addr, b)
         await self._message(prefix, params)
         # print(f"write response: {list(res)}")

@@ -43,10 +43,12 @@ def test_with_room_gen() -> None:
 
     system.post_fill()
 
-    p.write_locations(r.regions, options.start_char, r.loc_name_2_pretty)
+    game = system.get_game()
+
+    p.write_locations(game.regions, options.start_char)
     rm = system.resource_managers
     assert rm, "resource_managers not initialized"
-    p.all_fixes_and_options(options, rm)
+    p.all_fixes_and_options(game)
 
     p.write(os.devnull)
 

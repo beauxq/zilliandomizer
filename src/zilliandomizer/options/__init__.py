@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 from random import choice
-from typing import Dict, List, Literal, NoReturn, Tuple
+from typing import Any, Dict, List, Literal, NoReturn, Tuple, cast
 
 Chars = Literal["JJ", "Apple", "Champ"]
 VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator in subscript require Python 3.11
@@ -102,6 +102,16 @@ class Options:
     room_gen: bool = False
     """ whether to generate rooms with random terrain """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
+
+    @staticmethod
+    def from_jsonable(dct: Dict[str, Any]) -> "Options":
+        o = Options(**dct)
+        o.item_counts = {
+            cast(ID, ID._value2member_map_[int(k)]): v
+            for k, v in dct["item_counts"].items()
+        }
+
+        return o
 
 
 char_to_hp: Dict[Chars, int] = {
