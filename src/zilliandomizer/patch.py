@@ -1007,9 +1007,10 @@ class Patcher:
             asm.LDAI, 0x01,
             asm.LDVA, 0x16, 0xc3,
 
-            # set not in room transition
             asm.XORA,
-            asm.LDVA, 0x86, 0xc1,
+            asm.LDVA, 0x86, 0xc1,  # set not in room transition
+            asm.LDVA, 0x87, 0xc1,  # stop moving walkway animation
+            asm.LDVA, 0x8a, 0xc1,  # stop barriers (for sound effect)
 
             asm.CALL, 0xcc, 0x24,  # continue code that sets hp
             # asm.LDAI, 0x07,  # ship scene
