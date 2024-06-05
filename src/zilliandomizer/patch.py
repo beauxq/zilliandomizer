@@ -1017,7 +1017,6 @@ class Patcher:
             # asm.CALL, 0xd3, 0x24,  # continue code that sets hp
             asm.RET,
         ])
-        # TODO: barrier sound doesn't turn off with game over
 
         new_game_over_address_banked = self._use_bank(bank_of_new_code, new_game_over_code)
 
