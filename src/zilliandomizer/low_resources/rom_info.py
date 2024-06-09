@@ -128,7 +128,7 @@ each row is 8 bytes for each column
     - 01-02 banked address of terrain data for that location
     - 03 unknown
     - 04 map index (0-135)
-    - 05-06 banked address of door data
+    - 05-06 banked address of door data (bank 4 (this one) - add 0x8000)
     - 07 unknown
 
 followed by 1 byte at the end of the row 0xfe

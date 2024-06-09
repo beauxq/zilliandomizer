@@ -1,18 +1,95 @@
 from collections import Counter, defaultdict
-from typing import Dict, List, Tuple
+from enum import IntEnum
+from typing import Dict, List, Literal, Tuple
 import typing
+
 from zilliandomizer.low_resources import rom_info
 
 BANK_4_OFFSET = 0x8000
 
-DoorStatus = Tuple[int, int]
+DoorStatusIndex = Tuple[int, int]
 """ low byte of address and bit mask for whether a door is opened """
 
 
+class DoorSprite(IntEnum):
+    """
+    - B blue
+    - R red
+    - P paperclip
+    ---
+    - L door in left half of large tile (usually leading to the right)
+    - R door in right half of large tile (usually leading to the left)
+    - D elevator at bottom to go down
+    - U elevator at top to go up
+    """
+    BL = 0
+    BR = 5
+    BD = 30
+    BU = 31
+    RL = 10
+    RR = 15
+    RD = 32
+    RU = 33
+    PL = 20
+    PR = 25
+    PD = 34
+    PU = 35
+
+    @staticmethod
+    def get_door(map_index: int, x: int) -> "DoorSprite":
+        """ `x` in door data structure units (4 pixels) """
+        assert (x & 1) == 0, f"{x=}"
+        if map_index < 40:
+            if x & 2:
+                return DoorSprite.BR
+            else:
+                return DoorSprite.BL
+        if map_index < 80:
+            if x & 2:
+                return DoorSprite.RR
+            else:
+                return DoorSprite.RL
+        if x & 2:
+            return DoorSprite.PR
+        else:
+            return DoorSprite.PL
+
+    @staticmethod
+    def get_elevator(map_index: int, y: Literal[0, 5]) -> "DoorSprite":
+        """ `y` in door data structure units (0 top, 5 bottom) """
+        if map_index < 40:
+            if y == 0:
+                return DoorSprite.BU
+            else:
+                return DoorSprite.BD
+        if map_index < 80:
+            if y == 0:
+                return DoorSprite.RU
+            else:
+                return DoorSprite.RD
+        if y == 0:
+            return DoorSprite.PU
+        else:
+            return DoorSprite.PD
+
+
 class DoorManager:
-    status_reference_counts: typing.Counter[DoorStatus]
+    status_reference_counts: typing.Counter[DoorStatusIndex]
+    """
+    how many of the door data structures (in the entire base)
+    share the same share the same info on whether the door is open or not
+
+    the index is `(a, b)` - the first 2 bytes of the door data structure
+    """
     doors: Dict[int, List[bytes]]
-    """ map_index: [[a, b, x, y, t], ...] """
+    """
+    map_index: [[a, b, x, y, t], ...]
+        - a - byte index pointing to data of whether the door is open
+        - b - bit mask ^
+        - x - `<< 2` for (left) x pixel of door (or elevator)
+        - y - 0 top row (both door and elevator), 4 door on bottom, 5 elevator on bottom
+        - t - `DoorSprite`
+    """
 
     def __init__(self, rom: bytes) -> None:
         self.status_reference_counts = Counter()
@@ -32,7 +109,7 @@ class DoorManager:
             while door_count > 0:
                 door_data = rom[door_data_address:door_data_address + 5]
                 a, b, _, _, _ = door_data
-                status: DoorStatus = (a, b)
+                status: DoorStatusIndex = (a, b)
                 self.status_reference_counts[status] += 1
                 self.doors[map_index].append(door_data)
 
