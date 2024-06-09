@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import ClassVar, Dict, List, Any
+from typing import Dict, List, Any
 # some changes here for working on region connections
 # from typing_extensions import Unpack  # type: ignore
 
@@ -16,17 +16,12 @@ class Region:
     computer: bytes
     """ `0xff` for all non-generated rooms """
 
-    # static
-    all_temp: ClassVar[Dict[str, "Region"]] = {}
-    """ This should be assigned by the make_regions function and saved somewhere else after that. """
-
     def __init__(self, name: str, door: int = 0) -> None:
         self.name = name
         self.door = door
         self.connections = {}
         self.locations = []
         self.computer = b'\xff'
-        Region.all_temp[name] = self
 
     # this is good for type checking when working with region connections
     # but it doesn't run (I think it's Python 3.11 or something...)
@@ -35,8 +30,12 @@ class Region:
         """
         make a connection
 
+        if `door` argument `is True`, this connection requires the door of `self` to be open
+
         both directions, same requirements for the return direction
         """
+        if req_args.get("door") is True:
+            req_args["door"] = self.door
         self.connections[other] = Req(**req_args)
         other.connections[self] = Req(**req_args)  # Is it bad that I'm not making a deep copy of the union?
 
