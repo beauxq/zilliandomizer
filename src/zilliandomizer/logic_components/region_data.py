@@ -67,9 +67,8 @@ class MapBuilder:
             self._add_region(name, door_id, locs)
 
 
-def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
-    """ return { region_name: region } """
-    mb = MapBuilder(locations)
+def make_blue(mb: MapBuilder) -> None:
+    """ creates regions up to "between_blue_red" and connects everything up to the same """
 
     mb.hall("start")
     mb.hall("left_of_start")
@@ -94,7 +93,36 @@ def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
 
     mb.hall("between_blue_red")
 
-    mb.room(5, 1, 5, True)
+    # connections
+
+    mb.r["start"].to(mb.r["r02c7"])
+    mb.r["r02c7"].to(mb.r["r01c7"], door=True)
+
+    mb.r["start"].to(mb.r["left_of_start"], union=(Req(skill=1), Req(hp=300)))
+    mb.r["left_of_start"].to(mb.r["r02c0"])
+    mb.r["left_of_start"].to(mb.r["r01c2"])
+    mb.r["r01c2"].to(mb.r["r01c3"], door=True)
+    mb.r["r01c3"].to(mb.r["r01c5"], union=(Req(skill=1), Req(hp=180)))
+
+    mb.r["start"].to(mb.r["r03c5"])
+    mb.r["r03c5"].to(mb.r["r03c4"], door=True)
+    mb.r["r03c4"].connections[mb.r["r03c5"]].jump = 1
+    mb.r["r03c4"].to(mb.r["r03c3"], door=True)
+    mb.r["r03c3"].to(mb.r["r03c2"], door=True)
+
+    mb.r["r03c2"].to(mb.r["r04c1"], door=True)
+    mb.r["r04c1"].to(mb.r["r04c2"], door=True)
+    mb.r["r03c2"].to(mb.r["r04c2"], door=True)
+
+    mb.r["r04c2"].to(mb.r["r04c4"], door=True)
+    mb.r["r04c4"].to(mb.r["r04c5"], door=True)
+
+    mb.r["r04c5"].to(mb.r["between_blue_red"], door=True)
+
+
+def make_red_right(mb: MapBuilder) -> None:
+    """ given "between_blue_red" create and connect up to "red_elevator" """
+
     mb.room(5, 3, 5, True)
     mb.split(5, 4, {
         "sw": [
@@ -111,13 +139,11 @@ def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
     mb.room(5, 5, 5, False)
     mb.room(5, 7, 6, True)
 
-    mb.room(6, 1, 5, True)
     mb.room(6, 3, 5, True)
     mb.room(6, 4, 5, True)
     mb.room(6, 6, 5, True)
     mb.room(6, 7, 5, True)
 
-    mb.room(7, 1, 5, True)
     mb.room(7, 3, 6, True)
     mb.room(7, 4, 2, False)
     mb.room(7, 5, 6, True)
@@ -141,14 +167,86 @@ def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
     mb.room(8, 6, 6, True)
     mb.room(8, 7, 5, True)
 
-    mb.room(9, 1, 3, False)
     mb.room(9, 3, 5, True)
     mb.room(9, 4, 5, True)
     mb.room(9, 5, 5, True)
     mb.room(9, 7, 2, False)
 
     mb.hall("red_elevator")
+
+    # connections
+
+    mb.r["between_blue_red"].to(mb.r["r05c5"])
+    mb.r["between_blue_red"].to(mb.r["r05c7"])
+
+    mb.r["r05c7"].to(mb.r["r06c7"], door=True, union=(Req(skill=1), Req(hp=360)))
+    mb.r["r06c7"].connections[mb.r["r05c7"]].hp = 120
+    mb.r["r06c7"].to(mb.r["r06c6"], door=True)
+
+    # r06c6 is red junction
+
+    # left
+
+    mb.r["r06c6"].to(mb.r["r06c4"], door=True)
+    mb.r["r06c4"].to(mb.r["r06c3"], door=True)
+    mb.r["r06c3"].to(mb.r["r05c3"], door=True)
+    mb.r["r05c3"].to(mb.r["r05c4sw"], door=True)
+    mb.r["r05c4sw"].to(mb.r["r05c4ne"], door=True, union=(Req(skill=1), Req(hp=300)))
+
+    # down left
+
+    mb.r["r06c6"].to(mb.r["r07c6"], door=True)
+    mb.r["r07c6"].to(mb.r["r07c5"], door=True)
+    mb.r["r07c5"].to(mb.r["r07c4"], door=True)
+    mb.r["r07c4"].to(mb.r["r07c3"])
+    mb.r["r07c3"].to(mb.r["r08c3"], door=True)
+    mb.r["r08c3"].to(mb.r["r08c4sw"])
+
+    # down right
+
+    mb.r["r07c6"].to(mb.r["r07c7"], door=True)
+    mb.r["r07c7"].to(mb.r["r08c7"], door=True)
+    mb.r["r08c7"].to(mb.r["r08c6"], door=True)
+    mb.r["r08c6"].to(mb.r["r08c5"], door=True)
+    mb.r["r08c5"].to(mb.r["r08c4ne"], door=True)
+    mb.r["r08c4ne"].to(mb.r["r09c4"], door=True)
+    mb.r["r09c4"].to(mb.r["r09c5"], door=True)
+    mb.r["r09c5"].to(mb.r["r09c7"], door=True)
+    mb.r["r09c4"].to(mb.r["r09c3"], door=True)
+
+    mb.r["r09c3"].to(mb.r["red_elevator"], door=True)
+    mb.r["r08c3"].to(mb.r["red_elevator"], door=True)
+    mb.r["r06c3"].to(mb.r["red_elevator"], door=True)
+
+
+def make_red_left(mb: MapBuilder) -> None:
+    """ given "red_elevator" create and connect up to "big_elevator" """
+
+    mb.room(5, 1, 5, True)
+    mb.room(6, 1, 5, True)
+    mb.room(7, 1, 5, True)
+    mb.room(9, 1, 3, False)
     mb.hall("big_elevator")
+
+    # connections
+
+    mb.r["red_elevator"].to(mb.r["r05c1"])
+    mb.r["r05c1"].to(mb.r["r06c1"], door=True)
+    mb.r["r06c1"].to(mb.r["r07c1"], door=True)
+    mb.r["r07c1"].to(mb.r["r09c1"], door=True)
+
+    mb.r["r07c1"].to(mb.r["big_elevator"], door=True)
+
+
+def make_red(mb: MapBuilder) -> None:
+    """ given "between_blue_red" creates regions up to "big_elevator" and connects everything up to the same """
+
+    make_red_right(mb)
+    make_red_left(mb)
+
+
+def make_paperclip(mb: MapBuilder) -> None:
+    """ from "big+elevator" to everything below red """
 
     mb.split(10, 1, {
         "n": [
@@ -392,76 +490,6 @@ def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
 
     # connections
 
-    mb.r["start"].to(mb.r["r02c7"])
-    mb.r["r02c7"].to(mb.r["r01c7"], door=True)
-
-    mb.r["start"].to(mb.r["left_of_start"], union=(Req(skill=1), Req(hp=300)))
-    mb.r["left_of_start"].to(mb.r["r02c0"])
-    mb.r["left_of_start"].to(mb.r["r01c2"])
-    mb.r["r01c2"].to(mb.r["r01c3"], door=True)
-    mb.r["r01c3"].to(mb.r["r01c5"], union=(Req(skill=1), Req(hp=180)))
-
-    mb.r["start"].to(mb.r["r03c5"])
-    mb.r["r03c5"].to(mb.r["r03c4"], door=True)
-    mb.r["r03c4"].connections[mb.r["r03c5"]].jump = 1
-    mb.r["r03c4"].to(mb.r["r03c3"], door=True)
-    mb.r["r03c3"].to(mb.r["r03c2"], door=True)
-
-    mb.r["r03c2"].to(mb.r["r04c1"], door=True)
-    mb.r["r04c1"].to(mb.r["r04c2"], door=True)
-    mb.r["r03c2"].to(mb.r["r04c2"], door=True)
-
-    mb.r["r04c2"].to(mb.r["r04c4"], door=True)
-    mb.r["r04c4"].to(mb.r["r04c5"], door=True)
-
-    mb.r["r04c5"].to(mb.r["between_blue_red"], door=True)
-    mb.r["between_blue_red"].to(mb.r["r05c5"])
-    mb.r["between_blue_red"].to(mb.r["r05c7"])
-
-    mb.r["r05c7"].to(mb.r["r06c7"], door=True, union=(Req(skill=1), Req(hp=360)))
-    mb.r["r06c7"].connections[mb.r["r05c7"]].hp = 120
-    mb.r["r06c7"].to(mb.r["r06c6"], door=True)
-
-    # r06c6 is red junction
-
-    # left
-
-    mb.r["r06c6"].to(mb.r["r06c4"], door=True)
-    mb.r["r06c4"].to(mb.r["r06c3"], door=True)
-    mb.r["r06c3"].to(mb.r["r05c3"], door=True)
-    mb.r["r05c3"].to(mb.r["r05c4sw"], door=True)
-    mb.r["r05c4sw"].to(mb.r["r05c4ne"], door=True, union=(Req(skill=1), Req(hp=300)))
-
-    # down left
-
-    mb.r["r06c6"].to(mb.r["r07c6"], door=True)
-    mb.r["r07c6"].to(mb.r["r07c5"], door=True)
-    mb.r["r07c5"].to(mb.r["r07c4"], door=True)
-    mb.r["r07c4"].to(mb.r["r07c3"])
-    mb.r["r07c3"].to(mb.r["r08c3"], door=True)
-    mb.r["r08c3"].to(mb.r["r08c4sw"])
-
-    # down right
-
-    mb.r["r07c6"].to(mb.r["r07c7"], door=True)
-    mb.r["r07c7"].to(mb.r["r08c7"], door=True)
-    mb.r["r08c7"].to(mb.r["r08c6"], door=True)
-    mb.r["r08c6"].to(mb.r["r08c5"], door=True)
-    mb.r["r08c5"].to(mb.r["r08c4ne"], door=True)
-    mb.r["r08c4ne"].to(mb.r["r09c4"], door=True)
-    mb.r["r09c4"].to(mb.r["r09c5"], door=True)
-    mb.r["r09c5"].to(mb.r["r09c7"], door=True)
-    mb.r["r09c4"].to(mb.r["r09c3"], door=True)
-
-    mb.r["r09c3"].to(mb.r["red_elevator"], door=True)
-    mb.r["r08c3"].to(mb.r["red_elevator"], door=True)
-    mb.r["r06c3"].to(mb.r["red_elevator"], door=True)
-    mb.r["red_elevator"].to(mb.r["r05c1"])
-    mb.r["r05c1"].to(mb.r["r06c1"], door=True)
-    mb.r["r06c1"].to(mb.r["r07c1"], door=True)
-    mb.r["r07c1"].to(mb.r["r09c1"], door=True)
-
-    mb.r["r07c1"].to(mb.r["big_elevator"], door=True)
     mb.r["big_elevator"].to(mb.r["r11c1w"])
     mb.r["r11c1w"].to(mb.r["r10c1s"], door=mb.r["r11c2"].door)  # this is a strange door req, not a mistake
     mb.r["big_elevator"].to(mb.r["r13c1w"])
@@ -547,5 +575,14 @@ def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
     mb.r["r14c6s"].to(mb.r["final_elevator"], door=mb.r["r14c6n"].door)  # pre-opened door
     mb.r["final_elevator"].to(mb.r["r13c6e"])  # pick up red id card
     mb.r["final_elevator"].to(mb.r["r10c5"])  # main computer
+
+
+def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
+    """ return { region_name: region } """
+    mb = MapBuilder(locations)
+
+    make_blue(mb)
+    make_red(mb)
+    make_paperclip(mb)
 
     return mb.r
