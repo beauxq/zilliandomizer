@@ -39,12 +39,14 @@ class System:
         assert self.randomizer, "initialization step was skipped"
         options = self.randomizer.options
         self._modified_rooms = frozenset()
+        # TODO: 3-choice option for map_gen
         if options.room_gen:
             print("Zillion room gen enabled - generating rooms...")  # this takes time
             rm = self.resource_managers
             jump_req_rooms = room_jump_requirements()
             rm.aem.room_gen_mods()
-            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self.randomizer.logger, options.skill, self.randomizer.regions)
+            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self.randomizer.logger, options.skill,
+                               self.randomizer.regions, self.randomizer.room_gen_data)
             room_gen.generate_all(jump_req_rooms)
             self.randomizer.reset(room_gen)
             self._modified_rooms = room_gen.get_modified_rooms()
@@ -59,6 +61,7 @@ class System:
 
         def choose_escape_time(skill: int) -> int:
             """ based on skill - WR did escape in 160 - skill 5 could require 165-194 """
+            # TODO: adjusted with map_gen
             low = 300 - (skill * 27)
             return random.randrange(low, low + 30)
 

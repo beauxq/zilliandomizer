@@ -9,8 +9,6 @@ def test_make() -> None:
     print(bm.path(Node(0, 3), Node(4, 0)))
 
     print(f"fork distance {bm.fork_altitude(Node(0, 3), (Node(1, 0), Node(3, 0), Node(4, 0)))}")
-    # reject if fork distance 0
-    # reject if r07c7 is dead end (because there's nothing to put behind a door - only 4 canisters)
 
 
 def test_no_changes() -> None:

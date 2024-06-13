@@ -1,8 +1,9 @@
 from collections import defaultdict
-from typing import Dict, List, Mapping, Tuple
+from typing import Dict, List, Mapping, Tuple, Union
 
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.locations import Location, Req
+from zilliandomizer.map_gen.base_maker import BaseMaker
 
 
 class MapBuilder:
@@ -20,6 +21,7 @@ class MapBuilder:
             if len(split) == 2:
                 reg_name = split[0]
                 self.reg_name_to_loc_name[reg_name].append(loc_name)
+                assert len(self.reg_name_to_loc_name[reg_name]) < 8, f"{reg_name=}"
             else:
                 assert loc_name == "main", f"loc_name with no region: {loc_name}"
 
@@ -32,6 +34,7 @@ class MapBuilder:
     def _add_region(self, name: str, door_id: int, locs: List[str]) -> None:
         region = Region(name, door_id)
         self.r[name] = region
+        assert len(locs) < 8, f"{name=} {locs=}"
         for loc_name in locs:
             region.locations.append(self.locations[loc_name])
 
@@ -238,10 +241,14 @@ def make_red_left(mb: MapBuilder) -> None:
     mb.r["r07c1"].to(mb.r["big_elevator"], door=True)
 
 
-def make_red(mb: MapBuilder) -> None:
+def make_red(mb: MapBuilder, bm: Union[BaseMaker, None]) -> None:
     """ given "between_blue_red" creates regions up to "big_elevator" and connects everything up to the same """
 
-    make_red_right(mb)
+    if bm:
+        from zilliandomizer.map_gen.region_maker import make_red_right_bm
+        make_red_right_bm(bm, mb)
+    else:  # vanilla
+        make_red_right(mb)
     make_red_left(mb)
 
 
@@ -577,12 +584,12 @@ def make_paperclip(mb: MapBuilder) -> None:
     mb.r["final_elevator"].to(mb.r["r10c5"])  # main computer
 
 
-def make_regions(locations: Mapping[str, Location]) -> Dict[str, Region]:
+def make_regions(locations: Mapping[str, Location], bm: Union[BaseMaker, None] = None) -> Dict[str, Region]:
     """ return { region_name: region } """
     mb = MapBuilder(locations)
 
     make_blue(mb)
-    make_red(mb)
+    make_red(mb, bm)
     make_paperclip(mb)
 
     return mb.r

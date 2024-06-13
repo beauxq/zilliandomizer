@@ -215,3 +215,17 @@ def red_inputs() -> Tuple[List[Edge], List[Edge]]:
     ]
 
     return possible_edges, existing_edges
+
+
+def get_red_base(seed: Union[int, str, None]) -> BaseMaker:
+    random = Random(seed)
+    while True:
+        possible, existing = red_inputs()
+        bm = BaseMaker(5, 5, possible, existing, random.randrange(1999999999))
+        bm.make()
+        # we don't want the path to one red exit to go past another red exit
+        fork_distance = bm.fork_altitude(Node(0, 3), (Node(1, 0), Node(3, 0), Node(4, 0)))
+        # we don't want r07c7 to be a dead end, because there are only 4 canisters, so nothing to put behind a door
+        r07c7_is_dead_end = len(list(bm.adjs(Node(2, 4)))) < 2
+        if fork_distance > 0 and not r07c7_is_dead_end:
+            return bm

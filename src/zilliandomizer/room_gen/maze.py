@@ -3,10 +3,11 @@ from copy import deepcopy
 from dataclasses import dataclass
 import random
 from typing import Dict, FrozenSet, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
+
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
 from zilliandomizer.low_resources.terrain_tiles import Tile
-from zilliandomizer.room_gen.common import Coord
+from zilliandomizer.room_gen.common import Coord, EdgeDoors
 from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
 from zilliandomizer.terrain_modifier import TerrainModifier
 
@@ -52,6 +53,7 @@ class Grid:
     _logger: Logger
     _skill: int
     """ skill from options """
+    _edge_doors: EdgeDoors
 
     def __init__(self,
                  exits: List[Coord],
@@ -60,7 +62,8 @@ class Grid:
                  tc: TerrainModifier,
                  logger: Logger,
                  skill: int,
-                 no_space: Iterable[Coord]) -> None:
+                 no_space: Iterable[Coord],
+                 edge_doors: EdgeDoors) -> None:
         self.exits = exits
         self.ends = ends
         self.map_index = map_index
@@ -69,6 +72,7 @@ class Grid:
         """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
         self._skill = skill
+        self._edge_doors = edge_doors
         self.walkways = self.walkways_in_room()
         self.reset()
 
@@ -651,7 +655,8 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.exits, self.ends, self.map_index, self._tc, self._logger, self._skill, self.no_space)
+        tr = Grid(self.exits, self.ends, self.map_index, self._tc,
+                  self._logger, self._skill, self.no_space, self._edge_doors)
         tr.data = deepcopy(self.data)
         return tr
 
@@ -897,7 +902,16 @@ class Grid:
         for row in range(len(self.data)):
 
             # left wall
-            tr.append(original_data[len(tr)])
+            if self._edge_doors:
+                if row + 1 in self._edge_doors[0]:
+                    left_wall = space_odd if (row & 1) else space_even
+                elif row in self._edge_doors[0]:
+                    left_wall = floor_odd if (row & 1) else floor_even
+                else:
+                    left_wall = wall
+            else:  # vanilla
+                left_wall = original_data[len(tr)]
+            tr.append(left_wall)
 
             for col in range(len(self.data[0])):
                 if self.data[row][col] == Cell.wall:
@@ -920,7 +934,16 @@ class Grid:
                             tr.append(floor_ceiling_odd if (row & 1) else floor_ceiling_even)
 
             # right wall
-            tr.append(original_data[len(tr)])
+            if self._edge_doors:
+                if row + 1 in self._edge_doors[1]:
+                    right_wall = space_odd if (row & 1) else space_even
+                elif row in self._edge_doors[1]:
+                    right_wall = floor_odd if (row & 1) else floor_even
+                else:
+                    right_wall = wall
+            else:  # vanilla
+                right_wall = original_data[len(tr)]
+            tr.append(right_wall)
 
         Alarms.add_alarms_to_room_terrain_bytes(tr, alarm_blocks)
 
