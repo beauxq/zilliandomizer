@@ -1,9 +1,9 @@
-from collections import Counter, defaultdict
+from collections import defaultdict
 from enum import IntEnum
 from typing import Dict, List, Literal, Tuple
-import typing
 
 from zilliandomizer.low_resources import rom_info
+from zilliandomizer.utils.deterministic_set import DetSet
 
 BANK_4_OFFSET = 0x8000
 
@@ -74,10 +74,18 @@ class DoorSprite(IntEnum):
 
 
 class DoorManager:
-    status_reference_counts: typing.Counter[DoorStatusIndex]
+    original_statuses: Dict[int, DoorStatusIndex]
     """
-    how many of the door data structures (in the entire base)
-    share the same share the same info on whether the door is open or not
+    This room is the first time these statuses are opened.
+
+    (only newly created doors)
+    """
+    freed_statuses: DetSet[DoorStatusIndex]
+    """ this `DoorStatusIndex` existed in vanilla, but all its doors have been deleted """
+    status_reference_counts: Dict[DoorStatusIndex, List[int]]
+    """
+    which room has a door data structure that
+    shares the same share the same info on whether the door is open or not
 
     the index is `(a, b)` - the first 2 bytes of the door data structure
     """
@@ -91,30 +99,97 @@ class DoorManager:
         - t - `DoorSprite`
     """
 
-    def __init__(self, rom: bytes) -> None:
-        self.status_reference_counts = Counter()
-        self.doors = defaultdict(list)
+    def __init__(self) -> None:
+        self.original_statuses = {}
+        self.freed_statuses = DetSet()
+        self.status_reference_counts = defaultdict(list)
+        from copy import deepcopy
+        from .door_data import doors
+        self.doors = defaultdict(list, deepcopy(doors))
 
-        self._fill(rom)
+        self._fill()
 
-    def _fill(self, rom: bytes) -> None:
-        for map_index in range(136):
-            row = map_index // 8
-            col = map_index % 8
-            room_data_address = rom_info.terrain_index_13725 + 65 * row + 8 * col
-            room_data = rom[room_data_address:room_data_address + 8]
-            door_data_address = (room_data[5] | (room_data[6] * 256)) + BANK_4_OFFSET
-            door_count = rom[door_data_address]
-            door_data_address += 1
-            while door_count > 0:
-                door_data = rom[door_data_address:door_data_address + 5]
+    def _fill(self) -> None:
+        for map_index, door_list in self.doors.items():
+            for door_data in door_list:
                 a, b, _, _, _ = door_data
                 status: DoorStatusIndex = (a, b)
-                self.status_reference_counts[status] += 1
-                self.doors[map_index].append(door_data)
+                self.status_reference_counts[status].append(map_index)
+                # map_index 65 or 90 is the only place where more than 2 doors all share the same status bit
+                # (because no computer to open them)
+                assert (
+                    len(self.status_reference_counts[status]) <= 2
+                    or status == (19, 1)
+                    or status == (37, 1)
+                ), f"{map_index=} {status=}"
 
-                door_count -= 1
-                door_data_address += 5
+    def del_room(self, map_index: int) -> None:
+        """ and matching status references in other rooms (elevator in destination room) """
+        if map_index in self.doors:
+            door_list = self.doors[map_index]
+            while len(door_list):
+                door = door_list.pop()
+                a, b, _, _, _ = door
+                status: DoorStatusIndex = (a, b)
+                for each_map_index in self.status_reference_counts[status]:
+                    self.doors[each_map_index] = [
+                        each_door
+                        for each_door in self.doors[each_map_index]
+                        if not each_door.startswith(bytes(status))
+                    ]
+                self.status_reference_counts[status] = []
+                assert status not in self.freed_statuses, f"{map_index=} {status=}"
+                self.freed_statuses.add(status)
+
+    def add_door(self, map_index: int, y_large: int, x_pixel: int, opened_by: int) -> None:
+        status = self._get_available_status(opened_by)
+        x_door = x_pixel >> 2
+        sprite = DoorSprite.get_door(map_index, x_door)
+        door_data = bytes((status[0], status[1], x_door, y_large, sprite))
+        self.doors[map_index].append(door_data)
+        self.status_reference_counts[status].append(map_index)
+
+    def add_elevator(self, map_index: int, y_large: Literal[0, 5], x_pixel: int, opened_by: int) -> None:
+        """ both in this room and destination room """
+        status = self._get_available_status(opened_by)
+        x_door = x_pixel >> 2
+        sprite = DoorSprite.get_elevator(map_index, y_large)
+        door_data = bytes((status[0], status[1], x_door, y_large, sprite))
+        self.doors[map_index].append(door_data)
+        self.status_reference_counts[status].append(map_index)
+
+        dest_y: Literal[0, 5]
+        if y_large == 0:
+            # going up
+            dest_map_index = map_index - 8
+            dest_y = 5
+        else:  # doing down
+            assert y_large == 5, f"{y_large=}"  # TODO: assert_type
+            dest_map_index = map_index + 8
+            dest_y = 0
+        dest_sprite = DoorSprite.get_elevator(dest_map_index, dest_y)
+        dest_door_data = bytes((status[0], status[1], x_door, dest_y, dest_sprite))
+        self.doors[dest_map_index].append(dest_door_data)
+        self.status_reference_counts[status].append(dest_map_index)
+
+    def _get_available_status(self, opening_map_index: int) -> DoorStatusIndex:
+        """ and remove from freed """
+        status = self.original_statuses.get(opening_map_index)
+        if status:
+            return status
+        if len(self.freed_statuses):
+            status = self.freed_statuses.pop()
+            self.original_statuses[opening_map_index] = status
+            return status
+        index = 3
+        while True:
+            # In vanilla, none use more than 3 bits (1, 2, 4), so I don't know if it's safe to use more.
+            for bit in (1, 2, 4):
+                status = (index, bit)
+                if len(self.status_reference_counts[status]) == 0:
+                    self.original_statuses[opening_map_index] = status
+                    return status
+            index += 1
 
     def get_writes(self) -> Dict[int, int]:
         null_address = rom_info.door_data_begin_13ce8
@@ -127,7 +202,7 @@ class DoorManager:
             row = map_index // 8
             col = map_index % 8
             door_data_pointer_address = rom_info.terrain_index_13725 + 65 * row + 8 * col + 5
-            doors = self.doors[map_index]
+            doors = self.doors.get(map_index, [])
             if len(doors) == 0:
                 print(f"room {map_index} no doors")
                 tr[door_data_pointer_address] = null_banked_lo

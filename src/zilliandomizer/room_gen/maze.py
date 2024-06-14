@@ -63,7 +63,7 @@ class Grid:
                  logger: Logger,
                  skill: int,
                  no_space: Iterable[Coord],
-                 edge_doors: EdgeDoors) -> None:
+                 edge_doors: EdgeDoors = None) -> None:
         self.exits = exits
         self.ends = ends
         self.map_index = map_index

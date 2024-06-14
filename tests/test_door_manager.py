@@ -6,7 +6,7 @@ from zilliandomizer.patch import Patcher
 @pytest.mark.usefixtures("fake_rom")
 def test_no_changes() -> None:
     p = Patcher()
-    dm = DoorManager(p.rom)
+    dm = DoorManager()
     writes = dm.get_writes()
     print(writes)
     new_rom = bytearray(0x14000)

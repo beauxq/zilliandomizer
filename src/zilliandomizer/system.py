@@ -83,11 +83,13 @@ class System:
     def get_game(self) -> Game:
         assert self.randomizer, "initialization step was skipped"
         rm = self.resource_managers
+        writes = rm.get_writes()
+        writes.update(self.randomizer.get_door_writes())
         return Game(
             self.randomizer.options,
             rm.escape_time,
             rm.char_order,
             self.randomizer.loc_name_2_pretty,
             self.randomizer.get_region_data(),
-            rm.get_writes()
+            writes
         )

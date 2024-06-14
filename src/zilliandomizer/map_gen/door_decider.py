@@ -37,12 +37,6 @@ class Desc:
     """ in door data structure units (0 - 5) """
     x: int
     """ in pixels (0x00 - 0xf0) """
-    door: bool = True
-    """
-    a door blocking the way that needs to be opened by computer
-    (`False` if it's open when you first arrive in the room)
-    (Don't pay attention to this member if it's an elevator, because elevator always needs the door data.)
-    """
 
     def corner_conflicts(self) -> List[Corner]:
         """ with possible conflicts (A door in a corner is not a possible conflict - only doors at 1 or 3.) """
@@ -80,6 +74,17 @@ class Desc:
         return []
 
 
+# TODO: duplicate info in region_maker
+_red_right_no_doors = {
+    Node(0, 2),  # no computer  # TODO: implement changing which rooms have computers and doors?
+    Node(0, 3),  # start hall
+    Node(1, 2),  # hall
+    Node(2, 1),  # no computer and no canisters
+    Node(4, 3),  # hall
+    Node(4, 4),  # no canisters
+}
+
+
 def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
     """
     choose locations of doors and elevators
@@ -95,14 +100,29 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
     }
     edge_descriptions: Dict[Node, Dict[Node, Desc]] = {
         Node(0, 3): {
-            Node(0, 2): Desc(DE.door, 4, 0x00, False),
-            Node(0, 4): Desc(DE.door, 4, 0xf0, False),
+            Node(0, 2): Desc(DE.door, 4, 0x00),
+            Node(0, 4): Desc(DE.door, 4, 0xf0),
         },
     }
     dest_requires_y_4: Set[Node] = {
         Node(1, 2),  # hall
         Node(4, 3),  # hall
     }
+
+    def back_to_computer(node: Node) -> int:
+        """ map_index of last keyword room in path """
+        back: Union[Node, None] = node
+        while back in _red_right_no_doors:
+            back = parents[back]
+        # TODO: should BaseMaker know the last door before arriving at this section?
+        assert back, f"no keywords in path to elevator {node=}\n{bm.map_str()}"
+        return (back.y + bm.row_offset) * 8 + (back.x + bm.col_offset)
+
+    for row in range(bm.row_offset, bm.row_offset + bm.height):
+        for col in range(bm.col_offset, bm.col_offset + bm.width):
+            map_index = row * 8 + col
+            bm.door_manager.del_room(map_index)
+
     done: Set[Node] = set()
     q: Deque[Node] = deque([Node(0, 3)])
 
@@ -111,6 +131,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
         if here in done:
             continue
         done.add(here)
+        row = bm.row_offset + here.y
+        col = bm.col_offset + here.x
+        map_index = row * 8 + col
         adjs = list(bm.adjs(here))
         parent = parents[here]
         outs = [n for n in adjs if n != parent]
@@ -119,7 +142,7 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
             edge_descriptions[here] = {}
             in_desc = edge_descriptions[parent][here]
             entrance_y, entrance_x = get_entrance_coords(here, parent, in_desc)
-            out_through_in = Desc(in_desc.de, entrance_y, entrance_x, False)
+            out_through_in = Desc(in_desc.de, entrance_y, entrance_x)
             edge_descriptions[here][parent] = out_through_in
             corners_used_in_this_room = out_through_in.corner_conflicts()
             for out in outs:
@@ -132,6 +155,8 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     exit_x = 0xf0
                     exit_y = bm.random.choice(y_choices) if out not in dest_requires_y_4 else 4
                     out_desc = Desc(DE.door, exit_y, exit_x)
+                    if here not in _red_right_no_doors:
+                        bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
                 elif here.x > out.x:  # going to left
                     y_choices = [0, 2, 4]
                     if Corner.tl not in corners_used_in_this_room:
@@ -141,6 +166,8 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     exit_x = 0x00
                     exit_y = bm.random.choice(y_choices) if out not in dest_requires_y_4 else 4
                     out_desc = Desc(DE.door, exit_y, exit_x)
+                    if here not in _red_right_no_doors:
+                        bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
                 elif here.y < out.y:  # going down
                     x_choices = [
                         x
@@ -151,6 +178,7 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     exit_x = bm.random.choice(x_choices)
                     exit_y = 5
                     out_desc = Desc(DE.elevator, exit_y, exit_x)
+                    bm.door_manager.add_elevator(map_index, exit_y, exit_x, back_to_computer(here))
                 elif here.y > out.y:  # going up
                     x_choices = [
                         x
@@ -161,6 +189,7 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     exit_x = bm.random.choice(x_choices)
                     exit_y = 0
                     out_desc = Desc(DE.elevator, exit_y, exit_x)
+                    bm.door_manager.add_elevator(map_index, exit_y, exit_x, back_to_computer(here))
                 else:
                     raise ValueError(f"equal? {here=} {out=}")
 

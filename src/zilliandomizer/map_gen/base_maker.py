@@ -1,6 +1,7 @@
 from random import Random
 from typing import Dict, FrozenSet, Iterable, Iterator, List, NamedTuple, Sequence, Set, Tuple, Union
 
+from zilliandomizer.map_gen.door_manager import DoorManager
 from zilliandomizer.utils.disjoint_set import DisjointSet
 from zilliandomizer.utils.deterministic_set import DetSet
 
@@ -27,6 +28,8 @@ def h(y: int, x: int) -> Edge:
 
 class BaseMaker:
     random: Random
+    row_offset: int
+    col_offset: int
     height: int
     width: int
     possible_edges: DetSet[Edge]
@@ -35,8 +38,11 @@ class BaseMaker:
     """ destination: path """
     no_changes: Set[Node]
     """ which rooms will have no changes to the entrances and exits """
+    door_manager: DoorManager
 
     def __init__(self,
+                 row_offset: int,
+                 col_offset: int,
                  height: int,
                  width: int,
                  possible: Iterable[Edge],
@@ -48,6 +54,8 @@ class BaseMaker:
         possible is where there can be a room transition (not including existing)
         """
         self.random = Random(seed)
+        self.row_offset = row_offset
+        self.col_offset = col_offset
         self.height = height
         self.width = width
         self.possible_edges = DetSet(possible)
@@ -68,6 +76,8 @@ class BaseMaker:
                 v(y - 1, x) not in self.possible_edges
             )
         }
+
+        self.door_manager = DoorManager()
 
     def map_str(self) -> str:
         """ draw the map in ascii art """
@@ -221,7 +231,7 @@ def get_red_base(seed: Union[int, str, None]) -> BaseMaker:
     random = Random(seed)
     while True:
         possible, existing = red_inputs()
-        bm = BaseMaker(5, 5, possible, existing, random.randrange(1999999999))
+        bm = BaseMaker(5, 3, 5, 5, possible, existing, random.randrange(1999999999))
         bm.make()
         # we don't want the path to one red exit to go past another red exit
         fork_distance = bm.fork_altitude(Node(0, 3), (Node(1, 0), Node(3, 0), Node(4, 0)))

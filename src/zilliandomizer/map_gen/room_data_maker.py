@@ -21,7 +21,7 @@ def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], Edge
     first value in `descs` should be the entrance
     """
     out: List[Coord] = []
-    edge_doors: EdgeDoors = ([], [])
+    edge_doors: Tuple[List[int], List[int]] = ([], [])
     for desc in descs:
         if desc.de is DE.door:
             if desc.x == 0x00:

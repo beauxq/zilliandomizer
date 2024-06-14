@@ -419,3 +419,9 @@ class Randomizer:
     def get_region_data(self) -> List[RegionData]:
         """ after end of generation, get region/location/item data needed to write output """
         return [RegionData.from_region(r) for r in self.regions.values()]
+
+    def get_door_writes(self) -> Dict[int, int]:
+        """ from `DoorManager` """
+        if self._base:
+            return self._base.door_manager.get_writes()
+        return {}
