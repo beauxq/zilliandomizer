@@ -84,6 +84,17 @@ _red_right_no_doors = {
     Node(4, 4),  # no canisters
 }
 
+_requires_y_4: Set[Node] = {
+    Node(1, 2),  # hall
+    Node(4, 3),  # hall
+}
+
+_red_right_area_exits = {
+    51: Desc(DE.door, 4, 0x18),
+    67: Desc(DE.door, 4, 0x18),
+    75: Desc(DE.door, 4, 0x18),
+}
+
 
 def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
     """
@@ -100,13 +111,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
     }
     edge_descriptions: Dict[Node, Dict[Node, Desc]] = {
         Node(0, 3): {
-            Node(0, 2): Desc(DE.door, 4, 0x00),
+            Node(0, 2): Desc(DE.door, 4, 0x08),
             Node(0, 4): Desc(DE.door, 4, 0xf0),
         },
-    }
-    dest_requires_y_4: Set[Node] = {
-        Node(1, 2),  # hall
-        Node(4, 3),  # hall
     }
 
     def back_to_computer(node: Node) -> int:
@@ -153,7 +160,7 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     if Corner.br not in corners_used_in_this_room:
                         y_choices.append(3)
                     exit_x = 0xf0
-                    exit_y = bm.random.choice(y_choices) if out not in dest_requires_y_4 else 4
+                    exit_y = 4 if out in _requires_y_4 or here in _requires_y_4 else bm.random.choice(y_choices)
                     out_desc = Desc(DE.door, exit_y, exit_x)
                     if here not in _red_right_no_doors:
                         bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
@@ -163,8 +170,8 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                         y_choices.append(1)
                     if Corner.bl not in corners_used_in_this_room:
                         y_choices.append(3)
-                    exit_x = 0x00
-                    exit_y = bm.random.choice(y_choices) if out not in dest_requires_y_4 else 4
+                    exit_x = 0x08
+                    exit_y = 4 if out in _requires_y_4 or here in _requires_y_4 else bm.random.choice(y_choices)
                     out_desc = Desc(DE.door, exit_y, exit_x)
                     if here not in _red_right_no_doors:
                         bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
@@ -196,6 +203,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                 edge_descriptions[here][out] = out_desc
                 corners_used_in_this_room.extend(out_desc.corner_conflicts())
                 parents[out] = here
+            area_exit = _red_right_area_exits.get(map_index)
+            if area_exit:
+                bm.door_manager.add_door(map_index, area_exit.y, area_exit.x, map_index)
         q.extend(outs)
 
     return edge_descriptions
@@ -204,12 +214,12 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
 def get_entrance_coords(here: Node, parent: Node, in_desc: Desc) -> Tuple[int, int]:
     """ y, x """
     if here.x < parent.x:  # came from right
-        assert in_desc.de is DE.door and in_desc.x == 0x00, f"{here=}"
+        assert in_desc.de is DE.door and in_desc.x == 0x08, f"{here=}"
         entrance_x = 0xf0
         entrance_y = in_desc.y
     elif here.x > parent.x:  # came from left
         assert in_desc.de is DE.door and in_desc.x == 0xf0, f"{here=}"
-        entrance_x = 0x00
+        entrance_x = 0x08
         entrance_y = in_desc.y
     elif here.y < parent.y:  # came from below
         assert in_desc.de is DE.elevator and in_desc.y == 0, f"{here=}"

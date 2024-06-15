@@ -1,8 +1,8 @@
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Sized, Tuple
 
 from zilliandomizer.map_gen.base_maker import BaseMaker, Node
 from zilliandomizer.map_gen.door_decider import DE, Desc, make_edge_descriptions
-from zilliandomizer.room_gen.common import Coord, EdgeDoors, RoomData, TOP_LEFT, TOP_RIGHT
+from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors, RoomData, TOP_LEFT, TOP_RIGHT
 from zilliandomizer.room_gen.data import GEN_ROOMS
 
 _red_right_generate = {
@@ -24,7 +24,7 @@ def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], Edge
     edge_doors: Tuple[List[int], List[int]] = ([], [])
     for desc in descs:
         if desc.de is DE.door:
-            if desc.x == 0x00:
+            if desc.x == 0x08:
                 x = 0
             else:
                 assert desc.x == 0xf0, f"{desc.x=}"
@@ -56,7 +56,7 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
                 del out[map_index]
             if map_index not in _red_right_generate:
                 continue
-            node = Node(row - 5, col - 3)  # TODO: get these 5, 3 magic numbers from BaseMaker
+            node = Node(row - bm.row_offset, col - bm.col_offset)
             outs = edge_descriptions[node]
             exits, edge_doors = room_data_exits_from_descs(outs.values())
 
@@ -87,6 +87,13 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
             no_space: List[Coord]
             if map_index in {0x33, 0x43, 0x4b}:
                 no_space = [(3, 0)]
+                assert edge_doors
+                left_edge, right_edge = edge_doors
+                assert isinstance(left_edge, Sized) and len(left_edge) == 0, f"{left_edge=}"
+                left_edge = [4]
+                edge_doors = (left_edge, right_edge)
+                assert BOT_LEFT not in exits
+                exits.append(BOT_LEFT)
             else:
                 no_space = []
 
