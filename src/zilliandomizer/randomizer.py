@@ -58,6 +58,13 @@ class Randomizer:
     def reset(self, room_gen: Optional[RoomGen] = None) -> None:
         # Think of this function in 2 passes. The first time it's called, `room_gen` is `None`
         # then later, the rooms are generated and this function is called again.
+
+        # TODO: This could use a big refactor, to not create the randomizer until after
+        # making the map and the room_gen, and maybe rename this class to `Fill`?...
+        # Note that the only reason `RoomGen` needs the regions is for the number of locations in the room.
+        #   (and its `make_locations` copies location data for the rooms it didn't generate)
+        #   So we don't need this double pass to make regions before room gen.
+
         if room_gen:
             self._room_gen = room_gen
         locations = self._room_gen.make_locations() if self._room_gen else make_locations()

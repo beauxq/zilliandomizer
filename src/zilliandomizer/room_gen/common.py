@@ -25,6 +25,7 @@ class RoomData:
     computer: bool
     no_space: List[Coord]
     edge_doors: EdgeDoors = None
+    dead_end_can: Union[Coord, None] = None
 
 
 def coord_to_pixel(coord: Coord) -> Tuple[int, int]:

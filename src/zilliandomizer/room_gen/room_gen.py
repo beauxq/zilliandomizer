@@ -1,5 +1,5 @@
 from random import gauss, random, randrange, sample, shuffle
-from typing import Dict, FrozenSet, List, Literal, Mapping, Optional, Set, Tuple
+from typing import Dict, FrozenSet, List, Literal, Mapping, Optional, Set, Tuple, Union
 from zilliandomizer.alarm_data import ALARM_ROOMS
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.regions import Region
@@ -217,7 +217,7 @@ class RoomGen:
                 sprites = self.sm.get_room(map_index)
                 floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
                 placeable_count = (
-                    len(region_locations) +
+                    (len(region_locations) - (1 if this_room.dead_end_can else 0)) +
                     this_room.computer +
                     floor_sprite_count
                 )
@@ -232,7 +232,7 @@ class RoomGen:
                     sum_1 = sum(p[0] for p in placed_1)
                     sum_2 = sum(p[0] for p in placed_2)
                     placed = placed_1 if sum_1 < sum_2 else placed_2
-                alarm_blocks = self.place(placed, sprites, map_index, candidate)
+                alarm_blocks = self.place(placed, sprites, map_index, candidate, this_room.dead_end_can)
 
                 if map_index == 0x10:
                     # This is part of making sure 1st sphere is not empty.
@@ -278,13 +278,14 @@ class RoomGen:
               coords: List[Coord],
               sprites: RoomSprites,
               map_index: int,
-              grid: Grid) -> Dict[int, Literal['v', 'h', 'n']]:
+              grid: Grid,
+              dead_end_can: Union[Coord, None]) -> Dict[int, Literal['v', 'h', 'n']]:
         """
         place the things that need to be placed in this room
 
         length of coords should be the sum (
             the number of floor sprites in the non-player sprite table
-            + the number of canisters in the room
+            + (the number of canisters in the room - (1 if this_room.dead_end_can else 0))
             + 1 if there's a computer in the room
         )
 
@@ -392,6 +393,8 @@ class RoomGen:
             )
             cans.append((coord, jump))
         self._canisters[map_index] = cans
+        if dead_end_can:
+            self._canisters[map_index].append((dead_end_can, 0))
 
         self.sm.set_room(map_index, sprites)
 

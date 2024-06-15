@@ -42,9 +42,12 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         parent = parents[region_name_base]
 
         if divided:
+            locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
+            # assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"
+            # ^ This assert doesn't work because of the double pass of `Randomizer.reset`
             mb.split(map_row, map_col, {
-                "enter": [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]],
-                "locked": [],
+                "enter": locations_in_room[:-1],
+                "locked": [locations_in_room[-1]],
             }, True)
             enter_name = region_name_base + "enter"
             locked_name = region_name_base + "locked"

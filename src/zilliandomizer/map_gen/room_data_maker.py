@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Sized, Tuple
+from typing import Dict, Iterable, List, Sized, Tuple, Union
 
 from zilliandomizer.map_gen.base_maker import BaseMaker, Node
 from zilliandomizer.map_gen.door_decider import DE, Desc, make_edge_descriptions
@@ -68,20 +68,29 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
 
             computer_opens_door = computer and map_index != 79  # bottom right red room  # TODO: logic for whole base
 
+            dead_end_can: Union[Coord, None] = None
             if len(exits) == 1:
                 # dead end
                 if computer_opens_door:
                     y, x = exits[0]
                     if y > 3:
                         # entrance at bottom of room
-                        exits.append(bm.random.choice((TOP_RIGHT, TOP_LEFT)))
+                        dead_exit = bm.random.choice((TOP_RIGHT, TOP_LEFT))
                     else:
                         # entrance at top of room
                         if x < 7:
-                            exits.append(TOP_RIGHT)
+                            dead_exit = TOP_RIGHT
                         else:
-                            exits.append(TOP_LEFT)
-                    # TODO: make sure canister is placed in this corner
+                            dead_exit = TOP_LEFT
+                    exits.append(dead_exit)
+                    if dead_exit == TOP_RIGHT:
+                        bm.door_manager.add_door(map_index, 0, 0xd8, map_index)
+                        dead_end_can = (1, 13)
+                    else:
+                        assert dead_exit == TOP_LEFT
+                        bm.door_manager.add_door(map_index, 0, 0x20, map_index)
+                        dead_end_can = dead_exit
+                    assert dead_end_can
 
             # exits to red elevator, all need space before door to prevent softlock in escape
             no_space: List[Coord]
@@ -90,13 +99,13 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
                 assert edge_doors
                 left_edge, right_edge = edge_doors
                 assert isinstance(left_edge, Sized) and len(left_edge) == 0, f"{left_edge=}"
-                left_edge = [4]
+                left_edge = [5]
                 edge_doors = (left_edge, right_edge)
                 assert BOT_LEFT not in exits
                 exits.append(BOT_LEFT)
             else:
                 no_space = []
 
-            out[map_index] = RoomData(exits, computer, no_space, edge_doors)
+            out[map_index] = RoomData(exits, computer, no_space, edge_doors, dead_end_can)
 
     return out

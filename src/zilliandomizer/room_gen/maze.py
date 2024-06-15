@@ -904,7 +904,7 @@ class Grid:
             # left wall
             if self._edge_doors:
                 if row + 1 in self._edge_doors[0]:
-                    left_wall = space_odd if (row & 1) else space_even
+                    left_wall = ceiling_odd if (row & 1) else ceiling_even
                 elif row in self._edge_doors[0]:
                     left_wall = floor_odd if (row & 1) else floor_even
                 else:
@@ -936,7 +936,7 @@ class Grid:
             # right wall
             if self._edge_doors:
                 if row + 1 in self._edge_doors[1]:
-                    right_wall = space_odd if (row & 1) else space_even
+                    right_wall = ceiling_odd if (row & 1) else ceiling_even
                 elif row in self._edge_doors[1]:
                     right_wall = floor_odd if (row & 1) else floor_even
                 else:
