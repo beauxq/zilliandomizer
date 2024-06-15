@@ -1,10 +1,10 @@
 # when the jump level-ups happen for each character (see readme)
 # (vanilla, balanced, low, restrictive, random)
-jump_levels: balanced
+jump_levels: low
 
 # when the Zillion power level-ups happen for each character (see readme)
 # (vanilla, balanced, low, restrictive, random)
-gun_levels: balanced
+gun_levels: low
 
 # how many opa-opas are required for each level up (see readme)
 # (1-126, random)
@@ -36,8 +36,8 @@ floppy_req: 5
 # remaining will be filled with "Empty"
 item_counts:
   card: 55   # vanilla 63
-  bread: 33  # vanilla 33
-  opa: 26    # vanilla 26
+  bread: 41  # vanilla 33
+  opa: 18    # vanilla 26
   gun: 9     # vanilla 6
   floppy: 8  # vanilla 5
   scope: 4   # vanilla 4
@@ -54,7 +54,7 @@ randomize_alarms: true
 
 # whether to make sure there is a scope available early
 # (true, false)
-early_scope: false
+early_scope: true
 
 # change defense levels according to skill
 # All character's defense will be tweaked:
@@ -75,4 +75,4 @@ starting_cards: 2
 #     rooms divided into 2 regions are not randomized
 # whether to generate rooms with random terrain
 # (true, false)
-room_gen: false
+room_gen: true
