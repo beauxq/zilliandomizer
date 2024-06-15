@@ -31,12 +31,10 @@ def test_with_room_gen() -> None:
     system = System()
     p = system.make_patcher()
     options: Options = some_options
-    options.room_gen = True
-
-    r = system.make_randomizer(options)
+    options.map_gen = "rooms"
 
     system.seed(0x42069429)
-
+    r = system.make_randomizer(options)
     system.make_map()
 
     r.roll()

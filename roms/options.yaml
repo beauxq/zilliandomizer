@@ -73,6 +73,8 @@ starting_cards: 2
 # experimental:
 #   not done yet for generated rooms:
 #     rooms divided into 2 regions are not randomized
-# whether to generate rooms with random terrain
-# (true, false)
-room_gen: false
+# - none: vanilla terrain
+# - rooms: random terrain inside rooms, but path through base is vanilla
+# - full: random path through base
+# (none, rooms, full)
+map_gen: rooms

@@ -45,7 +45,7 @@ valid_choices: Dict[str, Container[Any]] = {
     "early_scope": (True, False),
     "balance_defense": (True, False),
     "starting_cards": range(127),
-    "room_gen": (True, False),
+    "map_gen": ("none", "rooms", "full"),
 }
 
 sub_options = {

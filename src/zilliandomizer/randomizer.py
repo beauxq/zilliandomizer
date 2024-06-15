@@ -46,12 +46,15 @@ class Randomizer:
             logger = Logger()
             logger.spoil_stdout = False
         self.logger = logger
-        if True:  # TODO: self.options.map_gen:
+        if self.options.map_gen == "full":
             self._base = get_red_base(randrange(1999999999))
             self.room_gen_data = make_room_gen_data(self._base)
-        else:  # vanilla map
+        elif self.options.map_gen == "rooms":
             self._base = None
             self.room_gen_data = GEN_ROOMS.copy()
+        else:  # vanilla terrain
+            self._base = None
+            self.room_gen_data = {}
 
         self.reset()
 

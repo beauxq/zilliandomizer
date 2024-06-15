@@ -40,7 +40,7 @@ class System:
         options = self.randomizer.options
         self._modified_rooms = frozenset()
         # TODO: 3-choice option for map_gen
-        if options.room_gen:
+        if options.map_gen != "none":
             print("Zillion room gen enabled - generating rooms...")  # this takes time
             rm = self.resource_managers
             jump_req_rooms = room_jump_requirements()
