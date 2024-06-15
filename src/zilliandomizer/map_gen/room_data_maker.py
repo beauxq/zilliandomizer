@@ -68,6 +68,20 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
 
             computer_opens_door = computer and map_index != 79  # bottom right red room  # TODO: logic for whole base
 
+            # exits to red elevator, all need space before door to prevent softlock in escape
+            no_space: List[Coord]
+            if map_index in {0x33, 0x43, 0x4b}:
+                no_space = [(3, 0)]
+                assert edge_doors
+                left_edge, right_edge = edge_doors
+                assert isinstance(left_edge, Sized) and len(left_edge) == 0, f"{left_edge=}"
+                left_edge = [5]
+                edge_doors = (left_edge, right_edge)
+                assert BOT_LEFT not in exits
+                exits.append(BOT_LEFT)
+            else:
+                no_space = []
+
             dead_end_can: Union[Coord, None] = None
             if len(exits) == 1:
                 # dead end
@@ -91,20 +105,6 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
                         bm.door_manager.add_door(map_index, 0, 0x20, map_index)
                         dead_end_can = dead_exit
                     assert dead_end_can
-
-            # exits to red elevator, all need space before door to prevent softlock in escape
-            no_space: List[Coord]
-            if map_index in {0x33, 0x43, 0x4b}:
-                no_space = [(3, 0)]
-                assert edge_doors
-                left_edge, right_edge = edge_doors
-                assert isinstance(left_edge, Sized) and len(left_edge) == 0, f"{left_edge=}"
-                left_edge = [5]
-                edge_doors = (left_edge, right_edge)
-                assert BOT_LEFT not in exits
-                exits.append(BOT_LEFT)
-            else:
-                no_space = []
 
             out[map_index] = RoomData(exits, computer, no_space, edge_doors, dead_end_can)
 

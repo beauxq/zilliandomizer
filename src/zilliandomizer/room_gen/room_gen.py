@@ -217,7 +217,7 @@ class RoomGen:
                 sprites = self.sm.get_room(map_index)
                 floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
                 placeable_count = (
-                    (len(region_locations) - (1 if this_room.dead_end_can else 0)) +
+                    len(region_locations) +
                     this_room.computer +
                     floor_sprite_count
                 )
