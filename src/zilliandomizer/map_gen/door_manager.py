@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import IntEnum
-from typing import Dict, List, Literal, Tuple
+from typing import Dict, List, Literal, Set, Tuple
 
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.utils.deterministic_set import DetSet
@@ -172,14 +172,14 @@ class DoorManager:
         self.doors[dest_map_index].append(dest_door_data)
         self.status_reference_counts[status].append(dest_map_index)
 
-    def _get_available_status(self, opening_map_index: int) -> DoorStatusIndex:
-        """ and remove from freed """
-        status = self.original_statuses.get(opening_map_index)
-        if status:
-            return status
+    def _get_new_status(self) -> DoorStatusIndex:
+        """
+        choose a new status that isn't used yet
+
+        don't use this when generating doors, use `_get_available_status`
+        """
         if len(self.freed_statuses):
             status = self.freed_statuses.pop()
-            self.original_statuses[opening_map_index] = status
             return status
         index = 3
         while True:
@@ -187,11 +187,51 @@ class DoorManager:
             for bit in (1, 2, 4):
                 status = (index, bit)
                 if len(self.status_reference_counts[status]) == 0:
-                    self.original_statuses[opening_map_index] = status
                     return status
             index += 1
 
+    def _get_available_status(self, opening_map_index: int) -> DoorStatusIndex:
+        """
+        get a status that will be opened by this map index
+        and register in original_statuses
+
+        to be used when generating doors
+        """
+        status = self.original_statuses.get(opening_map_index)
+        if status:
+            return status
+        status = self._get_new_status()
+        self.original_statuses[opening_map_index] = status
+        return status
+
+    def _fix_double_doors(self) -> None:
+        """
+        2 doors in the same room will bug if they have the same status reference.
+        (Elevators can share status reference in the same room.)
+
+        This invalidates the `add_door` and `add_elevator` functions
+        and should only be used after no more doors will be created.
+        """
+        for map_index, door_list in self.doors.items():
+            used_in_this_room: Set[DoorStatusIndex] = set()
+            for i in range(len(door_list)):
+                door_data = door_list[i]
+                if door_data[4] < 30:  # 30 is the lowest elevator, everything lower is door
+                    status: DoorStatusIndex = (door_data[0], door_data[1])
+                    if status in used_in_this_room:
+                        new_status = self._get_new_status()
+                        new_door_data = bytes([new_status[0], new_status[1], door_data[2], door_data[3], door_data[4]])
+                        door_list[i] = new_door_data
+                        self.status_reference_counts[new_status].append(map_index)
+                        # not removing from status reference count of previous status -
+                        # This is one of the things invalidating parts of this `DoorManager`
+                        used_in_this_room.add(new_status)
+                    else:
+                        used_in_this_room.add(status)
+
     def get_writes(self) -> Dict[int, int]:
+        self._fix_double_doors()
+
         null_address = rom_info.door_data_begin_13ce8
         null_banked_lo = null_address & 0xff
         null_banked_hi = (null_address - BANK_4_OFFSET) // 256

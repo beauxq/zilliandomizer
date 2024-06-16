@@ -77,7 +77,7 @@ class System:
             return random.randrange(low, low + 30)
 
         path_through_red = self.randomizer.get_path_through_red()
-        print(f"{path_through_red=}")
+        # print(f"{path_through_red=}")
         self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red)
 
         def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
