@@ -39,7 +39,6 @@ class System:
         assert self.randomizer, "initialization step was skipped"
         options = self.randomizer.options
         self._modified_rooms = frozenset()
-        # TODO: 3-choice option for map_gen
         if options.map_gen != "none":
             print("Zillion room gen enabled - generating rooms...")  # this takes time
             rm = self.resource_managers
