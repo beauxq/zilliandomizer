@@ -152,6 +152,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
             out_through_in = Desc(in_desc.de, entrance_y, entrance_x)
             edge_descriptions[here][parent] = out_through_in
             corners_used_in_this_room = out_through_in.corner_conflicts()
+            if (map_index - 8) in _red_right_area_exits:
+                # don't allow going up into the extended softlock avoidance door
+                corners_used_in_this_room.append(Corner.tl)
             for out in outs:
                 if here.x < out.x:  # going to right
                     y_choices = [0, 2, 4]

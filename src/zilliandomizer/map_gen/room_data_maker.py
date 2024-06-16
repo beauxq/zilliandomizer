@@ -77,7 +77,9 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
                 assert isinstance(left_edge, Sized) and len(left_edge) == 0, f"{left_edge=}"
                 left_edge = [5]
                 edge_doors = (left_edge, right_edge)
-                assert BOT_LEFT not in exits
+                # assert BOT_LEFT not in exits - this assertion not valid
+                # We allow leaving in this extended door space,
+                # but there's code in door_decider to avoid entering into this extended door space.
                 exits.append(BOT_LEFT)
             else:
                 no_space = []
