@@ -204,11 +204,11 @@ class DoorManager:
             door_data_pointer_address = rom_info.terrain_index_13725 + 65 * row + 8 * col + 5
             doors = self.doors.get(map_index, [])
             if len(doors) == 0:
-                print(f"room {map_index} no doors")
+                # print(f"room {map_index} no doors")
                 tr[door_data_pointer_address] = null_banked_lo
                 tr[door_data_pointer_address + 1] = null_banked_hi
             else:
-                print(f"room {map_index} {len(doors)} doors")
+                # print(f"room {map_index} {len(doors)} doors")
                 banked_data_address = address - BANK_4_OFFSET
                 banked_data_lo = banked_data_address & 0xff
                 banked_data_hi = banked_data_address // 256

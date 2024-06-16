@@ -5,7 +5,7 @@ from typing import Deque, Dict, List, Mapping, Optional, Set, Counter as _Counte
 
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logger import Logger
-from zilliandomizer.map_gen.base_maker import BaseMaker, get_red_base
+from zilliandomizer.map_gen.base_maker import BaseMaker, Node, get_red_base
 from zilliandomizer.map_gen.room_data_maker import make_room_gen_data
 from zilliandomizer.options import ID, Chars, Options, char_to_hp, char_to_gun, char_to_jump
 from zilliandomizer.logic_components.region_data import make_regions
@@ -435,3 +435,11 @@ class Randomizer:
         if self._base:
             return self._base.door_manager.get_writes()
         return {}
+
+    def get_path_through_red(self) -> int:
+        if self._base:
+            top = self._base.path(Node(0, 3), Node(1, 0))
+            mid = self._base.path(Node(0, 3), Node(3, 0))
+            bot = self._base.path(Node(0, 3), Node(4, 0))
+            return min(len(top), len(mid) + 1, len(bot) + 1)
+        return 7  # vanilla

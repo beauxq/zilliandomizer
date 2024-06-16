@@ -138,7 +138,7 @@ class BaseMaker:
 
     def path(self, fro: Node, to: Node) -> Sequence[Node]:
         if to in self.paths and self.paths[to][0] == fro:
-            print("found path in cache")
+            # print("found path in cache")
             return self.paths[to]
 
         been: Set[Node] = set()

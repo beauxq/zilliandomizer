@@ -59,13 +59,26 @@ class System:
             a = Alarms(self.resource_managers.tm, self.randomizer.logger)
             a.choose_all(self._modified_rooms)
 
-        def choose_escape_time(skill: int) -> int:
-            """ based on skill - WR did escape in 160 - skill 5 could require 165-194 """
-            # TODO: adjusted with map_gen
-            low = 300 - (skill * 27)
+        def choose_escape_time(skill: int, path_through_red: float) -> int:
+            """
+            based on skill - WR did escape in 160 - skill 5 could require 165-194
+
+            `path_through_red` is the number of rooms that the right red area has to go through -
+            vanilla is 7 (F-4 through E-7)
+            """
+
+            # adjusted with map_gen
+            if path_through_red < 7:
+                path_through_red = (path_through_red + 7) / 2
+            m = 20.5  # var that I played with in desmos to get good numbers
+            map_gen_multiplier = (path_through_red + m) / (7 + m)  # == 1 if path_through_red == 7
+
+            low = round((300 - (skill * 27)) * map_gen_multiplier)
             return random.randrange(low, low + 30)
 
-        self.resource_managers.escape_time = choose_escape_time(options.skill)
+        path_through_red = self.randomizer.get_path_through_red()
+        print(f"{path_through_red=}")
+        self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red)
 
         def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
             """
