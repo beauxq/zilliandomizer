@@ -9,6 +9,7 @@ class AlarmEntrance:
     ceiling: bool
     x: int
     level: int
+    """ the level of the enemy that enters """
 
 
 indexes = [

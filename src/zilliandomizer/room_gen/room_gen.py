@@ -399,10 +399,10 @@ class RoomGen:
         self.sm.set_room(map_index, sprites)
 
         if map_index in self._alarm_rooms:
+            enemy_level = 0 if map_index < 0x20 else (
+                1 if map_index < 0x50 else 2
+            )
             if self.aem.is_ceiling(map_index):
-                enemy_level = 0 if map_index < 0x20 else (
-                    1 if map_index < 0x50 else 2
-                )
                 for x, i in self.aem.get_ceiling_entrances(enemy_level):
                     col = x // 16 - 1
                     if grid.data[0][col] == Cell.space:
@@ -412,6 +412,24 @@ class RoomGen:
                         # so it will still be pointing at one of the ceiling entrances.
                         # (The order of the ceiling entrance data doesn't change.)
                         break
+            else:
+                edge_doors = grid.get_edge_doors()
+                if edge_doors:
+                    # not vanilla edge doors
+                    # change from door entrance to ceiling entrance
+                    chosen_index = -1
+                    for x, i in self.aem.get_ceiling_entrances(enemy_level):
+                        if chosen_index == -1:
+                            # default in case we don't find better
+                            chosen_index = i
+                        col = x // 16 - 1
+                        if grid.data[0][col] == Cell.space:
+                            self._logger.debug(f"map index {map_index} alarm entrance col {col}")
+                            chosen_index = i
+                            break
+                    assert chosen_index != -1
+                    self.aem.indexes[map_index] = chosen_index
+
             mu = 0.25 * (map_index // 8) + 0.75
             count = 0
             while count < 1:

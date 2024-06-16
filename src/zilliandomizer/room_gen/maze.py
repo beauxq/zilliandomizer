@@ -948,3 +948,7 @@ class Grid:
         Alarms.add_alarms_to_room_terrain_bytes(tr, alarm_blocks)
 
         return TerrainCompressor.compress(tr)
+
+    def get_edge_doors(self) -> EdgeDoors:
+        """ `None` if vanilla """
+        return self._edge_doors
