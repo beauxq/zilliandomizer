@@ -48,6 +48,7 @@ class Randomizer:
         self.logger = logger
         if self.options.map_gen == "full":
             self._base = get_red_base(randrange(1999999999))
+            self.logger.spoil(self._base.map_str())
             self.room_gen_data = make_room_gen_data(self._base)
         elif self.options.map_gen == "rooms":
             self._base = None
