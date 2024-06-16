@@ -78,8 +78,9 @@ def make_room_gen_data(bm: BaseMaker) -> Dict[int, RoomData]:
                 left_edge = [5]
                 edge_doors = (left_edge, right_edge)
                 # assert BOT_LEFT not in exits - this assertion not valid
-                # We allow leaving in this extended door space,
-                # but there's code in door_decider to avoid entering into this extended door space.
+                # TODO: This statement that this assertion is not valid is not valid... maybe...?
+                # (Because I found out that the door will disable the elevator so it doesn't work.)
+                # So maybe this assertion should come back.  ?
                 exits.append(BOT_LEFT)
             else:
                 no_space = []

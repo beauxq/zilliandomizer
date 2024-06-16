@@ -155,6 +155,10 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
             if (map_index - 8) in _red_right_area_exits:
                 # don't allow going up into the extended softlock avoidance door
                 corners_used_in_this_room.append(Corner.tl)
+            if map_index in _red_right_area_exits:
+                # when the extended softlock avoidance door opens,
+                # it will disable the elevator that appears in the same place
+                corners_used_in_this_room.append(Corner.bl)
             for out in outs:
                 if here.x < out.x:  # going to right
                     y_choices = [0, 2, 4]
@@ -186,6 +190,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                             (x < 0xc0 or Corner.br not in corners_used_in_this_room))
                     ]
                     exit_x = bm.random.choice(x_choices)
+                    # debug code
+                    # if 0x10 in x_choices:
+                    #     exit_x = 0x10
                     exit_y = 5
                     out_desc = Desc(DE.elevator, exit_y, exit_x)
                     bm.door_manager.add_elevator(map_index, exit_y, exit_x, back_to_computer(here))
