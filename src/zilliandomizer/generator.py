@@ -35,10 +35,9 @@ def generate(seed: int) -> None:
     logger.spoil(str(options))
     logger.spoil(f"seed {seed_str}")
     logger.spoil(f"zilliandomizer version: {version_hash} {date}")
-    r = system.make_randomizer(options, logger)
 
     system.seed(seed)
-
+    r = system.make_randomizer(options, logger)
     system.make_map()
 
     r.roll()

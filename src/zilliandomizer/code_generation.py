@@ -5,6 +5,7 @@ Most of it is outdated and will not generate the correct format for the current 
 
 from typing import List, Dict, Set
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
+from zilliandomizer.low_resources import rom_info
 from zilliandomizer.utils import make_loc_name, ItemData
 from zilliandomizer.patch import Patcher  # for access to rom data
 from zilliandomizer.logic_components.location_data import make_locations
@@ -229,5 +230,32 @@ def region_file_edit() -> None:
         file.writelines(lines)
 
 
+def doors_d() -> None:
+    from collections import defaultdict
+    from pprint import pp
+    BANK_4_OFFSET = 0x8000
+    p = Patcher()
+    rom = p.rom
+
+    doors: Dict[int, List[bytes]] = defaultdict(list)
+
+    for map_index in range(136):
+        row = map_index // 8
+        col = map_index % 8
+        room_data_address = rom_info.terrain_index_13725 + 65 * row + 8 * col
+        room_data = rom[room_data_address:room_data_address + 8]
+        door_data_address = (room_data[5] | (room_data[6] * 256)) + BANK_4_OFFSET
+        door_count = rom[door_data_address]
+        door_data_address += 1
+        while door_count > 0:
+            door_data = rom[door_data_address:door_data_address + 5]
+            doors[map_index].append(door_data)
+
+            door_count -= 1
+            door_data_address += 5
+
+    pp(doors)
+
+
 if __name__ == "__main__":
-    big_location_ids()
+    doors_d()

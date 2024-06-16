@@ -99,8 +99,12 @@ class Options:
     Refilling at the ship also ensures you have at least this many cards.
     `0` gives vanilla behavior.
     """
-    room_gen: bool = False
-    """ whether to generate rooms with random terrain """
+    map_gen: Literal["none", "rooms", "full"] = "rooms"
+    """
+    - none: vanilla terrain
+    - rooms: random terrain inside rooms, but path through base is vanilla
+    - full: random path through base
+    """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
 
     @staticmethod

@@ -1,15 +1,19 @@
 from collections import Counter, defaultdict, deque
 from random import choice, randint, randrange, shuffle
 import time
-from typing import Deque, Dict, List, Optional, Set, Counter as _Counter, cast
+from typing import Deque, Dict, List, Mapping, Optional, Set, Counter as _Counter, Union, cast
 
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logger import Logger
+from zilliandomizer.map_gen.base_maker import BaseMaker, Node, get_red_base
+from zilliandomizer.map_gen.room_data_maker import make_room_gen_data
 from zilliandomizer.options import ID, Chars, Options, char_to_hp, char_to_gun, char_to_jump
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region, RegionData
 from zilliandomizer.logic_components.locations import Location, Req
 from zilliandomizer.logic_components.items import KEYWORD, MAIN, MAIN_ITEM, RESCUE, Item, items
+from zilliandomizer.room_gen.common import RoomData
+from zilliandomizer.room_gen.data import GEN_ROOMS
 from zilliandomizer.room_gen.room_gen import RoomGen
 from zilliandomizer.utils import parse_reg_name, parse_loc_name, make_room_name
 from zilliandomizer.utils.loc_name_matcher import loc_name_maker
@@ -29,6 +33,8 @@ class Randomizer:
     _room_gen: Optional[RoomGen] = None
     loc_name_2_pretty: Dict[str, str]
     """ example: from "r02c6y88x50" to "B-7 bottom left" """
+    _base: Union[BaseMaker, None]
+    room_gen_data: Mapping[int, RoomData]
 
     class RollFail(RuntimeError):
         """ randomizing algorithm failed """
@@ -40,21 +46,42 @@ class Randomizer:
             logger = Logger()
             logger.spoil_stdout = False
         self.logger = logger
+        if self.options.map_gen == "full":
+            self._base = get_red_base(randrange(1999999999))
+            self.logger.spoil(self._base.map_str())
+            self.room_gen_data = make_room_gen_data(self._base)
+        elif self.options.map_gen == "rooms":
+            self._base = None
+            self.room_gen_data = GEN_ROOMS.copy()
+        else:  # vanilla terrain
+            self._base = None
+            self.room_gen_data = {}
 
         self.reset()
 
     def reset(self, room_gen: Optional[RoomGen] = None) -> None:
+        # Think of this function in 2 passes. The first time it's called, `room_gen` is `None`
+        # then later, the rooms are generated and this function is called again.
+
+        # TODO: This could use a big refactor, to not create the randomizer until after
+        # making the map and the room_gen, and maybe rename this class to `Fill`?...
+        # Note that the only reason `RoomGen` needs the regions is for the number of locations in the room.
+        #   (and its `make_locations` copies location data for the rooms it didn't generate)
+        #   So we don't need this double pass to make regions before room gen.
+
         if room_gen:
             self._room_gen = room_gen
         locations = self._room_gen.make_locations() if self._room_gen else make_locations()
-        regions = make_regions(locations)
+        regions = make_regions(locations, self._base)
         if room_gen:
             for region_name, region in regions.items():
-                if len(region_name) == 5 and region_name[0] == 'r' and region_name[3] == 'c':
+                if (
+                    len(region_name) >= 5 and region_name[0] == 'r' and region_name[3] == 'c'
+                    and (len(region_name) == 5 or region_name.endswith("enter"))
+                ):
                     row, col = parse_reg_name(region_name)
                     map_index = row * 8 + col
                     region.computer = room_gen.get_computer(map_index)
-                    room_gen.get_modified_rooms()
                     jump_blocks = room_gen.get_jump_blocks_required(map_index)
                     if jump_blocks:  # 0 means this room wasn't generated
                         for req in region.connections.values():
@@ -403,3 +430,17 @@ class Randomizer:
     def get_region_data(self) -> List[RegionData]:
         """ after end of generation, get region/location/item data needed to write output """
         return [RegionData.from_region(r) for r in self.regions.values()]
+
+    def get_door_writes(self) -> Dict[int, int]:
+        """ from `DoorManager` """
+        if self._base:
+            return self._base.door_manager.get_writes()
+        return {}
+
+    def get_path_through_red(self) -> int:
+        if self._base:
+            top = self._base.path(Node(0, 3), Node(1, 0))
+            mid = self._base.path(Node(0, 3), Node(3, 0))
+            bot = self._base.path(Node(0, 3), Node(4, 0))
+            return min(len(top), len(mid) + 1, len(bot) + 1)
+        return 7  # vanilla

@@ -31,6 +31,12 @@ paths: List[List[str]] = [
 # TODO: lots of JJ rescue graphic work
 
 
+class ByteDict(Dict[int, int]):
+    def __setitem__(self, key: int, value: int) -> None:
+        assert 0 <= value <= 255, f"{value=}"
+        return super().__setitem__(key, value)
+
+
 class Patcher:
     writes: Dict[int, int]  # address to byte
     verify: bool
@@ -58,7 +64,7 @@ class Patcher:
     }
 
     def __init__(self, path_to_rom: Union[str, Path] = "") -> None:
-        self.writes = {}
+        self.writes = {}  # debugging: ByteDict()
         self.verify = True
         self._init_code = bytearray()
 
@@ -395,8 +401,7 @@ class Patcher:
 
     def set_item(self, address: int, data: ItemData) -> None:
         for i, v in enumerate(data):
-            if v < 0 or v > 255:
-                print(f"item index {i} trying to write {v}")
+            assert 0 <= v <= 255, f"item index {i} trying to write {v}"
             self.writes[address + i] = v
 
     @staticmethod

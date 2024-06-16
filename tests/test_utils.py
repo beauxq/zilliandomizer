@@ -38,6 +38,13 @@ def test_deterministic_set() -> None:
 
     assert ds[1] == 50, f"{ds[1]}"
 
+    # test pop
+    ds = DetSet([700, 68000, 2])
+    assert 2 in ds
+    x = ds.pop()
+    assert x == 700, f"{x=}"
+    assert 700 not in ds, f"{ds=}"
+
 
 def test_disjoint_set() -> None:
     uf: DisjointSet[int] = DisjointSet()

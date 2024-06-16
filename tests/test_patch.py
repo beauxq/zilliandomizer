@@ -129,7 +129,7 @@ def no_rom() -> Iterator[None]:
 @pytest.mark.usefixtures("fake_rom")
 def test_set_item() -> None:
     p = Patcher()
-    p.set_item(23, ItemData(-1, 0, 1, 2, 254, 255, 256, 257))
+    p.set_item(23, ItemData(7, 0, 1, 2, 254, 255, 7, 7))
 
 
 @pytest.mark.usefixtures("fake_rom")

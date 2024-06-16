@@ -39,12 +39,14 @@ class System:
         assert self.randomizer, "initialization step was skipped"
         options = self.randomizer.options
         self._modified_rooms = frozenset()
-        if options.room_gen:
+        # TODO: 3-choice option for map_gen
+        if options.map_gen != "none":
             print("Zillion room gen enabled - generating rooms...")  # this takes time
             rm = self.resource_managers
             jump_req_rooms = room_jump_requirements()
             rm.aem.room_gen_mods()
-            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self.randomizer.logger, options.skill, self.randomizer.regions)
+            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self.randomizer.logger, options.skill,
+                               self.randomizer.regions, self.randomizer.room_gen_data)
             room_gen.generate_all(jump_req_rooms)
             self.randomizer.reset(room_gen)
             self._modified_rooms = room_gen.get_modified_rooms()
@@ -57,12 +59,26 @@ class System:
             a = Alarms(self.resource_managers.tm, self.randomizer.logger)
             a.choose_all(self._modified_rooms)
 
-        def choose_escape_time(skill: int) -> int:
-            """ based on skill - WR did escape in 160 - skill 5 could require 165-194 """
-            low = 300 - (skill * 27)
+        def choose_escape_time(skill: int, path_through_red: float) -> int:
+            """
+            based on skill - WR did escape in 160 - skill 5 could require 165-194
+
+            `path_through_red` is the number of rooms that the right red area has to go through -
+            vanilla is 7 (F-4 through E-7)
+            """
+
+            # adjusted with map_gen
+            if path_through_red < 7:
+                path_through_red = (path_through_red + 7) / 2
+            m = 20.5  # var that I played with in desmos to get good numbers
+            map_gen_multiplier = (path_through_red + m) / (7 + m)  # == 1 if path_through_red == 7
+
+            low = round((300 - (skill * 27)) * map_gen_multiplier)
             return random.randrange(low, low + 30)
 
-        self.resource_managers.escape_time = choose_escape_time(options.skill)
+        path_through_red = self.randomizer.get_path_through_red()
+        # print(f"{path_through_red=}")
+        self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red)
 
         def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
             """
@@ -80,11 +96,13 @@ class System:
     def get_game(self) -> Game:
         assert self.randomizer, "initialization step was skipped"
         rm = self.resource_managers
+        writes = rm.get_writes()
+        writes.update(self.randomizer.get_door_writes())
         return Game(
             self.randomizer.options,
             rm.escape_time,
             rm.char_order,
             self.randomizer.loc_name_2_pretty,
             self.randomizer.get_region_data(),
-            rm.get_writes()
+            writes
         )
