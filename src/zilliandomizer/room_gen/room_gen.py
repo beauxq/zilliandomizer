@@ -52,7 +52,7 @@ class RoomGen:
     """ the region dictionary for this seed """
 
     _gen_rooms: Mapping[int, RoomData]
-    """ data specifying what to generate """
+    """ data specifying what to generate - `{ map_index: RoomData }` """
 
     def __init__(self,
                  tc: TerrainModifier,
@@ -94,6 +94,10 @@ class RoomGen:
 
         # TODO: better source of this information, instead of
         # magic number that isn't right now that I've change GEN_ROOMS
+        # (After more looking into this, it's not the calculation that
+        #  I thought it was, so I don't know what it's safe to change to.
+        #  Maybe the reason it's less is so that randomized alarms
+        #  still have wiggle room. So maybe this 59 per room is ok.)
         TOTAL_SPACE_LIMIT = len(self._gen_rooms) * 59
         success = False  # generated all rooms without going over the byte limit
         while not success:
