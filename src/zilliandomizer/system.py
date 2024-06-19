@@ -1,14 +1,19 @@
-import random
-from typing import FrozenSet, List, Optional, Tuple, Union
+from random import Random
+from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
 
 from .alarms import Alarms
 from .game import Game
 from .logger import Logger
+from .logic_components.region_data import make_regions
+from .map_gen.base_maker import BaseMaker, get_red_base
 from .map_gen.jump import room_jump_requirements
+from .map_gen.room_data_maker import make_room_gen_data
 from .options import Chars, Options, chars
 from .patch import Patcher
 from .randomizer import Randomizer
 from .resource_managers import ResourceManagers
+from .room_gen.common import RoomData
+from .room_gen.data import GEN_ROOMS
 from .room_gen.room_gen import RoomGen
 
 
@@ -19,12 +24,21 @@ class System:
     patcher: Optional[Patcher] = None
     _modified_rooms: FrozenSet[int] = frozenset()
     _seed: Optional[Union[int, str]] = None
+    _base: Optional[BaseMaker] = None
+    _logger: Logger
+    _room_gen_data: Mapping[int, RoomData]
 
-    def __init__(self) -> None:
+    def __init__(self, logger: Optional[Logger] = None) -> None:
+        self._logger = logger if logger else Logger()
+        self._random = Random()
         self.resource_managers = ResourceManagers()
 
     def seed(self, seed: Optional[Union[int, str]]) -> None:
         self._seed = seed
+        self._random.seed(seed)
+
+        # TODO: remove this when determinism is well tested without it
+        import random
         random.seed(seed)
 
     def make_patcher(self, path_to_rom: str = "") -> Patcher:
@@ -35,7 +49,34 @@ class System:
         self.randomizer = Randomizer(options, logger)
         return self.randomizer
 
-    def make_map(self) -> None:
+    def make_map(self, options: Options) -> None:
+        if options.map_gen == "full":
+            self._base = get_red_base(self._random.randrange(1999999999))
+            self._logger.spoil(self._base.map_str())
+            self._room_gen_data = make_room_gen_data(self._base)
+        elif options.map_gen == "rooms":
+            self._base = None
+            self._room_gen_data = GEN_ROOMS.copy()
+        else:  # vanilla terrain
+            self._base = None
+            self._room_gen_data = {}
+
+        regions = make_regions(self._base)
+
+        self._modified_rooms = frozenset()
+        if options.map_gen != "none":
+            print("Zillion room gen enabled - generating rooms...")  # this takes time
+            rm = self.resource_managers
+            jump_req_rooms = room_jump_requirements()
+            rm.aem.room_gen_mods()
+            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self._logger, options.skill,
+                               self._room_gen_data)
+            room_gen.generate_all(jump_req_rooms)
+            self.randomizer.reset(room_gen)
+            self._modified_rooms = room_gen.get_modified_rooms()
+            print("Zillion room gen complete")
+
+    def make_map_old(self) -> None:
         assert self.randomizer, "initialization step was skipped"
         options = self.randomizer.options
         self._modified_rooms = frozenset()
@@ -73,7 +114,7 @@ class System:
             map_gen_multiplier = (path_through_red + m) / (7 + m)  # == 1 if path_through_red == 7
 
             low = round((300 - (skill * 27)) * map_gen_multiplier)
-            return random.randrange(low, low + 30)
+            return self._random.randrange(low, low + 30)
 
         path_through_red = self.randomizer.get_path_through_red()
         # print(f"{path_through_red=}")
@@ -87,7 +128,7 @@ class System:
             """
             captured: List[Chars] = [each_char for each_char in chars if each_char != start_char]
             assert len(captured) == 2, f"{captured=}"
-            random.shuffle(captured)
+            self._random.shuffle(captured)
             return (start_char, captured[0], captured[1])
 
         self.resource_managers.char_order = choose_capture_order(options.start_char)

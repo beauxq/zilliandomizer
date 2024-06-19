@@ -48,9 +48,6 @@ class RoomGen:
     _alarm_rooms: FrozenSet[int]
     """ rooms that can have alarm lines """
 
-    _regions: Dict[str, Region]
-    """ the region dictionary for this seed """
-
     _gen_rooms: Mapping[int, RoomData]
     """ data specifying what to generate - `{ map_index: RoomData }` """
 
@@ -60,7 +57,6 @@ class RoomGen:
                  aem: AlarmEntranceManager,
                  logger: Logger,
                  skill: int,
-                 regions: Dict[str, Region],
                  gen_data: Mapping[int, RoomData]) -> None:
         self.tc = tc
         self.sm = sm
@@ -68,7 +64,6 @@ class RoomGen:
         self._logger = logger
         self._skill = skill
         self._alarm_rooms = frozenset(ALARM_ROOMS)
-        self._regions = regions
         self._gen_rooms = gen_data
 
         # testing
@@ -81,8 +76,6 @@ class RoomGen:
         self._rooms = {}
 
     def generate_all(self, map_index_2_jump_level: Dict[int, int]) -> None:
-        assert len(self._regions) > 0, "tried to start generating rooms with empty regions"
-
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
         self.sm.save_state()
