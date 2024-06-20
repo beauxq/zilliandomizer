@@ -1,24 +1,33 @@
 from random import Random
-from typing import FrozenSet, List, Mapping, Optional, Tuple, Union
+from typing import Dict, FrozenSet, List, Optional, Tuple, Union
 
 from .alarms import Alarms
 from .game import Game
 from .logger import Logger
-from .logic_components.region_data import make_regions
-from .map_gen.base_maker import BaseMaker, get_red_base
+from .map_gen.base_maker import BaseMaker, Node, get_red_base
 from .map_gen.jump import room_jump_requirements
 from .map_gen.room_data_maker import make_room_gen_data
 from .options import Chars, Options, chars
 from .patch import Patcher
 from .randomizer import Randomizer
 from .resource_managers import ResourceManagers
-from .room_gen.common import RoomData
 from .room_gen.data import GEN_ROOMS
 from .room_gen.room_gen import RoomGen
 
 
 class System:
-    """ composition of the highest level components """
+    """
+    composition of the highest level components
+
+    order of steps:
+
+    - `set_options`
+    - `seed`
+    - `make_map`
+    - `make_randomizer`
+    - `post_fill`
+    - `get_game`
+    """
     randomizer: Optional[Randomizer] = None
     resource_managers: ResourceManagers
     patcher: Optional[Patcher] = None
@@ -26,12 +35,16 @@ class System:
     _seed: Optional[Union[int, str]] = None
     _base: Optional[BaseMaker] = None
     _logger: Logger
-    _room_gen_data: Mapping[int, RoomData]
+    _room_gen: Optional[RoomGen] = None
+    _options: Optional[Options] = None  # TODO: default options instead of None
 
     def __init__(self, logger: Optional[Logger] = None) -> None:
         self._logger = logger if logger else Logger()
         self._random = Random()
         self.resource_managers = ResourceManagers()
+
+    def set_options(self, options: Options) -> None:
+        self._options = options
 
     def seed(self, seed: Optional[Union[int, str]]) -> None:
         self._seed = seed
@@ -45,51 +58,33 @@ class System:
         self.patcher = Patcher(path_to_rom)
         return self.patcher
 
-    def make_randomizer(self, options: Options, logger: Optional[Logger] = None) -> Randomizer:
-        self.randomizer = Randomizer(options, logger)
+    def make_randomizer(self) -> Randomizer:
+        assert self._options, "must `set_options` first"
+        self.randomizer = Randomizer(self._options, self._room_gen, self._base, self._logger)
         return self.randomizer
 
-    def make_map(self, options: Options) -> None:
-        if options.map_gen == "full":
+    def make_map(self) -> None:
+        assert self._options, "must `set_options` first"
+        if self._options.map_gen == "full":
             self._base = get_red_base(self._random.randrange(1999999999))
             self._logger.spoil(self._base.map_str())
-            self._room_gen_data = make_room_gen_data(self._base)
-        elif options.map_gen == "rooms":
+            room_gen_data = make_room_gen_data(self._base)
+        elif self._options.map_gen == "rooms":
             self._base = None
-            self._room_gen_data = GEN_ROOMS.copy()
+            room_gen_data = GEN_ROOMS.copy()
         else:  # vanilla terrain
             self._base = None
-            self._room_gen_data = {}
-
-        regions = make_regions(self._base)
+            room_gen_data = {}
 
         self._modified_rooms = frozenset()
-        if options.map_gen != "none":
+        if self._options.map_gen != "none":
             print("Zillion room gen enabled - generating rooms...")  # this takes time
             rm = self.resource_managers
             jump_req_rooms = room_jump_requirements()
             rm.aem.room_gen_mods()
-            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self._logger, options.skill,
-                               self._room_gen_data)
-            room_gen.generate_all(jump_req_rooms)
-            self.randomizer.reset(room_gen)
-            self._modified_rooms = room_gen.get_modified_rooms()
-            print("Zillion room gen complete")
-
-    def make_map_old(self) -> None:
-        assert self.randomizer, "initialization step was skipped"
-        options = self.randomizer.options
-        self._modified_rooms = frozenset()
-        if options.map_gen != "none":
-            print("Zillion room gen enabled - generating rooms...")  # this takes time
-            rm = self.resource_managers
-            jump_req_rooms = room_jump_requirements()
-            rm.aem.room_gen_mods()
-            room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self.randomizer.logger, options.skill,
-                               self.randomizer.regions, self.randomizer.room_gen_data)
-            room_gen.generate_all(jump_req_rooms)
-            self.randomizer.reset(room_gen)
-            self._modified_rooms = room_gen.get_modified_rooms()
+            self._room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self._logger, self._options.skill, room_gen_data)
+            self._room_gen.generate_all(jump_req_rooms)
+            self._modified_rooms = self._room_gen.get_modified_rooms()
             print("Zillion room gen complete")
 
     def post_fill(self) -> None:
@@ -116,7 +111,7 @@ class System:
             low = round((300 - (skill * 27)) * map_gen_multiplier)
             return self._random.randrange(low, low + 30)
 
-        path_through_red = self.randomizer.get_path_through_red()
+        path_through_red = self._get_path_through_red()
         # print(f"{path_through_red=}")
         self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red)
 
@@ -137,7 +132,7 @@ class System:
         assert self.randomizer, "initialization step was skipped"
         rm = self.resource_managers
         writes = rm.get_writes()
-        writes.update(self.randomizer.get_door_writes())
+        writes.update(self._get_door_writes())
         return Game(
             self.randomizer.options,
             rm.escape_time,
@@ -146,3 +141,17 @@ class System:
             self.randomizer.get_region_data(),
             writes
         )
+
+    def _get_door_writes(self) -> Dict[int, int]:
+        """ from `DoorManager` """
+        if self._base:
+            return self._base.door_manager.get_writes()
+        return {}
+
+    def _get_path_through_red(self) -> int:
+        if self._base:
+            top = self._base.path(Node(0, 3), Node(1, 0))
+            mid = self._base.path(Node(0, 3), Node(3, 0))
+            bot = self._base.path(Node(0, 3), Node(4, 0))
+            return min(len(top), len(mid) + 1, len(bot) + 1)
+        return 7  # vanilla

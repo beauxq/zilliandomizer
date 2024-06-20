@@ -7,6 +7,9 @@ addopts = "--cov=zilliandomizer --cov-branch"
 testpaths = [
     "tests",
 ]
+pythonpath = [
+    "src",
+]
 
 [tool.coverage.report]
 exclude_lines = [

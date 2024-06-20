@@ -33,9 +33,10 @@ def test_with_room_gen() -> None:
     options: Options = some_options
     options.map_gen = "rooms"
 
+    system.set_options(options)
     system.seed(0x42069429)
-    r = system.make_randomizer(options)
     system.make_map()
+    r = system.make_randomizer()
 
     r.roll()
 
@@ -46,6 +47,30 @@ def test_with_room_gen() -> None:
     p.write_locations(game.regions, options.start_char)
     rm = system.resource_managers
     assert rm, "resource_managers not initialized"
+    p.all_fixes_and_options(game)
+
+    p.write(os.devnull)
+
+
+@pytest.mark.usefixtures("fake_rom")
+def test_with_map_gen() -> None:
+    system = System()
+    options: Options = some_options
+    options.map_gen = "full"
+
+    system.set_options(options)
+    system.seed(None)
+    system.make_map()
+    r = system.make_randomizer()
+
+    r.roll()
+
+    system.post_fill()
+
+    game = system.get_game()
+
+    p = system.make_patcher()
+    p.write_locations(game.regions, options.start_char)
     p.all_fixes_and_options(game)
 
     p.write(os.devnull)

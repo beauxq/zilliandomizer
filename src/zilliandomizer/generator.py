@@ -1,4 +1,5 @@
 import os
+
 from zilliandomizer.system import System
 from zilliandomizer.ver import version_hash, date
 from zilliandomizer.options import Options, ID
@@ -20,7 +21,9 @@ some_options = Options(item_counts={
 
 def generate(seed: int) -> None:
     seed_str = f"{seed:016x}"
-    system = System()
+    logger = Logger()
+    logger.spoil_stdout = False
+    system = System(logger)
     p = system.make_patcher()
     options: Options = some_options
     options_file = p.rom_path + os.sep + "options.yaml"
@@ -30,15 +33,14 @@ def generate(seed: int) -> None:
             options = parse_options(file.read())
     else:
         print("no options file found, using default")
-    logger = Logger()
-    logger.spoil_stdout = False
     logger.spoil(str(options))
     logger.spoil(f"seed {seed_str}")
     logger.spoil(f"zilliandomizer version: {version_hash} {date}")
 
+    system.set_options(options)
     system.seed(seed)
-    r = system.make_randomizer(options, logger)
     system.make_map()
+    r = system.make_randomizer()
 
     r.roll()
 
@@ -70,7 +72,9 @@ def generate(seed: int) -> None:
     filename = f"zilliandomizer-{seed_str}.sms"
     p.write(filename)
     # TODO: abstract out the spoiler writer (handling directory in a better way)
-    with open(p.rom_path + os.sep + f"spoiler-{seed_str}.txt", "wt") as file:
+    spoiler_file_name = p.rom_path + os.sep + f"spoiler-{seed_str}.txt"
+    with open(spoiler_file_name, "wt") as file:
         for line in logger.spoiler_lines:
             file.write(line + "\n")
     print(f"generated: {filename}")
+    print(f"spoiler: {spoiler_file_name}")

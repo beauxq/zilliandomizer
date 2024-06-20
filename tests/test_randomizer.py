@@ -23,7 +23,7 @@ def test_randomizer() -> None:
     options: Options = some_options
     logger = Logger()
     logger.spoil_stdout = True
-    r = Randomizer(options, logger)
+    r = Randomizer(options, None, None, logger)
     seed(s)
     r.roll()
 
@@ -46,7 +46,7 @@ def test_infinite_continues_and_not() -> None:
         options.continues = c
         logger = Logger()
         logger.spoil_stdout = True
-        r = Randomizer(options, logger)
+        r = Randomizer(options, None, None, logger)
         seed(s)
         r.roll()
 
@@ -70,7 +70,7 @@ def test_placement() -> None:
         options: Options = some_options
         logger = Logger()
         logger.spoil_stdout = False
-        r = Randomizer(options, logger)
+        r = Randomizer(options, None, None, logger)
         seed(s)
         r.roll()
         if r.check():
@@ -84,7 +84,7 @@ def test_placement() -> None:
 
 
 def test_room_door_gun_requirements() -> None:
-    rn = Randomizer(some_options)
+    rn = Randomizer(some_options, None, None)
     gun_reqs = rn.room_door_gun_requirements()
 
     # run this in console to see a map of gun requirements
@@ -98,7 +98,7 @@ def test_room_door_gun_requirements() -> None:
 
 
 def test_get_locations() -> None:
-    rn = Randomizer(some_options)
+    rn = Randomizer(some_options, None, None)
     have = Req(gun=3, jump=3, hp=940, skill=9001)
     locs = rn.get_locations(have)
     print(len(locs))
@@ -130,14 +130,14 @@ def test_connections() -> None:
 def test_problems() -> None:
     options = deepcopy(some_options)
     options.item_counts[ID.card] = 200
-    r = Randomizer(options)
+    r = Randomizer(options, None, None)
     seed(88)
     with pytest.raises(ValueError):
         r.roll()
 
     options = deepcopy(some_options)
     options.floppy_req = 30
-    r = Randomizer(options)
+    r = Randomizer(options, None, None)
     seed(88)
     with pytest.raises(ValueError):
         r.roll()
@@ -152,7 +152,7 @@ def test_early_scope() -> None:
     success_count = 0
 
     for test_n in range(20):
-        r = Randomizer(o)
+        r = Randomizer(o, None, None)
         seed(70 + test_n)
         r.roll()
         req1 = r.make_ability([])
