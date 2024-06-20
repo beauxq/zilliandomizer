@@ -1,4 +1,5 @@
 from typing import Dict
+
 from zilliandomizer.room_gen.common import RoomData, TOP_LEFT, TOP_RIGHT, BOT_LEFT, BOT_RIGHT
 
 # TODO: distinguish entrances from exits, and check softlocks from all entrances
