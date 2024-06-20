@@ -9,7 +9,7 @@ from zilliandomizer.resource_managers import ResourceManagers
 def test_to_from_json() -> None:
     o = Options()
     rm = ResourceManagers()
-    r = Randomizer(o)
+    r = Randomizer(o, None, None)
     r.roll()
 
     game_before = Game(o, rm.escape_time, rm.char_order, r.loc_name_2_pretty, r.get_region_data(), rm.get_writes())

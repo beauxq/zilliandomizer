@@ -12,7 +12,7 @@ def test_cross() -> None:
 
 
 def test_with_data() -> None:
-    r = Randomizer(some_options)
+    r = Randomizer(some_options, None, None)
     # need to have ids for locations that are not in vanilla
     # for loc in loc_to_id:
     #     assert loc in r.locations
