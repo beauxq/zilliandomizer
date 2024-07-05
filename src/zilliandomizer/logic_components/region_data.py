@@ -3,7 +3,7 @@ from typing import Dict, List, Mapping, Tuple, Union
 
 from zilliandomizer.logic_components.regions import Region
 from zilliandomizer.logic_components.locations import Location, Req
-from zilliandomizer.map_gen.base_maker import BaseMaker
+from zilliandomizer.map_gen.base import Base
 
 
 class MapBuilder:
@@ -241,19 +241,24 @@ def make_red_left(mb: MapBuilder) -> None:
     mb.r["r07c1"].to(mb.r["big_elevator"], door=True)
 
 
-def make_red(mb: MapBuilder, bm: Union[BaseMaker, None]) -> None:
+def make_red(mb: MapBuilder, base: Union[Base, None]) -> None:
     """ given "between_blue_red" creates regions up to "big_elevator" and connects everything up to the same """
 
-    if bm:
+    if base:
         from zilliandomizer.map_gen.region_maker import make_red_right_bm
-        make_red_right_bm(bm, mb)
+        make_red_right_bm(base.red, mb)
     else:  # vanilla
         make_red_right(mb)
     make_red_left(mb)
 
 
-def make_paperclip(mb: MapBuilder) -> None:
-    """ from "big+elevator" to everything below red """
+def make_paperclip(mb: MapBuilder, base: Union[Base, None]) -> None:
+    """ from "big_elevator" to everything below red """
+
+    if base:
+        from zilliandomizer.map_gen.region_maker import make_paperclip_bm
+        make_paperclip_bm(base.paperclip, mb)
+        return
 
     mb.split(10, 1, {
         "n": [
@@ -584,12 +589,12 @@ def make_paperclip(mb: MapBuilder) -> None:
     mb.r["final_elevator"].to(mb.r["r10c5"])  # main computer
 
 
-def make_regions(locations: Mapping[str, Location], bm: Union[BaseMaker, None] = None) -> Dict[str, Region]:
+def make_regions(locations: Mapping[str, Location], base: Union[Base, None] = None) -> Dict[str, Region]:
     """ return { region_name: region } """
     mb = MapBuilder(locations)
 
     make_blue(mb)
-    make_red(mb, bm)
-    make_paperclip(mb)
+    make_red(mb, base)
+    make_paperclip(mb, base)
 
     return mb.r

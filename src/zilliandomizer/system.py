@@ -4,7 +4,9 @@ from typing import Dict, FrozenSet, List, Optional, Tuple, Union
 from .alarms import Alarms
 from .game import Game
 from .logger import Logger
-from .map_gen.base_maker import BaseMaker, Node, get_red_base
+from .map_gen.base import Base
+from .map_gen.base_maker import Node, get_paperclip_base, get_red_base
+from .map_gen.door_manager import DoorManager
 from .map_gen.jump import room_jump_requirements
 from .map_gen.room_data_maker import make_room_gen_data
 from .options import Chars, Options, chars
@@ -33,7 +35,7 @@ class System:
     patcher: Optional[Patcher] = None
     _modified_rooms: FrozenSet[int] = frozenset()
     _seed: Optional[Union[int, str]] = None
-    _base: Optional[BaseMaker] = None
+    _base: Optional[Base] = None
     _logger: Logger
     _room_gen: Optional[RoomGen] = None
     _options: Optional[Options] = None  # TODO: default options instead of None
@@ -66,8 +68,12 @@ class System:
     def make_map(self) -> None:
         assert self._options, "must `set_options` first"
         if self._options.map_gen == "full":
-            self._base = get_red_base(self._random.randrange(1999999999))
-            self._logger.spoil(self._base.map_str())
+            dm = DoorManager()
+            red_base = get_red_base(dm, self._random.randrange(1999999999))
+            self._logger.spoil(red_base.map_str())
+            pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
+            self._logger.spoil(pc_base.map_str())
+            self._base = Base(red_base, pc_base, dm)
             room_gen_data = make_room_gen_data(self._base)
         elif self._options.map_gen == "rooms":
             self._base = None
@@ -113,7 +119,7 @@ class System:
 
         path_through_red = self._get_path_through_red()
         # print(f"{path_through_red=}")
-        self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red)
+        self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red) # path_through_pc
 
         def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
             """
@@ -145,13 +151,13 @@ class System:
     def _get_door_writes(self) -> Dict[int, int]:
         """ from `DoorManager` """
         if self._base:
-            return self._base.door_manager.get_writes()
+            return self._base.dm.get_writes()
         return {}
 
     def _get_path_through_red(self) -> int:
         if self._base:
-            top = self._base.path(Node(0, 3), Node(1, 0))
-            mid = self._base.path(Node(0, 3), Node(3, 0))
-            bot = self._base.path(Node(0, 3), Node(4, 0))
+            top = self._base.red.path(Node(0, 3), Node(1, 0))
+            mid = self._base.red.path(Node(0, 3), Node(3, 0))
+            bot = self._base.red.path(Node(0, 3), Node(4, 0))
             return min(len(top), len(mid) + 1, len(bot) + 1)
         return 7  # vanilla

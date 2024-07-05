@@ -32,6 +32,7 @@ class BaseMaker:
     col_offset: int
     height: int
     width: int
+    prev_door: int
     possible_edges: DetSet[Edge]
     existing_edges: DetSet[Edge]
     paths: Dict[Node, List[Node]]
@@ -45,10 +46,14 @@ class BaseMaker:
                  col_offset: int,
                  height: int,
                  width: int,
+                 prev_door: int,
                  possible: Iterable[Edge],
                  existing: Iterable[Edge],
+                 door_manager: DoorManager,
                  seed: Union[int, str, None]) -> None:
         """
+        `prev_door` is the last door I opened before coming to this section of the base
+
         existing is where there must be a room transition
 
         possible is where there can be a room transition (not including existing)
@@ -58,6 +63,7 @@ class BaseMaker:
         self.col_offset = col_offset
         self.height = height
         self.width = width
+        self.prev_door = prev_door
         self.possible_edges = DetSet(possible)
         self.existing_edges = DetSet(existing)
         self.paths = {}
@@ -77,9 +83,9 @@ class BaseMaker:
             )
         }
 
-        self.door_manager = DoorManager()
+        self.door_manager = door_manager
 
-    def map_str(self) -> str:
+    def map_str(self, stretch_x: int = 1) -> str:
         """ draw the map in ascii art """
         tr = ""
         for y in range(self.height):
@@ -87,15 +93,16 @@ class BaseMaker:
                 room_here = Node(y, x) not in self.no_changes
                 tr += "O" if room_here else "-"
                 if h(y, x) in self.existing_edges:
-                    tr += "-"
+                    tr += f"{' ' * stretch_x}-{' ' * stretch_x}"
                 else:
-                    tr += " "
+                    tr += " " * (1 + stretch_x * 2)
             tr += '\n'
             for x in range(self.width):
                 if v(y, x) in self.existing_edges:
                     tr += "| "
                 else:
                     tr += "  "
+                tr += "  " * stretch_x
             tr += '\n'
         return tr
 
@@ -227,11 +234,11 @@ def red_inputs() -> Tuple[List[Edge], List[Edge]]:
     return possible_edges, existing_edges
 
 
-def get_red_base(seed: Union[int, str, None]) -> BaseMaker:
+def get_red_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
     random = Random(seed)
     while True:
         possible, existing = red_inputs()
-        bm = BaseMaker(5, 3, 5, 5, possible, existing, random.randrange(1999999999))
+        bm = BaseMaker(5, 3, 5, 5, 0x25, possible, existing, dm, random.randrange(1999999999))
         bm.make()
         # we don't want the path to one red exit to go past another red exit
         fork_distance = bm.fork_altitude(Node(0, 3), (Node(1, 0), Node(3, 0), Node(4, 0)))
@@ -239,3 +246,65 @@ def get_red_base(seed: Union[int, str, None]) -> BaseMaker:
         r07c7_is_dead_end = len(list(bm.adjs(Node(2, 4)))) < 2
         if fork_distance > 0 and not r07c7_is_dead_end:
             return bm
+
+
+def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
+    """
+    (in the bottom section of the map)
+    where we can put connections between rooms (not including the places where we must put them),
+    and where we must put connections between rooms
+
+    `(possible, existing)`
+    """
+
+    existing_edges: List[Edge] = [
+        # big entrance elevator
+        v(0, 0), v(1, 0), v(2, 0), v(3, 0), v(4, 0), v(5, 0),
+        # and hallway at bottom
+        h(6, 0), v(5, 1),
+        # all of the entrances
+        # h(4, 0) is a special case, we pretend it doesn't exist for this algorithm
+        h(1, 0), h(3, 0), h(5, 1), h(6, 1),
+        # bottom right hallway
+        h(6, 2), h(6, 3), h(6, 4), h(6, 5), h(6, 6),
+        v(5, 7), h(5, 6),
+        # end elevator
+        v(0, 7), v(1, 7), v(2, 7), v(3, 7),
+        # and its hallways
+        h(4, 6), h(3, 6), h(0, 6), h(0, 5),
+    ]
+
+    possible_edges: List[Edge] = []
+
+    for y in range(6):
+        for x in range(1, 6):
+            if y == 0 and x > 3:
+                # main computer
+                continue
+            if y == 5 and x == 1:
+                # bottom left corner
+                continue
+            possible_edges.append(h(y, x))
+
+    for y in range(5):
+        for x in range(1, 7):
+            if y == 0 and x > 4:
+                # main computer
+                continue
+            if y == 4 and x == 1:
+                # bottom left corner
+                continue
+            possible_edges.append(v(y, x))
+
+    # This one won't be possible without split rooms,
+    # but I'll put it here to be ready for split rooms anyway.
+    possible_edges.append(v(5, 2))
+
+    return possible_edges, existing_edges
+
+
+def get_paperclip_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
+    possible, existing = paperclip_inputs()
+    bm = BaseMaker(10, 0, 7, 8, 0x31, possible, existing, dm, seed)
+    bm.make()
+    return bm

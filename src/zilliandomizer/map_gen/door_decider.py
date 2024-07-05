@@ -28,6 +28,7 @@ class Corner(Enum):
 class DE(Enum):
     door = auto()
     elevator = auto()
+    hallway_elevator = auto()
 
 
 @dataclass(frozen=True)
@@ -55,8 +56,7 @@ class Desc:
                 if self.x > 0xc0:
                     return [Corner.tr]
                 return []
-        else:
-            assert self.de is DE.door  # TODO: assert_type
+        elif self.de is DE.door:
             if self.y == 3:
                 # bottom
                 if self.x < 0x30:
@@ -71,6 +71,10 @@ class Desc:
                 if self.x > 0xc0:
                     return [Corner.tr]
                 return []
+        else:
+            assert self.de is DE.hallway_elevator  # TODO: assert_type
+            # TODO: review 
+            return []
         return []
 
 
@@ -84,10 +88,31 @@ _red_right_no_doors = {
     Node(4, 4),  # no canisters
 }
 
-_requires_y_4: Set[Node] = {
-    Node(1, 2),  # hall
-    Node(4, 3),  # hall
+_pc_no_doors = {
+    Node(0, 0), Node(1, 0), Node(2, 0), Node(3, 0), Node(4, 0), Node(5, 0), Node(6, 0),  # left
+    Node(0, 1), Node(1, 1), Node(2, 1),             Node(4, 1), Node(5, 1), Node(6, 1),  # rooms and halls
+    Node(0, 7), Node(1, 7), Node(2, 7), Node(3, 7), Node(4, 7), Node(5, 7), Node(6, 7),  # right
+    Node(0, 5), Node(0, 6),  # main computer
+    Node(6, 3), Node(6, 4), Node(6, 5), Node(6, 6),  # bottom hall
 }
+
+_red_requires_y: Dict[Node, int] = {
+    Node(1, 2): 4,  # hall
+    Node(4, 3): 4,  # hall
+}
+
+_pc_requires_y: Dict[Node, int] = {
+    Node(1, 0): 4,
+    Node(3, 0): 0,  # M-2
+    Node(4, 0): 4,
+    Node(5, 1): 4,
+    Node(6, 1): 4,
+    Node(6, 3): 4,
+    Node(5, 7): 4,
+    Node(4, 7): 4,
+    Node(3, 7): 0,  # red card
+}
+
 
 _red_right_area_exits = {
     51: Desc(DE.door, 4, 0x18),
@@ -104,25 +129,43 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
     """
     # print(bm.map_str())
 
-    parents: Dict[Node, Union[Node, None]] = {
-        Node(0, 3): None,
-        Node(0, 2): Node(0, 3),
-        Node(0, 4): Node(0, 3),
-    }
-    edge_descriptions: Dict[Node, Dict[Node, Desc]] = {
-        Node(0, 3): {
-            Node(0, 2): Desc(DE.door, 4, 0x08),
-            Node(0, 4): Desc(DE.door, 4, 0xf0),
-        },
-    }
+    if bm.height == 5:  # red
+        parents: Dict[Node, Union[Node, None]] = {
+            Node(0, 3): None,
+            Node(0, 2): Node(0, 3),
+            Node(0, 4): Node(0, 3),
+        }
+        edge_descriptions: Dict[Node, Dict[Node, Desc]] = {
+            Node(0, 3): {
+                Node(0, 2): Desc(DE.door, 4, 0x08),
+                Node(0, 4): Desc(DE.door, 4, 0xf0),
+            },
+        }
+        no_doors = _red_right_no_doors
+        requires_y = _red_requires_y
+        start_node = Node(0, 3)
+    else:
+        assert bm.height == 7, f"{bm.height=}"  # paperclip
+        parents = {
+            Node(0, 0): None,
+            Node(1, 0): Node(0, 0),
+        }
+        edge_descriptions = {
+            Node(0, 0): {
+                Node(1, 0): Desc(DE.hallway_elevator, 0, 0),
+            },
+        }
+        no_doors = _pc_no_doors
+        requires_y = _pc_requires_y
+        start_node = Node(0, 0)
 
     def back_to_computer(node: Node) -> int:
         """ map_index of last keyword room in path """
         back: Union[Node, None] = node
-        while back in _red_right_no_doors:
+        while back in no_doors:
             back = parents[back]
-        # TODO: should BaseMaker know the last door before arriving at this section?
-        assert back, f"no keywords in path to elevator {node=}\n{bm.map_str()}"
+        if back is None:
+            return bm.prev_door
         return (back.y + bm.row_offset) * 8 + (back.x + bm.col_offset)
 
     for row in range(bm.row_offset, bm.row_offset + bm.height):
@@ -131,7 +174,7 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
             bm.door_manager.del_room(map_index)
 
     done: Set[Node] = set()
-    q: Deque[Node] = deque([Node(0, 3)])
+    q: Deque[Node] = deque([start_node])
 
     while len(q):
         here = q.popleft()
@@ -167,9 +210,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     if Corner.br not in corners_used_in_this_room:
                         y_choices.append(3)
                     exit_x = 0xf0
-                    exit_y = 4 if out in _requires_y_4 or here in _requires_y_4 else bm.random.choice(y_choices)
+                    exit_y = requires_y.get(here, requires_y.get(out, bm.random.choice(y_choices)))
                     out_desc = Desc(DE.door, exit_y, exit_x)
-                    if here not in _red_right_no_doors:
+                    if here not in no_doors:
                         bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
                 elif here.x > out.x:  # going to left
                     y_choices = [0, 2, 4]
@@ -178,9 +221,9 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     if Corner.bl not in corners_used_in_this_room:
                         y_choices.append(3)
                     exit_x = 0x08
-                    exit_y = 4 if out in _requires_y_4 or here in _requires_y_4 else bm.random.choice(y_choices)
+                    exit_y = requires_y.get(here, requires_y.get(out, bm.random.choice(y_choices)))
                     out_desc = Desc(DE.door, exit_y, exit_x)
-                    if here not in _red_right_no_doors:
+                    if here not in no_doors:
                         bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
                 elif here.y < out.y:  # going down
                     x_choices = [
@@ -232,11 +275,11 @@ def get_entrance_coords(here: Node, parent: Node, in_desc: Desc) -> Tuple[int, i
         entrance_x = 0x08
         entrance_y = in_desc.y
     elif here.y < parent.y:  # came from below
-        assert in_desc.de is DE.elevator and in_desc.y == 0, f"{here=}"
+        assert in_desc.de is DE.hallway_elevator or (in_desc.de is DE.elevator and in_desc.y == 0), f"{here=}"
         entrance_x = in_desc.x
         entrance_y = 5
     elif here.y > parent.y:  # came from above
-        assert in_desc.de is DE.elevator and in_desc.y == 5, f"{here=}"
+        assert in_desc.de is DE.hallway_elevator or (in_desc.de is DE.elevator and in_desc.y == 5), f"{here=}"
         entrance_x = in_desc.x
         entrance_y = 0
     else:

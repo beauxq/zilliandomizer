@@ -209,6 +209,10 @@ class DoorManager:
         2 doors in the same room will bug if they have the same status reference.
         (Elevators can share status reference in the same room.)
 
+        later discovery: A door sharing the bit with an elevator in paperclip
+        in the same room will have the same bug.
+        So a door can't share the bit with anything else in the same room.
+
         This invalidates the `add_door` and `add_elevator` functions
         and should only be used after no more doors will be created.
         """
@@ -216,8 +220,8 @@ class DoorManager:
             used_in_this_room: Set[DoorStatusIndex] = set()
             for i in range(len(door_list)):
                 door_data = door_list[i]
+                status: DoorStatusIndex = (door_data[0], door_data[1])
                 if door_data[4] < 30:  # 30 is the lowest elevator, everything lower is door
-                    status: DoorStatusIndex = (door_data[0], door_data[1])
                     if status in used_in_this_room:
                         new_status = self._get_new_status()
                         new_door_data = bytes([new_status[0], new_status[1], door_data[2], door_data[3], door_data[4]])
@@ -228,6 +232,8 @@ class DoorManager:
                         used_in_this_room.add(new_status)
                     else:
                         used_in_this_room.add(status)
+                else:  # elevator
+                    used_in_this_room.add(status)
 
     def get_writes(self) -> Dict[int, int]:
         self._fix_double_doors()

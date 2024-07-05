@@ -7,7 +7,7 @@ from typing import Dict, FrozenSet, Iterable, Iterator, List, Literal, Optional,
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
 from zilliandomizer.low_resources.terrain_tiles import Tile
-from zilliandomizer.room_gen.common import Coord, EdgeDoors
+from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors
 from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
 from zilliandomizer.terrain_modifier import TerrainModifier
 
@@ -73,6 +73,18 @@ class Grid:
         self._logger = logger
         self._skill = skill
         self._edge_doors = edge_doors
+
+        # special case row 14 col 1 - because of the exit-only door
+        if map_index == 113:
+            assert not (self._edge_doors is None)
+            left = self._edge_doors[0]
+            left_list = list(left)
+            if 5 not in left_list:
+                left_list.append(5)
+                self._edge_doors = (left_list, self._edge_doors[1])
+            if BOT_LEFT not in self.ends:
+                self.ends.append(BOT_LEFT)
+
         self.walkways = self.walkways_in_room()
         self.reset()
 
