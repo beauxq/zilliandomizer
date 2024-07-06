@@ -88,23 +88,31 @@ class BaseMaker:
 
         self.door_manager = door_manager
 
-    def map_str(self, stretch_x: int = 1, to_mark: Container[Node] = ()) -> str:
+    def map_str(self, stretch_x: int = 1, to_mark: Container[Node] = (), mark_edges: Container[Edge] = ()) -> str:
         """ draw the map in ascii art """
         tr = ""
         for y in range(self.height):
             for x in range(self.width):
                 room_here = Node(y, x) not in self.no_changes
                 tr += "@" if Node(y, x) in to_mark else "O" if room_here else "-"
-                if h(y, x) in self.existing_edges:
-                    tr += f"{' ' * stretch_x}-{' ' * stretch_x}"
+                this_h_edge = h(y, x)
+                if this_h_edge in mark_edges:
+                    h_edge_char = "."
+                elif this_h_edge in self.existing_edges:
+                    h_edge_char = "-"
                 else:
-                    tr += " " * (1 + stretch_x * 2)
+                    h_edge_char = " "
+                tr += f"{' ' * stretch_x}{h_edge_char}{' ' * stretch_x}"
             tr += '\n'
             for x in range(self.width):
-                if v(y, x) in self.existing_edges:
-                    tr += "| "
+                this_v_edge = v(y, x)
+                if this_v_edge in mark_edges:
+                    v_edge_char = ":"
+                elif this_v_edge in self.existing_edges:
+                    v_edge_char = "|"
                 else:
-                    tr += "  "
+                    v_edge_char = " "
+                tr += f"{v_edge_char} "
                 tr += "  " * stretch_x
             tr += '\n'
         return tr

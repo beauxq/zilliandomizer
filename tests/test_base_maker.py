@@ -1,6 +1,7 @@
 from pathlib import Path
 import random
 import sys
+from typing import Set
 
 
 def test_make() -> None:
@@ -74,7 +75,7 @@ def test_vanilla_path_rate() -> None:
 
 
 def test_choose_splits() -> None:
-    from zilliandomizer.map_gen.base_maker import Node, get_paperclip_base
+    from zilliandomizer.map_gen.base_maker import Edge, Node, get_paperclip_base
     from zilliandomizer.map_gen.door_manager import DoorManager
     from zilliandomizer.map_gen.split_maker import choose_splits
 
@@ -88,6 +89,12 @@ def test_choose_splits() -> None:
 
     from pprint import pp
     pp(splits)
+
+    split_edges: Set[Edge] = set()
+    for nodes in splits.items():
+        split_edges.add(frozenset(nodes))
+
+    print(bm.map_str(1, splits, split_edges))
 
 
 if __name__ == "__main__":
