@@ -123,6 +123,9 @@ class BaseMaker:
                     tr.append(p_edge)
             return tr
 
+        for edge in crop_possible():
+            self.possible_edges.remove(edge)
+
         while len(self.possible_edges):
             edge = self.random.choice(self.possible_edges)
             self.possible_edges.remove(edge)
