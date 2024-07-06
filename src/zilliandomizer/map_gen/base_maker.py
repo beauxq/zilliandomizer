@@ -1,5 +1,6 @@
 from random import Random
-from typing import Dict, FrozenSet, Iterable, Iterator, List, NamedTuple, Sequence, Set, Tuple, Union
+from typing import (AbstractSet, Container, Dict, FrozenSet, Iterable, Iterator,
+                    List, NamedTuple, Sequence, Set, Tuple, Union)
 
 from zilliandomizer.map_gen.door_manager import DoorManager
 from zilliandomizer.utils.disjoint_set import DisjointSet
@@ -35,6 +36,7 @@ class BaseMaker:
     prev_door: int
     possible_edges: DetSet[Edge]
     existing_edges: DetSet[Edge]
+    original_possible_edges: AbstractSet[Edge]
     paths: Dict[Node, List[Node]]
     """ destination: path """
     no_changes: Set[Node]
@@ -66,6 +68,7 @@ class BaseMaker:
         self.prev_door = prev_door
         self.possible_edges = DetSet(possible)
         self.existing_edges = DetSet(existing)
+        self.original_possible_edges = frozenset(possible)
         self.paths = {}
 
         for edge in self.existing_edges:
@@ -85,13 +88,13 @@ class BaseMaker:
 
         self.door_manager = door_manager
 
-    def map_str(self, stretch_x: int = 1) -> str:
+    def map_str(self, stretch_x: int = 1, to_mark: Container[Node] = ()) -> str:
         """ draw the map in ascii art """
         tr = ""
         for y in range(self.height):
             for x in range(self.width):
                 room_here = Node(y, x) not in self.no_changes
-                tr += "O" if room_here else "-"
+                tr += "@" if Node(y, x) in to_mark else "O" if room_here else "-"
                 if h(y, x) in self.existing_edges:
                     tr += f"{' ' * stretch_x}-{' ' * stretch_x}"
                 else:
@@ -105,6 +108,38 @@ class BaseMaker:
                 tr += "  " * stretch_x
             tr += '\n'
         return tr
+
+    def get_possible_splits(self, start: Node, no_doors: AbstractSet[Node]) -> Dict[Node, Node]:
+        """
+        every node that is not a dead end, has keywords,
+        and has another geo-adjacent non-adjacent node that can dip in
+
+        `{split_node: dipper}`
+        """
+        possible_splits: Dict[Node, Node] = {}
+        for y in range(self.height):
+            for x in range(self.width):
+                here = Node(y, x)
+                if here in no_doors:
+                    continue
+                adjs = list(self.adjs(here))
+                room_through = here not in self.no_changes and len(adjs) > 1
+                if not room_through:
+                    continue
+                not_direct = [
+                    node
+                    for node in self.geo_adjs(here)
+                    if node not in adjs and frozenset((node, here)) in self.original_possible_edges
+                ]
+                can_dip = [
+                    node
+                    for node in not_direct
+                    if here not in self.path(start, node)
+                ]
+                if len(can_dip) > 0:
+                    dipper = self.random.choice(can_dip)
+                    possible_splits[here] = dipper
+        return possible_splits
 
     def make(self) -> DetSet[Edge]:
         """ returns spanning tree covering this sector """
@@ -138,7 +173,17 @@ class BaseMaker:
 
         return self.existing_edges
 
+    def geo_adjs(self, node: Node) -> Iterator[Node]:
+        """ geographically adjacent nodes (whether adjacent or not) """
+        y, x = node
+        for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
+            target_y = y + dy
+            target_x = x + dx
+            if target_x >= 0 and target_x < self.width and target_y >= 0 and target_y < self.height:
+                yield Node(target_y, target_x)
+
     def adjs(self, node: Node) -> Iterator[Node]:
+        # could use `geo_adjs` but probably a little faster if it doesn't
         y, x = node
         for dy, dx in ((1, 0), (0, 1), (-1, 0), (0, -1)):
             target_y = y + dy
@@ -307,7 +352,22 @@ def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
 
 
 def get_paperclip_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
-    possible, existing = paperclip_inputs()
-    bm = BaseMaker(10, 0, 7, 8, 0x39, possible, existing, dm, seed)
-    bm.make()
+    random = Random(seed)
+
+    # make it less likely that the path to the goal is vanilla
+    attempts_to_get_non_vanilla_path = 0
+    bm: Union[BaseMaker, None] = None
+    while attempts_to_get_non_vanilla_path < 3:  # 3 gives about 0.125 rate of vanilla path
+        possible, existing = paperclip_inputs()
+        bm = BaseMaker(10, 0, 7, 8, 0x39, possible, existing, dm, random.randrange(1999999999))
+        bm.make()
+        attempts_to_get_non_vanilla_path += 1
+
+        path_to_goal = bm.path(Node(0, 0), Node(0, 5))
+        if len(path_to_goal) > 10 and path_to_goal[-8] == Node(4, 6) and path_to_goal[-10] == Node(5, 7):
+            # input(f"vanilla path on attempt {attempts_to_get_non_vanilla_path}\n{bm.map_str()}\ntrying again")
+            continue
+        else:
+            return bm
+    assert bm
     return bm
