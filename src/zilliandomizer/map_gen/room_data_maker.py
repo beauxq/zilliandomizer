@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Sized, Tuple, Union
+from typing import Dict, Iterable, List, Mapping, Sized, Tuple, Union
 
 from zilliandomizer.map_gen.base import Base
 from zilliandomizer.map_gen.base_maker import BaseMaker, Node
@@ -72,17 +72,17 @@ def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], Edge
     return out, edge_doors
 
 
-def make_room_gen_data(base: Base) -> Dict[int, RoomData]:
+def make_room_gen_data(base: Base, pc_splits: Mapping[Node, Node]) -> Dict[int, RoomData]:
     out = GEN_ROOMS.copy()
 
-    _add_to_gen_rooms(out, base.red)
-    _add_to_gen_rooms(out, base.paperclip)
+    _add_to_gen_rooms(out, base.red, {})
+    _add_to_gen_rooms(out, base.paperclip, pc_splits)
 
     return out
 
 
-def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker) -> None:
-    edge_descriptions = make_edge_descriptions(bm)
+def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[Node, Node]) -> None:
+    edge_descriptions = make_edge_descriptions(bm, splits)
 
     for row in range(bm.row_offset, bm.row_offset + bm.height):
         for col in range(bm.col_offset, bm.col_offset + bm.width):

@@ -9,6 +9,7 @@ from .map_gen.base_maker import Node, get_paperclip_base, get_red_base
 from .map_gen.door_manager import DoorManager
 from .map_gen.jump import room_jump_requirements
 from .map_gen.room_data_maker import make_room_gen_data
+from .map_gen.split_maker import choose_splits
 from .options import Chars, Options, chars
 from .patch import Patcher
 from .randomizer import Randomizer
@@ -74,7 +75,8 @@ class System:
             pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
             self._logger.spoil(pc_base.map_str())
             self._base = Base(red_base, pc_base, dm)
-            room_gen_data = make_room_gen_data(self._base)
+            pc_splits = choose_splits(self._base.paperclip, set(), Node(0, 0))  # TODO: no_doors  
+            room_gen_data = make_room_gen_data(self._base, pc_splits)
         elif self._options.map_gen == "rooms":
             self._base = None
             room_gen_data = GEN_ROOMS.copy()

@@ -1,7 +1,7 @@
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Deque, Dict, List, Literal, Set, Tuple, Union
+from typing import Deque, Dict, List, Literal, Mapping, Set, Tuple, Union
 
 from .base_maker import BaseMaker, Node
 
@@ -120,7 +120,7 @@ _red_right_area_exits = {
 }
 
 
-def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
+def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[Node, Dict[Node, Desc]]:
     """
     choose locations of doors and elevators
 
@@ -172,6 +172,8 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
             map_index = row * 8 + col
             bm.door_manager.del_room(map_index)
 
+    dippers = set(splits.values())
+
     done: Set[Node] = set()
     q: Deque[Node] = deque([start_node])
 
@@ -203,34 +205,102 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                 corners_used_in_this_room.append(Corner.bl)
             for out in outs:
                 if here.x < out.x:  # going to right
-                    y_choices = [0, 2, 4]
-                    if Corner.tr not in corners_used_in_this_room:
-                        y_choices.append(1)
-                    if Corner.br not in corners_used_in_this_room:
-                        y_choices.append(3)
+                    if out in splits:
+                        dipper_to_out = splits[out]
+                        if dipper_to_out.y > out.y:  # dipper below
+                            y_choices = [0]
+                        elif dipper_to_out.y < out.y:  # dipper above
+                            y_choices = [4]
+                        else:  # dipper coming from opposite side
+                            assert dipper_to_out.x > out.x, f"{here=} {out=} {dipper_to_out=}"
+                            y_choices = [0, 2, 4]
+                    elif here in splits:
+                        dipper_to_here = splits[here]
+                        if dipper_to_here.y > here.y:  # dipper below
+                            y_choices = [0]
+                        elif dipper_to_here.y < here.y:  # dipper above
+                            y_choices = [4]
+                        else:  # dipper came from... behind!
+                            assert in_desc.de is DE.elevator, f"{here=} {in_desc=}"
+                            assert False, "I haven't implemented entering a split room from an elevator."
+                            y_choices = [0 if out_through_in.y == 0 else 4]
+                    else:  # no split room involved
+                        y_choices = [0, 2, 4]
+                        if out not in dippers and here not in dippers:
+                            if Corner.tr not in corners_used_in_this_room:
+                                y_choices.append(1)
+                            if Corner.br not in corners_used_in_this_room:
+                                y_choices.append(3)
                     exit_x = 0xf0
                     exit_y = requires_y.get(here, requires_y.get(out, bm.random.choice(y_choices)))
                     out_desc = Desc(DE.door, exit_y, exit_x)
                     if here not in no_doors:
                         bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
                 elif here.x > out.x:  # going to left
-                    y_choices = [0, 2, 4]
-                    if Corner.tl not in corners_used_in_this_room:
-                        y_choices.append(1)
-                    if Corner.bl not in corners_used_in_this_room:
-                        y_choices.append(3)
+                    if out in splits:
+                        dipper_to_out = splits[out]
+                        if dipper_to_out.y > out.y:  # dipper below
+                            y_choices = [0]
+                        elif dipper_to_out.y < out.y:  # dipper above
+                            y_choices = [4]
+                        else:  # dipper coming from opposite side
+                            assert dipper_to_out.x < out.x, f"{here=} {out=} {dipper_to_out=}"
+                            y_choices = [0, 2, 4]
+                    elif here in splits:
+                        dipper_to_here = splits[here]
+                        if dipper_to_here.y > here.y:  # dipper below
+                            y_choices = [0]
+                        elif dipper_to_here.y < here.y:  # dipper above
+                            y_choices = [4]
+                        else:  # dipper came from... behind!
+                            assert in_desc.de is DE.elevator, f"{here=} {in_desc=}"
+                            assert False, "I haven't implemented entering a split room from an elevator."
+                            y_choices = [0 if out_through_in.y == 0 else 4]
+                    else:  # no split room involved
+                        y_choices = [0, 2, 4]
+                        if out not in dippers and here not in dippers:
+                            if Corner.tl not in corners_used_in_this_room:
+                                y_choices.append(1)
+                            if Corner.bl not in corners_used_in_this_room:
+                                y_choices.append(3)
                     exit_x = 0x08
                     exit_y = requires_y.get(here, requires_y.get(out, bm.random.choice(y_choices)))
                     out_desc = Desc(DE.door, exit_y, exit_x)
                     if here not in no_doors:
                         bm.door_manager.add_door(map_index, exit_y, exit_x, map_index)
                 elif here.y < out.y:  # going down
-                    x_choices = [
-                        x
-                        for x in _safe_elevator_x
-                        if ((x > 0x20 or Corner.bl not in corners_used_in_this_room) and
-                            (x < 0xc0 or Corner.br not in corners_used_in_this_room))
-                    ]
+                    if out in splits:
+                        assert False, "haven't implemented entering split with elevator"
+                        dipper_to_out = splits[out]
+                        if dipper_to_out.x > out.x:  # dipper right
+                            assert Corner.bl not in corners_used_in_this_room, (
+                                "logic for going in to dipper should have prevented this"
+                            )
+                            x_choices = [0x10]
+                        elif dipper_to_out.x < out.x:  # dipper left
+                            assert Corner.br not in corners_used_in_this_room, (
+                                "logic for going in to dipper should have prevented this"
+                            )
+                            x_choices = [0xde]
+                        else:  # dipper coming from opposite side
+                            assert dipper_to_out.y > out.y, f"{here=} {out=} {dipper_to_out=}"
+                            x_choices = tuple(_safe_elevator_x)
+                    elif here in splits:
+                        dipper_to_here = splits[here]
+                        if dipper_to_here.x > here.x:  # dipper right
+                            x_choices = [0x10]
+                        elif dipper_to_here.x < here.x:  # dipper left
+                            x_choices = [0xd0]
+                        else:  # dipper above
+                            assert in_desc.de is DE.door
+                            x_choices = [0x10 if out_through_in.x < 0x80 else 0xde]
+                    else:  # no split room, here or out
+                        x_choices = [
+                            x
+                            for x in _safe_elevator_x
+                            if ((x > 0x20 or Corner.bl not in corners_used_in_this_room) and
+                                (x < 0xc0 or Corner.br not in corners_used_in_this_room))
+                        ]
                     exit_x = bm.random.choice(x_choices)
                     # debug code
                     # if 0x10 in x_choices:
@@ -239,12 +309,38 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
                     out_desc = Desc(DE.elevator, exit_y_5, exit_x)
                     bm.door_manager.add_elevator(map_index, exit_y_5, exit_x, back_to_computer(here))
                 elif here.y > out.y:  # going up
-                    x_choices = [
-                        x
-                        for x in _safe_elevator_x
-                        if ((x > 0x20 or Corner.tl not in corners_used_in_this_room) and
-                            (x < 0xc0 or Corner.tr not in corners_used_in_this_room))
-                    ]
+                    if out in splits:
+                        assert False, "haven't implemented entering split with elevator"
+                        dipper_to_out = splits[out]
+                        if dipper_to_out.x > out.x:  # dipper right
+                            assert Corner.tl not in corners_used_in_this_room, (
+                                "logic for going in to dipper should have prevented this"
+                            )
+                            x_choices = [0x10]
+                        elif dipper_to_out.x < out.x:  # dipper left
+                            assert Corner.tr not in corners_used_in_this_room, (
+                                "logic for going in to dipper should have prevented this"
+                            )
+                            x_choices = [0xde]
+                        else:  # dipper coming from opposite side
+                            assert dipper_to_out.y > out.y, f"{here=} {out=} {dipper_to_out=}"
+                            x_choices = tuple(_safe_elevator_x)
+                    elif here in splits:
+                        dipper_to_here = splits[here]
+                        if dipper_to_here.x > here.x:  # dipper right
+                            x_choices = [0x10]
+                        elif dipper_to_here.x < here.x:  # dipper left
+                            x_choices = [0xd0]
+                        else:  # dipper above
+                            assert in_desc.de is DE.door
+                            x_choices = [0x10 if out_through_in.x < 0x80 else 0xde]
+                    else:  # no split room, here or out
+                        x_choices = [
+                            x
+                            for x in _safe_elevator_x
+                            if ((x > 0x20 or Corner.tl not in corners_used_in_this_room) and
+                                (x < 0xc0 or Corner.tr not in corners_used_in_this_room))
+                        ]
                     exit_x = bm.random.choice(x_choices)
                     exit_y_0: Literal[0] = 0  # TODO: when mypy gets better literal narrowing, just use exit_y
                     out_desc = Desc(DE.elevator, exit_y_0, exit_x)
@@ -259,6 +355,54 @@ def make_edge_descriptions(bm: BaseMaker) -> Dict[Node, Dict[Node, Desc]]:
             if area_exit:
                 bm.door_manager.add_door(map_index, area_exit.y, area_exit.x, map_index)
         q.extend(outs)
+
+    for split, dipper in splits.items():
+        split_row = bm.row_offset + split.y
+        split_col = bm.col_offset + split.x
+        split_map_index = split_row * 8 + split_col
+        dipper_row = bm.row_offset + dipper.y
+        dipper_col = bm.col_offset + dipper.x
+        dipper_map_index = dipper_row * 8 + dipper_col
+
+        split_edges = list(edge_descriptions[split].values())
+        assert split_edges[0].de is DE.door, "didn't implement enter split through elevator"
+
+        if dipper.y < split.y:  # dipper above
+            y_dipper = 5
+            y_split = 0
+            x = 0x10 if split_edges[0].x > 0x70 else 0xd0
+            dipper_desc = Desc(DE.elevator, y_dipper, x)
+            split_desc = Desc(DE.elevator, y_split, x)
+            bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
+            bm.door_manager.add_elevator(split_map_index, y_split, x, back_to_computer(dipper))
+        elif dipper.y > split.y:  # dipper below
+            y_dipper = 0
+            y_split = 5
+            x = 0x10 if split_edges[0].x > 0x70 else 0xd0
+            dipper_desc = Desc(DE.elevator, y_dipper, x)
+            split_desc = Desc(DE.elevator, y_split, x)
+            bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
+            bm.door_manager.add_elevator(split_map_index, y_split, x, back_to_computer(dipper))
+        elif dipper.x < split.x:  # dipper left
+            x_dipper = 0xe0
+            x_split = 0x08
+            y = 4 if split_edges[0].y <= 2 else 0  # TODO: I didn't think very much about this, I'm tired.
+            dipper_desc = Desc(DE.door, y, x_dipper)
+            split_desc = Desc(DE.door, y, x_split)
+            if dipper not in no_doors:
+                bm.door_manager.add_door(dipper_map_index, y, x_dipper, dipper_map_index)
+        else:  # dipper right
+            assert dipper.x > split.x
+            x_dipper = 0x08
+            x_split = 0xe0
+            y = 4 if split_edges[0].y <= 2 else 0
+            dipper_desc = Desc(DE.door, y, x_dipper)
+            split_desc = Desc(DE.door, y, x_split)
+            if dipper not in no_doors:
+                bm.door_manager.add_door(dipper_map_index, y, x_dipper, dipper_map_index)
+
+        edge_descriptions[dipper][split] = dipper_desc
+        edge_descriptions[split][dipper] = split_desc
 
     return edge_descriptions
 
