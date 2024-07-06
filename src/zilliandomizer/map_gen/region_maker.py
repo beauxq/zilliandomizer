@@ -129,7 +129,7 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         divided = dead_end and computer_opens_door
         parent = parents[region_name_base]
 
-        print(f"making room {region_name_base}")
+        # print(f"making room {region_name_base}")
         if divided:
             locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
             # assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"

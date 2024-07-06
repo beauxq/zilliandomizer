@@ -100,7 +100,7 @@ class System:
             a = Alarms(self.resource_managers.tm, self.randomizer.logger)
             a.choose_all(self._modified_rooms)
 
-        def choose_escape_time(skill: int, path_through_red: float) -> int:
+        def choose_escape_time(skill: int, path_through_red: float, path_through_paperclip: float) -> int:
             """
             based on skill - WR did escape in 160 - skill 5 could require 165-194
 
@@ -111,15 +111,19 @@ class System:
             # adjusted with map_gen
             if path_through_red < 7:
                 path_through_red = (path_through_red + 7) / 2
+            if path_through_paperclip < 12:
+                path_through_paperclip = (path_through_paperclip + 12) / 2
             m = 20.5  # var that I played with in desmos to get good numbers
-            map_gen_multiplier = (path_through_red + m) / (7 + m)  # == 1 if path_through_red == 7
+            map_gen_multiplier = (path_through_red + path_through_paperclip + m) / (7 + 12 + m)
+            # == 1 if path_through_red == 7 and path_through_paperclip == 12
 
             low = round((300 - (skill * 27)) * map_gen_multiplier)
             return self._random.randrange(low, low + 30)
 
         path_through_red = self._get_path_through_red()
+        path_through_paperclip = self._get_path_through_paperclip()
         # print(f"{path_through_red=}")
-        self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red) # path_through_pc
+        self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red, path_through_paperclip)
 
         def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
             """
@@ -155,9 +159,18 @@ class System:
         return {}
 
     def _get_path_through_red(self) -> int:
+        """ fastest possible is 5, vanilla is 7 """
         if self._base:
             top = self._base.red.path(Node(0, 3), Node(1, 0))
             mid = self._base.red.path(Node(0, 3), Node(3, 0))
             bot = self._base.red.path(Node(0, 3), Node(4, 0))
             return min(len(top), len(mid) + 1, len(bot) + 1)
         return 7  # vanilla
+
+    def _get_path_through_paperclip(self) -> int:
+        """ fastest possible is 10, vanilla is 12 """
+        if self._base:
+            with_one_way = len(self._base.paperclip.path(Node(3, 7), Node(4, 1))) + 4
+            without_one_way = len(self._base.paperclip.path(Node(3, 7), Node(1, 0)))
+            return min(with_one_way, without_one_way)
+        return 12  # vanilla

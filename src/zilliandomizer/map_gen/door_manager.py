@@ -76,9 +76,9 @@ class DoorSprite(IntEnum):
 class DoorManager:
     original_statuses: Dict[int, DoorStatusIndex]
     """
-    This room is the first time these statuses are opened.
+    a status that will first be opened by this `map_index`
 
-    (only newly created doors)
+    (only newly created doors and special case 57)
     """
     freed_statuses: DetSet[DoorStatusIndex]
     """ this `DoorStatusIndex` existed in vanilla, but all its doors have been deleted """
@@ -110,6 +110,9 @@ class DoorManager:
         self._fill()
 
     def _fill(self) -> None:
+        # paperclip maker needs to know map_index 57 status
+        self.original_statuses[57] = (0x13, 0x01)
+
         for map_index, door_list in self.doors.items():
             for door_data in door_list:
                 a, b, _, _, _ = door_data

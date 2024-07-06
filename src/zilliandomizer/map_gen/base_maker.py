@@ -305,6 +305,6 @@ def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
 
 def get_paperclip_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
     possible, existing = paperclip_inputs()
-    bm = BaseMaker(10, 0, 7, 8, 0x31, possible, existing, dm, seed)
+    bm = BaseMaker(10, 0, 7, 8, 0x39, possible, existing, dm, seed)
     bm.make()
     return bm
