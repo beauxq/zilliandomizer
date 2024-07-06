@@ -73,7 +73,6 @@ class Desc:
                 return []
         else:
             assert self.de is DE.hallway_elevator  # TODO: assert_type
-            # TODO: review 
             return []
         return []
 
