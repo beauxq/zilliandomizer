@@ -25,7 +25,6 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
     no_doors.add(pre_entrance_region)
 
     entrance_name = reg_name(start_node)
-    assert entrance_name == "r05c6"
 
     divided_rooms: List[str] = []
     parents: Dict[str, str] = {entrance_name: pre_entrance_region}
@@ -42,7 +41,6 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         map_row = row + bm.row_offset
         map_col = col + bm.col_offset
         region_name_base = reg_name(node)
-        assert region_name_base == f"r0{map_row}c{map_col}"
         adjs = list(bm.adjs(node))
         dead_end = (len(adjs) == 1) and (node not in exits)
         computer_opens_door = region_name_base not in no_doors
@@ -105,7 +103,6 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
     no_doors.add(pre_entrance_region)
 
     entrance_name = reg_name(start_node)
-    assert entrance_name == "r10c0"
 
     divided_rooms: List[str] = []
     parents: Dict[str, str] = {entrance_name: pre_entrance_region}
@@ -122,7 +119,6 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         map_row = row + bm.row_offset
         map_col = col + bm.col_offset
         region_name_base = reg_name(node)
-        assert region_name_base == f"r{map_row}c{map_col}"
         adjs = list(bm.adjs(node))
         dead_end = (len(adjs) == 1) and (node not in exits)
         computer_opens_door = region_name_base not in no_doors
