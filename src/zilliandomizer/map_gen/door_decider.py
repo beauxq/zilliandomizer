@@ -39,6 +39,8 @@ class Desc:
     """ in door data structure units (0 - 5) """
     x: int
     """ in pixels (0x00 - 0xf0) """
+    dip_entrance: bool = False
+    """ whether this is a dip entrance in a split room """
 
     def corner_conflicts(self) -> List[Corner]:
         """ with possible conflicts (A door in a corner is not a possible conflict - only doors at 1 or 3.) """
@@ -372,7 +374,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
             ]
             x = bm.random.choice(x_choices)
             dipper_desc = Desc(DE.elevator, y_dipper, x)
-            split_desc = Desc(DE.elevator, y_split, x)
+            split_desc = Desc(DE.elevator, y_split, x, True)
             bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
             bm.door_manager.add_elevator(split_map_index, y_split, x, back_to_computer(dipper))
         elif dipper.y > split.y:  # dipper below
@@ -392,7 +394,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
             ]
             x = bm.random.choice(x_choices)
             dipper_desc = Desc(DE.elevator, y_dipper, x)
-            split_desc = Desc(DE.elevator, y_split, x)
+            split_desc = Desc(DE.elevator, y_split, x, True)
             bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
             bm.door_manager.add_elevator(split_map_index, y_split, x, back_to_computer(dipper))
         elif dipper.x < split.x:  # dipper left
@@ -412,7 +414,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
             ]
             y = bm.random.choice(y_choices)
             dipper_desc = Desc(DE.door, y, x_dipper)
-            split_desc = Desc(DE.door, y, x_split)
+            split_desc = Desc(DE.door, y, x_split, True)
             if dipper not in no_doors:
                 bm.door_manager.add_door(dipper_map_index, y, x_dipper, dipper_map_index)
         else:  # dipper right
@@ -433,7 +435,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
             ]
             y = bm.random.choice(y_choices)
             dipper_desc = Desc(DE.door, y, x_dipper)
-            split_desc = Desc(DE.door, y, x_split)
+            split_desc = Desc(DE.door, y, x_split, True)
             if dipper not in no_doors:
                 bm.door_manager.add_door(dipper_map_index, y, x_dipper, dipper_map_index)
 

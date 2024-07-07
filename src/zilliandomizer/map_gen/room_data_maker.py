@@ -42,14 +42,15 @@ _split_rooms = {
 """ rooms that I don't generate in map_gen rooms, but do generate in map_gen full """
 
 
-def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], EdgeDoors]:
+def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], EdgeDoors, Union[Coord, None]]:
     """
-    `(exits, edge_doors)` (parameters to `RoomData`)
+    `(exits, edge_doors, dip_entrance)` (parameters to `RoomData`)
 
     first value in `descs` should be the entrance
     """
     out: List[Coord] = []
     edge_doors: Tuple[List[int], List[int]] = ([], [])
+    dip_entrance: Union[Coord, None] = None
     for desc in descs:
         if desc.de is DE.door:
             if desc.x == 0x08:
@@ -69,7 +70,10 @@ def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], Edge
                 y = 5
         assert y >= 0 and x >= 0, f"{descs=}"
         out.append((y, x))
-    return out, edge_doors
+        if desc.dip_entrance:
+            assert dip_entrance is None, f"multiple dip entrances? {descs=}"
+            dip_entrance = (y, x)
+    return out, edge_doors, dip_entrance
 
 
 def make_room_gen_data(base: Base, pc_splits: Mapping[Node, Node]) -> Dict[int, RoomData]:
@@ -94,7 +98,7 @@ def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[N
                 continue
             node = Node(row - bm.row_offset, col - bm.col_offset)
             outs = edge_descriptions[node]
-            exits, edge_doors = room_data_exits_from_descs(outs.values())
+            exits, edge_doors, dip_entrance = room_data_exits_from_descs(outs.values())
 
             if map_index in GEN_ROOMS:
                 computer = GEN_ROOMS[map_index].computer
@@ -145,4 +149,4 @@ def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[N
                         dead_end_can = dead_exit
                     assert dead_end_can
 
-            out[map_index] = RoomData(exits, computer, no_space, edge_doors, dead_end_can)
+            out[map_index] = RoomData(exits, computer, no_space, edge_doors, dead_end_can, dip_entrance)
