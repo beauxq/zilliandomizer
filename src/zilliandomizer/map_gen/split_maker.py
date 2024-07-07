@@ -2,7 +2,7 @@ from collections import defaultdict
 import itertools
 from typing import AbstractSet, Collection, Dict, Iterable, List, Mapping, Set
 
-from .base_maker import BaseMaker, Node
+from .base_maker import BaseMaker, Edge, Node
 
 
 def find_cycles(nodes: Iterable[Node], dependencies: Mapping[Node, Iterable[Node]]) -> Set[Node]:
@@ -119,3 +119,11 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
     print(f"no cycles - {len(possible_splits)=}\n{bm.map_str(1, possible_splits)}")
 
     return possible_splits
+
+
+def split_edges(splits: Mapping[Node, Node]) -> Set[Edge]:
+    """ the edges between the splits and their dippers """
+    split_edges: Set[Edge] = set()
+    for nodes in splits.items():
+        split_edges.add(frozenset(nodes))
+    return split_edges

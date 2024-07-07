@@ -4,6 +4,7 @@ from enum import Enum, auto
 from typing import Deque, Dict, List, Literal, Mapping, Set, Tuple, Union
 
 from .base_maker import BaseMaker, Node
+from .map_data import pc_no_doors, red_right_no_doors
 
 _safe_elevator_x = (0x10, 0x20, 0x30, 0x60, 0x80, 0xd0, 0xd0)
 """
@@ -77,24 +78,6 @@ class Desc:
         return []
 
 
-# TODO: duplicate info in region_maker
-_red_right_no_doors = {
-    Node(0, 2),  # no computer  # TODO: implement changing which rooms have computers and doors?
-    Node(0, 3),  # start hall
-    Node(1, 2),  # hall
-    Node(2, 1),  # no computer and no canisters
-    Node(4, 3),  # hall
-    Node(4, 4),  # no canisters
-}
-
-_pc_no_doors = {
-    Node(0, 0), Node(1, 0), Node(2, 0), Node(3, 0), Node(4, 0), Node(5, 0), Node(6, 0),  # left
-    Node(0, 1), Node(1, 1), Node(2, 1),             Node(4, 1), Node(5, 1), Node(6, 1),  # rooms and halls
-    Node(0, 7), Node(1, 7), Node(2, 7), Node(3, 7), Node(4, 7), Node(5, 7), Node(6, 7),  # right
-    Node(0, 5), Node(0, 6),  # main computer
-    Node(6, 3), Node(6, 4), Node(6, 5), Node(6, 6),  # bottom hall
-}
-
 _red_requires_y: Dict[Node, int] = {
     Node(1, 2): 4,  # hall
     Node(4, 3): 4,  # hall
@@ -140,7 +123,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                 Node(0, 4): Desc(DE.door, 4, 0xf0),
             },
         }
-        no_doors = _red_right_no_doors
+        no_doors = red_right_no_doors
         requires_y = _red_requires_y
         start_node = Node(0, 3)
     else:
@@ -154,7 +137,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                 Node(1, 0): Desc(DE.hallway_elevator, 0, 0),
             },
         }
-        no_doors = _pc_no_doors
+        no_doors = pc_no_doors
         requires_y = _pc_requires_y
         start_node = Node(0, 0)
 
