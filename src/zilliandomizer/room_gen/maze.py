@@ -2,7 +2,7 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import Dict, FrozenSet, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
+from typing import AbstractSet, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
@@ -17,6 +17,7 @@ TOP = 0
 BOTTOM = 5
 
 
+# TODO: StrEnum ?
 class Cell:
     wall = '|'
     floor = '_'
@@ -47,8 +48,10 @@ class Grid:
     """ whether to put walkways in this room """
     is_walkway: List[List[int]]
     """ moving walkway - 0 normal floor - 1 right - 2 left """
-    no_space: FrozenSet[Coord]
+    no_space: AbstractSet[Coord]
     """ special places that I'm not allowed to put space """
+    no_change: AbstractSet[Coord]
+    """ special places that I'm not allowed to change at all """
     _tc: TerrainModifier
     _logger: Logger
     _skill: int
@@ -63,11 +66,13 @@ class Grid:
                  logger: Logger,
                  skill: int,
                  no_space: Iterable[Coord],
+                 no_change: Iterable[Coord],
                  edge_doors: EdgeDoors = None) -> None:
         self.exits = exits
         self.ends = ends
         self.map_index = map_index
         self.no_space = frozenset(no_space)
+        self.no_change = frozenset(no_change)
         self._tc = tc
         """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
@@ -455,7 +460,7 @@ class Grid:
     def map_str(self, marks: Union[None, Iterable[Coord]] = None) -> str:
         if not marks:
             marks = frozenset()
-        coord_marks: FrozenSet[Coord] = frozenset(marks)
+        coord_marks: AbstractSet[Coord] = frozenset(marks)
         under = "̲"  # unicode underline prev char
         tr = " "
         for y, row in enumerate(self.data):
@@ -499,7 +504,7 @@ class Grid:
         clearables: List[Coord] = []
 
         def is_clearable(row: int, col: int) -> bool:
-            if self.in_end(row, col):
+            if self.in_end(row, col) or ((row, col) in self.no_change):
                 return False
 
             here = self.data[row][col]
@@ -546,7 +551,7 @@ class Grid:
         def is_changeable(row: int, col: int) -> List[str]:
             """ returns what it can change to """
             tr: List[str] = []
-            if self.in_end(row, col):
+            if self.in_end(row, col) or ((row, col) in self.no_change):
                 return tr
 
             here = self.data[row][col]
@@ -668,7 +673,7 @@ class Grid:
 
     def copy(self) -> "Grid":
         tr = Grid(self.exits, self.ends, self.map_index, self._tc,
-                  self._logger, self._skill, self.no_space, self._edge_doors)
+                  self._logger, self._skill, self.no_space, self.no_change, self._edge_doors)
         tr.data = deepcopy(self.data)
         return tr
 

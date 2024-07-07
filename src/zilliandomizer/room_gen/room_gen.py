@@ -1,5 +1,5 @@
 from random import gauss, random, randrange, sample, shuffle
-from typing import Dict, FrozenSet, List, Literal, Mapping, Optional, Set, Tuple, Union
+from typing import Dict, FrozenSet, Iterable, List, Literal, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from zilliandomizer.alarm_data import ALARM_ROOMS
 from zilliandomizer.logic_components.location_data import make_locations
@@ -128,62 +128,211 @@ class RoomGen:
                 self.sm.load_state()
                 self.reset()
 
+    def _make_optimized_no_softlock(self,
+                                    exits: List[Coord],
+                                    ends: List[Coord],
+                                    map_index: int,
+                                    room: RoomData,
+                                    jump_blocks: float,
+                                    size_limit: float,
+                                    no_change: Iterable[Coord] = (),
+                                    pudding_tiles: Mapping[Coord, str] = {}) -> Grid:
+        # TODO: maybe better if I don't take `room` argument, because it's not taking all info from that
+        tr = Grid(exits,
+                  ends,
+                  map_index,
+                  self.tc,
+                  self._logger,
+                  self._skill,
+                  room.no_space,
+                  no_change,
+                  room.edge_doors)
+        for c, tile in pudding_tiles.items():
+            y, x = c
+            tr.data[y][x] = tile
+        tr.make(jump_blocks, size_limit)
+        if random() < 0.5:
+            # I used to use this for softlock avoidance,
+            # but after improving the movement adjacency function,
+            # I don't need it for softlock avoidance anymore (maybe?).
+            # But it makes a significantly different style of room,
+            # so I include it randomly for variety.
+            tr.fix_crawl_fall()
+        tr.optimize_encoding()
+        # place some new walkways after post-processing
+        solved = False
+        for _ in range(5 if tr.walkways else 1):
+            if tr.walkways:
+                tr.place_walkways()
+            if tr.solve(jump_blocks):
+                solved = True
+                break
+        if tr.softlock_exists():
+            raise MakeFailure("softlock")
+        if not solved:
+            # This is expected to happen changing walkways after optimization
+            # self._logger.warn("WARNING: room generation post-processing removed navigability")
+            raise MakeFailure("post-proc broke room")
+        return tr
+
+    def _generate_split(
+        self,
+        map_index: int,
+        jump_blocks: float,
+        size_limit: float
+    ) -> Tuple[
+        List[Coord],  # exits
+        List[Coord],  # ends
+        Iterable[Coord],  # no_change
+        Mapping[Coord, str]  # pudding_tiles
+    ]:
+        """ returns (the length of the compressed room data, jump blocks required to traverse) """
+
+        def get_ninth(y: int, x: int) -> int:
+            """ with the room divided into 9 sections, which section is this coordinate in """
+            return (y // 2) * 3 + (x // 5)
+
+        this_room = self._gen_rooms[map_index]
+        exits = this_room.exits[:]
+        dip_entrance = this_room.split_dip_entrance
+        assert dip_entrance
+        entrance_ninth = get_ninth(*dip_entrance)
+        pudding_ninths = [
+            get_ninth(*exit_)
+            for exit_ in exits
+            if exit_ != dip_entrance
+        ]
+        assert not any(ninth == 4 for ninth in pudding_ninths + [entrance_ninth]), (
+            f"entrance into middle of room? {this_room=}"
+        )
+        dipped_ninths = [4, entrance_ninth]
+
+        # from entrance_ninth, walk around both directions until hitting a pudding ninth
+
+        def go_a_direction(seq: Sequence[int]) -> None:
+            i = seq.index(entrance_ninth) + 1
+            while seq[i] not in pudding_ninths:
+                dipped_ninths.append(seq[i])
+                i += 1
+
+        clockwise = (0, 1, 2, 5, 8, 7, 6, 3) * 2
+        go_a_direction(clockwise)
+        go_a_direction(tuple(reversed(clockwise)))
+
+        assert all(pudding_ninth not in dipped_ninths for pudding_ninth in pudding_ninths)
+        assert all(dipped_ninth not in pudding_ninths for dipped_ninth in dipped_ninths)
+
+        pudding_ninths = [n for n in range(9) if n not in dipped_ninths]
+        assert 4 not in pudding_ninths
+
+        assert all(pudding_ninth not in dipped_ninths for pudding_ninth in pudding_ninths)
+        assert all(dipped_ninth not in pudding_ninths for dipped_ninth in dipped_ninths)
+
+        # make ends for dipped section
+        ends = [dip_entrance]
+
+        lowest_dipped_ninth_y = max(dipped_ninth // 3 for dipped_ninth in dipped_ninths)
+        all_lowest_dipped_ninths = [
+            n
+            for n in range(lowest_dipped_ninth_y * 3, lowest_dipped_ninth_y * 3 + 3)
+            if n in dipped_ninths
+        ]
+        bottom_left_ninth = all_lowest_dipped_ninths[0]
+        bottom_right_ninth = all_lowest_dipped_ninths[-1]
+        bottom_left_x = (bottom_left_ninth % 3) * 5
+        bottom_right_x = (bottom_right_ninth % 3) * 5 + 2
+        bottom_y = (bottom_left_ninth // 3) * 2 + 1
+        ends.append((bottom_y, bottom_left_x))
+        ends.append((bottom_y, bottom_right_x))
+
+        highest_dipped_ninth_y = min(dipped_ninth // 3 for dipped_ninth in dipped_ninths)
+        all_highest_dipped_ninths = [
+            n
+            for n in range(highest_dipped_ninth_y * 3, highest_dipped_ninth_y * 3 + 3)
+            if n in dipped_ninths
+        ]
+        top_left_ninth = all_highest_dipped_ninths[0]
+        top_right_ninth = all_highest_dipped_ninths[-1]
+        top_left_x = (top_left_ninth % 3) * 5
+        top_right_x = (top_right_ninth % 3) * 5 + 2
+        top_y = (top_left_ninth // 3) * 2 + 1
+        top_x = top_left_x if random() < 0.5 else top_right_x
+        ends.append((top_y, top_x))
+
+        # which grid spaces to not change
+        no_change: Set[Coord] = set()
+        pudding_tiles: Dict[Coord, str] = {}
+        for n in pudding_ninths:
+            top_y = (n // 3) * 2
+            left_x = (n % 3) * 5
+            for y in range(top_y, top_y + 2):
+                for x in range(left_x - 1, left_x + 5):
+                    if x >= 0 and x < 14:
+                        coord = (y, x)
+                        no_change.add(coord)
+                        if x % 5 != 4:  # if not a ninth boundary
+                            if y & 1:
+                                pudding_tiles[coord] = Cell.floor
+                            else:
+                                pudding_tiles[coord] = Cell.space
+
+        # open up boundaries between pudding tiles
+        if 0 in pudding_ninths and 1 in pudding_ninths:
+            pudding_tiles[(0, 4)] = Cell.space
+            pudding_tiles[(1, 4)] = Cell.floor
+        if 1 in pudding_ninths and 2 in pudding_ninths:
+            pudding_tiles[(0, 9)] = Cell.space
+            pudding_tiles[(1, 9)] = Cell.floor
+        if 2 in pudding_ninths and 5 in pudding_ninths:
+            pudding_tiles[(1, 10)] = Cell.space
+            pudding_tiles[(1, 11)] = Cell.space
+        if 5 in pudding_ninths and 8 in pudding_ninths:
+            pudding_tiles[(3, 10)] = Cell.space
+        if 7 in pudding_ninths and 8 in pudding_ninths:
+            pudding_tiles[(4, 9)] = Cell.space
+            pudding_tiles[(5, 9)] = Cell.floor
+        if 6 in pudding_ninths and 7 in pudding_ninths:
+            pudding_tiles[(4, 4)] = Cell.space
+            pudding_tiles[(5, 4)] = Cell.floor
+        if 3 in pudding_ninths and 6 in pudding_ninths:
+            pudding_tiles[(3, 3)] = Cell.space
+        if 0 in pudding_ninths and 3 in pudding_ninths:
+            pudding_tiles[(1, 2)] = Cell.space
+            pudding_tiles[(1, 3)] = Cell.space
+
+        return [dip_entrance], ends, no_change, pudding_tiles
+
     def _generate_room(self,
                        map_index: int,
                        jump_blocks: float,
                        size_limit: float) -> Tuple[int, float]:
         """ returns (the length of the compressed room data, jump blocks required to traverse) """
         this_room = self._gen_rooms[map_index]
-        exits = this_room.exits[:]  # real exits
-        ends = exits[:]  # places I want to be able to get to
 
-        # make sure traversal doesn't just stay in one corner of the room
-        if not any(end[1] < 5 for end in ends):
-            ends.append((randrange(1, 6), 0))
-        if not any(end[1] > 8 for end in ends):
-            ends.append((randrange(1, 6), 12))
-        if not any(end[0] > 4 for end in ends):
-            ends.append((5, randrange(5, 8)))
-        if not any(end[0] < 3 for end in ends):
-            if random() < 0.5:
-                ends.append((1, randrange(0, 13)))
+        pudding_tiles: Mapping[Coord, str]
+        if this_room.split_dip_entrance:
+            exits, ends, no_change, pudding_tiles = self._generate_split(map_index, jump_blocks, size_limit)
+            second_candidate_for_elevation = False
+        else:
+            exits = this_room.exits[:]  # real exits
+            ends = exits[:]  # places I want to be able to get to
 
-        def make_optimized_no_softlock() -> Grid:
-            tr = Grid(exits,
-                      ends,
-                      map_index,
-                      self.tc,
-                      self._logger,
-                      self._skill,
-                      this_room.no_space,
-                      this_room.edge_doors)
-            tr.make(jump_blocks, size_limit)
-            if random() < 0.5:
-                # I used to use this for softlock avoidance,
-                # but after improving the movement adjacency function,
-                # I don't need it for softlock avoidance anymore (maybe?).
-                # But it makes a significantly different style of room,
-                # so I include it randomly for variety.
-                tr.fix_crawl_fall()
-            tr.optimize_encoding()
-            # place some new walkways after post-processing
-            solved = False
-            for _ in range(5 if tr.walkways else 1):
-                if tr.walkways:
-                    tr.place_walkways()
-                if tr.solve(jump_blocks):
-                    solved = True
-                    break
-            if tr.softlock_exists():
-                raise MakeFailure("softlock")
-            if not solved:
-                # This is expected to happen changing walkways after optimization
-                # self._logger.warn("WARNING: room generation post-processing removed navigability")
-                raise MakeFailure("post-proc broke room")
-            return tr
+            # make sure traversal doesn't just stay in one corner of the room
+            if not any(end[1] < 5 for end in ends):
+                ends.append((randrange(1, 6), 0))
+            if not any(end[1] > 8 for end in ends):
+                ends.append((randrange(1, 6), 12))
+            if not any(end[0] > 4 for end in ends):
+                ends.append((5, randrange(5, 8)))
+            if not any(end[0] < 3 for end in ends):
+                if random() < 0.5:
+                    ends.append((1, randrange(0, 13)))
 
-        # If all the ends are on the bottom, I want an extra chance to get high goables
-        second_candidate_for_elevation = all(end[0] > 2 for end in ends)
+            # If all the ends are on the bottom, I want an extra chance to get high goables
+            second_candidate_for_elevation = all(end[0] > 2 for end in ends)
+
+            no_change = ()
+            pudding_tiles = {}
 
         g: Optional[Grid] = None
         placed: List[Coord] = []
@@ -192,13 +341,17 @@ class RoomGen:
         fail_count = 0
         while not g:
             try:
-                candidate = make_optimized_no_softlock()
+                candidate = self._make_optimized_no_softlock(
+                    exits, ends, map_index, this_room, jump_blocks, size_limit, no_change, pudding_tiles
+                )
                 candidate_goables = candidate.get_goables(jump_blocks)
                 if second_candidate_for_elevation:
                     # lowest y coordinate is highest elevation
                     highest = min(c[0] for c in candidate_goables)
                     if highest > 1:
-                        candidate_2 = make_optimized_no_softlock()
+                        candidate_2 = self._make_optimized_no_softlock(
+                            exits, ends, map_index, this_room, jump_blocks, size_limit, no_change, pudding_tiles
+                        )
                         candidate_2_goables = candidate_2.get_goables(jump_blocks)
                         highest_2 = min(c[0] for c in candidate_2_goables)
                         if highest_2 < highest:
