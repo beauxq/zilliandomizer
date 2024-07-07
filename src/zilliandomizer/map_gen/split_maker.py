@@ -116,7 +116,7 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
         to_evict = bm.random.choice(cycle_list)
         del possible_splits[to_evict]
 
-    print(f"no cycles - {len(possible_splits)=}\n{bm.map_str(1, possible_splits)}")
+    print(f"no cycles - {len(possible_splits)=}\n{bm.map_str(1, possible_splits, split_edges(possible_splits))}")
 
     return possible_splits
 
