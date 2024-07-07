@@ -276,7 +276,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                             x_choices = [0xd0]
                         else:  # dipper above
                             assert in_desc.de is DE.door
-                            x_choices = [0x10 if out_through_in.x < 0x80 else 0xde]
+                            x_choices = [0x10 if out_through_in.x < 0x80 else 0xd0]
                     else:  # no split room, here or out
                         x_choices = [
                             x
@@ -316,7 +316,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                             x_choices = [0xd0]
                         else:  # dipper above
                             assert in_desc.de is DE.door
-                            x_choices = [0x10 if out_through_in.x < 0x80 else 0xde]
+                            x_choices = [0x10 if out_through_in.x < 0x80 else 0xd0]
                     else:  # no split room, here or out
                         x_choices = [
                             x
