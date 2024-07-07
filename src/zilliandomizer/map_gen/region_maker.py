@@ -10,6 +10,10 @@ _red_exits = (Node(1, 0), Node(3, 0), Node(4, 0))
 
 def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
     assert bm.height == 5 and bm.width == 5, f"{bm.height=} {bm.width=}"
+    node_no_doors = red_right_no_doors
+    pre_entrance_region = "between_blue_red"
+    start_node = Node(0, 3)
+    exits = _red_exits
 
     def reg_name(node: Node) -> str:
         row, col = node
@@ -17,13 +21,16 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         map_col = col + bm.col_offset
         return f"r{map_row:02}c{map_col}"
 
-    no_doors = set(reg_name(node) for node in red_right_no_doors)
-    no_doors.add("between_blue_red")
+    no_doors = set(reg_name(node) for node in node_no_doors)
+    no_doors.add(pre_entrance_region)
+
+    entrance_name = reg_name(start_node)
+    assert entrance_name == "r05c6"
 
     divided_rooms: List[str] = []
-    parents: Dict[str, str] = {"r05c6": "between_blue_red"}
+    parents: Dict[str, str] = {entrance_name: pre_entrance_region}
     done: Set[Node] = set()
-    q = deque([Node(0, 3)])
+    q = deque([start_node])
 
     while len(q):
         node = q.popleft()
@@ -34,9 +41,10 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         row, col = node
         map_row = row + bm.row_offset
         map_col = col + bm.col_offset
-        region_name_base = f"r0{map_row}c{map_col}"  # map row always < 10
+        region_name_base = reg_name(node)
+        assert region_name_base == f"r0{map_row}c{map_col}"
         adjs = list(bm.adjs(node))
-        dead_end = (len(adjs) == 1) and (node not in _red_exits)
+        dead_end = (len(adjs) == 1) and (node not in exits)
         computer_opens_door = region_name_base not in no_doors
         divided = dead_end and computer_opens_door
         parent = parents[region_name_base]
@@ -66,10 +74,7 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
 
         for adj in adjs:
             if adj not in done:
-                row, col = adj
-                map_row = row + 5
-                map_col = col + 3
-                child_name = f"r0{map_row}c{map_col}"
+                child_name = reg_name(adj)
                 parents[child_name] = region_name_base
                 q.append(adj)
 
@@ -85,6 +90,10 @@ _pc_exits = {Node(0, 5)}
 
 def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
     assert bm.height == 7 and bm.width == 8, f"{bm.height=} {bm.width=}"
+    node_no_doors = pc_no_doors
+    pre_entrance_region = "big_elevator"
+    start_node = Node(0, 0)
+    exits = _pc_exits
 
     def reg_name(node: Node) -> str:
         row, col = node
@@ -92,13 +101,16 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         map_col = col + bm.col_offset
         return f"r{map_row:02}c{map_col}"
 
-    no_doors = set(reg_name(node) for node in pc_no_doors)
-    no_doors.add("big_elevator")
+    no_doors = set(reg_name(node) for node in node_no_doors)
+    no_doors.add(pre_entrance_region)
+
+    entrance_name = reg_name(start_node)
+    assert entrance_name == "r10c0"
 
     divided_rooms: List[str] = []
-    parents: Dict[str, str] = {"r10c0": "big_elevator"}
+    parents: Dict[str, str] = {entrance_name: pre_entrance_region}
     done: Set[Node] = set()
-    q = deque([Node(0, 0)])
+    q = deque([start_node])
 
     while len(q):
         node = q.popleft()
@@ -109,14 +121,14 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         row, col = node
         map_row = row + bm.row_offset
         map_col = col + bm.col_offset
-        region_name_base = f"r{map_row}c{map_col}"  # map row always >= 10
+        region_name_base = reg_name(node)
+        assert region_name_base == f"r{map_row}c{map_col}"
         adjs = list(bm.adjs(node))
-        dead_end = (len(adjs) == 1) and (node not in _pc_exits)
+        dead_end = (len(adjs) == 1) and (node not in exits)
         computer_opens_door = region_name_base not in no_doors
         divided = dead_end and computer_opens_door
         parent = parents[region_name_base]
 
-        # print(f"making room {region_name_base}")
         if divided:
             locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
             # assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"
@@ -142,10 +154,7 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
 
         for adj in adjs:
             if adj not in done:
-                row, col = adj
-                map_row = row + bm.row_offset
-                map_col = col + bm.col_offset
-                child_name = f"r{map_row}c{map_col}"
+                child_name = reg_name(adj)
                 parents[child_name] = region_name_base
                 q.append(adj)
 
