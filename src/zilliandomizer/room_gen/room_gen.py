@@ -9,7 +9,7 @@ from zilliandomizer.low_resources.sprite_data import RoomSprites
 from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, SpriteType
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
-from zilliandomizer.room_gen.common import Coord, RoomData, coord_to_pixel
+from zilliandomizer.room_gen.common import Coord, EdgeDoors, RoomData, coord_to_pixel
 from zilliandomizer.room_gen.maze import Cell, Grid, MakeFailure
 from zilliandomizer.room_gen.sprite_placing import alarm_places, auto_gun_places, barrier_places, choose_alarms
 from zilliandomizer.terrain_modifier import TerrainModifier
@@ -132,11 +132,12 @@ class RoomGen:
                                     exits: List[Coord],
                                     ends: List[Coord],
                                     map_index: int,
-                                    room: RoomData,
                                     jump_blocks: float,
                                     size_limit: float,
-                                    no_change: Iterable[Coord] = (),
-                                    pudding_tiles: Mapping[Coord, str] = {}) -> Grid:
+                                    no_space: Iterable[Coord],
+                                    no_change: Iterable[Coord],
+                                    edge_doors: EdgeDoors,
+                                    pudding_tiles: Mapping[Coord, str]) -> Grid:
         # TODO: maybe better if I don't take `room` argument, because it's not taking all info from that
         tr = Grid(exits,
                   ends,
@@ -144,9 +145,9 @@ class RoomGen:
                   self.tc,
                   self._logger,
                   self._skill,
-                  room.no_space,
+                  no_space,
                   no_change,
-                  room.edge_doors)
+                  edge_doors)
         for c, tile in pudding_tiles.items():
             y, x = c
             tr.data[y][x] = tile
@@ -183,6 +184,7 @@ class RoomGen:
     ) -> Tuple[
         List[Coord],  # exits
         List[Coord],  # ends
+        Iterable[Coord],  # no space
         Iterable[Coord],  # no_change
         Mapping[Coord, str]  # pudding_tiles
     ]:
@@ -261,6 +263,7 @@ class RoomGen:
 
         # which grid spaces to not change
         no_change: Set[Coord] = set()
+        no_space: Set[Coord] = set()
         pudding_tiles: Dict[Coord, str] = {}
         for n in pudding_ninths:
             top_y = (n // 3) * 2
@@ -270,6 +273,7 @@ class RoomGen:
                     if x >= 0 and x < 14:
                         coord = (y, x)
                         no_change.add(coord)
+                        no_space.add((y - 1, x))
                         if x % 5 != 4:  # if not a ninth boundary
                             if y & 1:
                                 pudding_tiles[coord] = Cell.floor
@@ -300,7 +304,7 @@ class RoomGen:
             pudding_tiles[(1, 2)] = Cell.space
             pudding_tiles[(1, 3)] = Cell.space
 
-        return [dip_entrance], ends, no_change, pudding_tiles
+        return [dip_entrance], ends, no_space, no_change, pudding_tiles
 
     def _generate_room(self,
                        map_index: int,
@@ -311,7 +315,7 @@ class RoomGen:
 
         pudding_tiles: Mapping[Coord, str]
         if this_room.split_dip_entrance:
-            exits, ends, no_change, pudding_tiles = self._generate_split(map_index, jump_blocks, size_limit)
+            exits, ends, no_space, no_change, pudding_tiles = self._generate_split(map_index, jump_blocks, size_limit)
             second_candidate_for_elevation = False
         else:
             exits = this_room.exits[:]  # real exits
@@ -331,6 +335,7 @@ class RoomGen:
             # If all the ends are on the bottom, I want an extra chance to get high goables
             second_candidate_for_elevation = all(end[0] > 2 for end in ends)
 
+            no_space = this_room.no_space
             no_change = ()
             pudding_tiles = {}
 
@@ -342,7 +347,8 @@ class RoomGen:
         while not g:
             try:
                 candidate = self._make_optimized_no_softlock(
-                    exits, ends, map_index, this_room, jump_blocks, size_limit, no_change, pudding_tiles
+                    exits, ends, map_index, jump_blocks, size_limit,
+                    no_space, no_change, this_room.edge_doors, pudding_tiles
                 )
                 candidate_goables = candidate.get_goables(jump_blocks)
                 if second_candidate_for_elevation:
@@ -350,7 +356,8 @@ class RoomGen:
                     highest = min(c[0] for c in candidate_goables)
                     if highest > 1:
                         candidate_2 = self._make_optimized_no_softlock(
-                            exits, ends, map_index, this_room, jump_blocks, size_limit, no_change, pudding_tiles
+                            exits, ends, map_index, jump_blocks, size_limit,
+                            no_space, no_change, this_room.edge_doors, pudding_tiles
                         )
                         candidate_2_goables = candidate_2.get_goables(jump_blocks)
                         highest_2 = min(c[0] for c in candidate_2_goables)

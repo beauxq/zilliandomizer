@@ -82,7 +82,11 @@ class System:
                 base = Base(red_base, pc_base, dm)
                 room_gen_data = make_room_gen_data(base, pc_splits)
 
-                # TODO: return None if door data doesn't fit  
+                try:
+                    dm.get_writes()
+                except OverflowError:
+                    self._logger.debug("door data overflow")
+                    return None
 
                 return base, room_gen_data, pc_splits
 

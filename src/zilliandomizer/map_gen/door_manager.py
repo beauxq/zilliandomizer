@@ -98,11 +98,14 @@ class DoorManager:
         - y - 0 top row (both door and elevator), 4 door on bottom, 5 elevator on bottom
         - t - `DoorSprite`
     """
+    _locked: bool
+    """ instance shouldn't be changed anymore """
 
     def __init__(self) -> None:
         self.original_statuses = {}
         self.freed_statuses = DetSet()
         self.status_reference_counts = defaultdict(list)
+        self._locked = False
         from copy import deepcopy
         from .door_data import doors
         self.doors = defaultdict(list, deepcopy(doors))
@@ -128,6 +131,7 @@ class DoorManager:
 
     def del_room(self, map_index: int) -> None:
         """ and matching status references in other rooms (elevator in destination room) """
+        assert not self._locked, "del_room on locked door manager"
         if map_index in self.doors:
             door_list = self.doors[map_index]
             while len(door_list):
@@ -145,6 +149,7 @@ class DoorManager:
                 self.freed_statuses.add(status)
 
     def add_door(self, map_index: int, y_large: int, x_pixel: int, opened_by: int) -> None:
+        assert not self._locked, "del_room on locked door manager"
         status = self._get_available_status(opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_door(map_index, x_door)
@@ -154,6 +159,7 @@ class DoorManager:
 
     def add_elevator(self, map_index: int, y_large: Literal[0, 5], x_pixel: int, opened_by: int) -> None:
         """ both in this room and destination room """
+        assert not self._locked, "del_room on locked door manager"
         status = self._get_available_status(opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_elevator(map_index, y_large)
@@ -239,6 +245,7 @@ class DoorManager:
                     used_in_this_room.add(status)
 
     def get_writes(self) -> Dict[int, int]:
+        self._locked = True
         self._fix_double_doors()
 
         null_address = rom_info.door_data_begin_13ce8
@@ -264,10 +271,14 @@ class DoorManager:
                 tr[door_data_pointer_address] = banked_data_lo
                 tr[door_data_pointer_address + 1] = banked_data_hi
 
+                if address >= 0x14000:
+                    raise OverflowError(f"door data overflowed bank: {hex(address)}")
                 tr[address] = len(doors)
                 address += 1
                 for door in doors:
                     for b in door:
+                        if address >= 0x14000:
+                            raise OverflowError(f"door data overflowed bank: {hex(address)}")
                         tr[address] = b
                         address += 1
 
