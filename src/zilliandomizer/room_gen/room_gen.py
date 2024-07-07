@@ -246,7 +246,7 @@ class RoomGen:
             except MakeFailure:
                 print(".", end="")
                 fail_count += 1
-                if fail_count > 500:
+                if fail_count > 1500:
                     raise MakeFailure("too many failures in Zillion room generation - try generating again")
         print()
 
