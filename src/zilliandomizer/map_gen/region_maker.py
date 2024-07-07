@@ -15,7 +15,7 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         row, col = node
         map_row = row + bm.row_offset
         map_col = col + bm.col_offset
-        return f"r{map_row}c{map_col}"
+        return f"r{map_row:02}c{map_col}"
 
     no_doors = set(reg_name(node) for node in red_right_no_doors)
     no_doors.add("between_blue_red")
@@ -90,7 +90,7 @@ def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder) -> None:
         row, col = node
         map_row = row + bm.row_offset
         map_col = col + bm.col_offset
-        return f"r{map_row}c{map_col}"
+        return f"r{map_row:02}c{map_col}"
 
     no_doors = set(reg_name(node) for node in pc_no_doors)
     no_doors.add("big_elevator")

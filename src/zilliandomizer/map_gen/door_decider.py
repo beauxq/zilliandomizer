@@ -396,7 +396,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
             bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
             bm.door_manager.add_elevator(split_map_index, y_split, x, back_to_computer(dipper))
         elif dipper.x < split.x:  # dipper left
-            x_dipper = 0xe0
+            x_dipper = 0xf0
             x_split = 0x08
             y_not_allowed: Set[int] = set()
             for split_door in split_edges:
@@ -418,7 +418,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
         else:  # dipper right
             assert dipper.x > split.x
             x_dipper = 0x08
-            x_split = 0xe0
+            x_split = 0xf0
             y_not_allowed = set()
             for split_door in split_edges:
                 if split_door.x > 0x90:

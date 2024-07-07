@@ -75,7 +75,7 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
         ]
         if len(adj_candidates) == 0:
             break
-        print(f"just geo adjacents:\n{bm.map_str(1, adj_candidates)}")
+        # print(f"just geo adjacents:\n{bm.map_str(1, adj_candidates)}")
 
         # more likely to evict if not on path to goal
         not_on_path = [node for node in adj_candidates if node not in path_to_goal]

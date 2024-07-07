@@ -8,13 +8,14 @@ from .map_gen.base import Base
 from .map_gen.base_maker import Node, get_paperclip_base, get_red_base
 from .map_gen.door_manager import DoorManager
 from .map_gen.jump import room_jump_requirements
-from map_gen.map_data import pc_no_doors
+from .map_gen.map_data import pc_no_doors
 from .map_gen.room_data_maker import make_room_gen_data
 from .map_gen.split_maker import choose_splits, split_edges
 from .options import Chars, Options, chars
 from .patch import Patcher
 from .randomizer import Randomizer
 from .resource_managers import ResourceManagers
+from .room_gen.common import RoomData
 from .room_gen.data import GEN_ROOMS
 from .room_gen.room_gen import RoomGen
 
@@ -70,14 +71,29 @@ class System:
     def make_map(self) -> None:
         assert self._options, "must `set_options` first"
         if self._options.map_gen == "full":
-            dm = DoorManager()
-            red_base = get_red_base(dm, self._random.randrange(1999999999))
-            self._logger.spoil(red_base.map_str())
-            pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
-            pc_splits = choose_splits(pc_base, pc_no_doors, Node(0, 0))
-            self._logger.spoil(pc_base.map_str(1, pc_splits, split_edges(pc_splits)))
-            self._base = Base(red_base, pc_base, dm)
-            room_gen_data = make_room_gen_data(self._base, pc_splits)
+
+            def try_base_and_room_gen_data() -> Union[
+                Tuple[Base, Dict[int, RoomData], Dict[Node, Node]], None
+            ]:
+                dm = DoorManager()
+                red_base = get_red_base(dm, self._random.randrange(1999999999))
+                pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
+                pc_splits = choose_splits(pc_base, pc_no_doors, Node(0, 0))
+                base = Base(red_base, pc_base, dm)
+                room_gen_data = make_room_gen_data(base, pc_splits)
+
+                # TODO: return None if door data doesn't fit  
+
+                return base, room_gen_data, pc_splits
+
+            result = None
+            while result is None:
+                result = try_base_and_room_gen_data()
+            base, room_gen_data, pc_splits = result
+
+            self._base = base
+            self._logger.spoil(base.red.map_str())
+            self._logger.spoil(base.paperclip.map_str(1, pc_splits, split_edges(pc_splits)))
         elif self._options.map_gen == "rooms":
             self._base = None
             room_gen_data = GEN_ROOMS.copy()
