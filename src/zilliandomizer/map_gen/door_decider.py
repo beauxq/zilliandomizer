@@ -196,6 +196,8 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                             y_choices = [4]
                         else:  # dipper coming from opposite side
                             assert dipper_to_out.x > out.x, f"{here=} {out=} {dipper_to_out=}"
+                            # TODO: do I want to limit this to maximize room for dipped?
+                            # If dipped will only go up, then 0 will leave lower space for dipped section.
                             y_choices = [0, 2, 4]
                     elif here in splits:
                         dipper_to_here = splits[here]
@@ -210,6 +212,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                     else:  # no split room involved
                         y_choices = [0, 2, 4]
                         if out not in dippers and here not in dippers:
+                            # TODO: this could be opened up with dippers more if we're careful
                             if Corner.tr not in corners_used_in_this_room:
                                 y_choices.append(1)
                             if Corner.br not in corners_used_in_this_room:
@@ -264,7 +267,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                             assert Corner.br not in corners_used_in_this_room, (
                                 "logic for going in to dipper should have prevented this"
                             )
-                            x_choices = [0xde]
+                            x_choices = [0xd0]
                         else:  # dipper coming from opposite side
                             assert dipper_to_out.y > out.y, f"{here=} {out=} {dipper_to_out=}"
                             x_choices = tuple(_safe_elevator_x)
@@ -275,6 +278,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                         elif dipper_to_here.x < here.x:  # dipper left
                             x_choices = [0xd0]
                         else:  # dipper above
+                            assert dipper_to_here.y < here.y
                             assert in_desc.de is DE.door
                             x_choices = [0x10 if out_through_in.x < 0x80 else 0xd0]
                     else:  # no split room, here or out
@@ -304,7 +308,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                             assert Corner.tr not in corners_used_in_this_room, (
                                 "logic for going in to dipper should have prevented this"
                             )
-                            x_choices = [0xde]
+                            x_choices = [0xd0]
                         else:  # dipper coming from opposite side
                             assert dipper_to_out.y > out.y, f"{here=} {out=} {dipper_to_out=}"
                             x_choices = tuple(_safe_elevator_x)
@@ -314,7 +318,8 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                             x_choices = [0x10]
                         elif dipper_to_here.x < here.x:  # dipper left
                             x_choices = [0xd0]
-                        else:  # dipper above
+                        else:  # dipper below
+                            assert dipper_to_here.y > here.y
                             assert in_desc.de is DE.door
                             x_choices = [0x10 if out_through_in.x < 0x80 else 0xd0]
                     else:  # no split room, here or out
@@ -353,7 +358,19 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
         if dipper.y < split.y:  # dipper above
             y_dipper = 5
             y_split = 0
-            x = 0x10 if split_edges[0].x > 0x70 else 0xd0
+            x_not_allowed: Set[int] = set()
+            for split_door in split_edges:
+                if split_door.y < 2:
+                    if split_door.x < 0x50:
+                        x_not_allowed.update((0x00, 0x10, 0x20, 0x30, 0x40))
+                    if split_door.x > 0x90:
+                        x_not_allowed.update((0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0))
+            x_choices = [
+                x
+                for x in _safe_elevator_x
+                if x not in x_not_allowed
+            ]
+            x = bm.random.choice(x_choices)
             dipper_desc = Desc(DE.elevator, y_dipper, x)
             split_desc = Desc(DE.elevator, y_split, x)
             bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
@@ -361,7 +378,19 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
         elif dipper.y > split.y:  # dipper below
             y_dipper = 0
             y_split = 5
-            x = 0x10 if split_edges[0].x > 0x70 else 0xd0
+            x_not_allowed = set()
+            for split_door in split_edges:
+                if split_door.y > 2:
+                    if split_door.x < 0x50:
+                        x_not_allowed.update((0x00, 0x10, 0x20, 0x30, 0x40))
+                    if split_door.x > 0x90:
+                        x_not_allowed.update((0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0))
+            x_choices = [
+                x
+                for x in _safe_elevator_x
+                if x not in x_not_allowed
+            ]
+            x = bm.random.choice(x_choices)
             dipper_desc = Desc(DE.elevator, y_dipper, x)
             split_desc = Desc(DE.elevator, y_split, x)
             bm.door_manager.add_elevator(dipper_map_index, y_dipper, x, back_to_computer(dipper))
@@ -369,7 +398,19 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
         elif dipper.x < split.x:  # dipper left
             x_dipper = 0xe0
             x_split = 0x08
-            y = 4 if split_edges[0].y <= 2 else 0  # TODO: I didn't think very much about this, I'm tired.
+            y_not_allowed: Set[int] = set()
+            for split_door in split_edges:
+                if split_door.x < 0x50:
+                    if split_door.y < 2:
+                        y_not_allowed.add(0)
+                    if split_door.y > 2:
+                        y_not_allowed.add(4)
+            y_choices = [
+                y
+                for y in (0, 2, 4)
+                if y not in y_not_allowed
+            ]
+            y = bm.random.choice(y_choices)
             dipper_desc = Desc(DE.door, y, x_dipper)
             split_desc = Desc(DE.door, y, x_split)
             if dipper not in no_doors:
@@ -378,7 +419,19 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
             assert dipper.x > split.x
             x_dipper = 0x08
             x_split = 0xe0
-            y = 4 if split_edges[0].y <= 2 else 0
+            y_not_allowed = set()
+            for split_door in split_edges:
+                if split_door.x > 0x90:
+                    if split_door.y < 2:
+                        y_not_allowed.add(0)
+                    if split_door.y > 2:
+                        y_not_allowed.add(4)
+            y_choices = [
+                y
+                for y in (0, 2, 4)
+                if y not in y_not_allowed
+            ]
+            y = bm.random.choice(y_choices)
             dipper_desc = Desc(DE.door, y, x_dipper)
             split_desc = Desc(DE.door, y, x_split)
             if dipper not in no_doors:
