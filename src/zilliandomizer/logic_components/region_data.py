@@ -246,7 +246,7 @@ def make_red(mb: MapBuilder, base: Union[Base, None]) -> None:
 
     if base:
         from zilliandomizer.map_gen.region_maker import make_red_right_bm
-        make_red_right_bm(base.red, mb)
+        make_red_right_bm(base.red, mb, {})
     else:  # vanilla
         make_red_right(mb)
     make_red_left(mb)
@@ -257,7 +257,7 @@ def make_paperclip(mb: MapBuilder, base: Union[Base, None]) -> None:
 
     if base:
         from zilliandomizer.map_gen.region_maker import make_paperclip_bm
-        make_paperclip_bm(base.paperclip, mb)
+        make_paperclip_bm(base.paperclip, mb, base.pc_splits)
         return
 
     mb.split(10, 1, {

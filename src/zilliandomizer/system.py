@@ -79,7 +79,7 @@ class System:
                 red_base = get_red_base(dm, self._random.randrange(1999999999))
                 pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
                 pc_splits = choose_splits(pc_base, pc_no_doors, Node(0, 0))
-                base = Base(red_base, pc_base, dm)
+                base = Base(red_base, pc_base, dm, pc_splits)
                 room_gen_data = make_room_gen_data(base, pc_splits)
 
                 try:

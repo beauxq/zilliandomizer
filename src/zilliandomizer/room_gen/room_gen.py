@@ -9,7 +9,7 @@ from zilliandomizer.low_resources.sprite_data import RoomSprites
 from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, SpriteType
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
-from zilliandomizer.room_gen.common import Coord, EdgeDoors, RoomData, coord_to_pixel
+from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors, RoomData, coord_to_pixel
 from zilliandomizer.room_gen.maze import Cell, Grid, MakeFailure
 from zilliandomizer.room_gen.sprite_placing import alarm_places, auto_gun_places, barrier_places, choose_alarms
 from zilliandomizer.terrain_modifier import TerrainModifier
@@ -320,6 +320,13 @@ class RoomGen:
         else:
             exits = this_room.exits[:]  # real exits
             ends = exits[:]  # places I want to be able to get to
+
+            # special case row 14 col 1 - because of the exit-only door
+            # This must be done before these random ends are added,
+            # because a random end might conflict with this one.
+            if map_index == 113:
+                if BOT_LEFT not in ends:
+                    ends.append(BOT_LEFT)
 
             # make sure traversal doesn't just stay in one corner of the room
             if not any(end[1] < 5 for end in ends):

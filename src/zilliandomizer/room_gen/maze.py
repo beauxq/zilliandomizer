@@ -783,6 +783,9 @@ class Grid:
         for _ in range(2):  # 2 passes
             for y, row in enumerate(self.data):
                 for x, col in enumerate(row):
+                    # TODO: investigate: Does optimize_encoding respect no_space?
+                    if (y, x) in self.no_change:
+                        continue
                     left = self.data[y][x - 1] if x > LEFT else Cell.wall
                     right = self.data[y][x + 1] if x < RIGHT else Cell.wall
                     if col != left and col != right:
