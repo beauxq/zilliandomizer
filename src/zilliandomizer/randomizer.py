@@ -58,7 +58,9 @@ class Randomizer:
             for region_name, region in regions.items():
                 if (
                     len(region_name) >= 5 and region_name[0] == 'r' and region_name[3] == 'c'
-                    and (len(region_name) == 5 or region_name.endswith("enter"))
+                    and (len(region_name) == 5 or region_name.endswith("enter") or region_name.endswith("unlocker"))
+                    # TODO: there's a constant saved somewhere else for this "unlocker" string
+                    # (and there should be but isn't for "enter")
                 ):
                     row, col = parse_reg_name(region_name)
                     map_index = row * 8 + col
