@@ -454,7 +454,7 @@ class RoomGen:
         """
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.
-        agp = auto_gun_places(grid)
+        agp = auto_gun_places(grid, self._gen_rooms[map_index].exits)
         bp = barrier_places(grid, coords)
         cursor = 0
         for sprite in sprites:

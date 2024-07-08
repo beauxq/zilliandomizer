@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from random import shuffle
-from typing import Dict, FrozenSet, List, Literal
+from typing import Container, Dict, FrozenSet, List, Literal
 from zilliandomizer.room_gen.common import Coord
 from zilliandomizer.room_gen.maze import BOTTOM, LEFT, RIGHT, TOP, Cell, Grid, MakeFailure
 
@@ -16,7 +16,7 @@ class AutoGunPlaces:
         self.left = []
 
 
-def auto_gun_places(g: Grid) -> AutoGunPlaces:
+def auto_gun_places(g: Grid, exits: Container[Coord]) -> AutoGunPlaces:
     """
     finds all the places that auto-guns can go in each orientations
     and shuffles them within each orientation
@@ -24,7 +24,7 @@ def auto_gun_places(g: Grid) -> AutoGunPlaces:
     tr = AutoGunPlaces()
     for y, row in enumerate(g.data):
         for x, this_cell in enumerate(row):
-            if this_cell != Cell.wall and not g.in_exit(y, x):
+            if this_cell != Cell.wall and not g.in_exit(y, x, exits):
                 here = (y, x)
                 if y == TOP or g.data[y - 1][x] != Cell.space:
                     tr.down.append(here)

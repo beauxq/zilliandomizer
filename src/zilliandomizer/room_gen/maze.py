@@ -2,7 +2,7 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import AbstractSet, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
+from typing import AbstractSet, Container, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
@@ -475,15 +475,20 @@ class Grid:
             tr += '\n '
         return tr
 
-    def in_exit(self, row: int, col: int) -> bool:
-        """ this coordinate is in an exit area """
-        if (row, col) in self.exits:
+    def in_exit(self, row: int, col: int, custom_exits: Union[Container[Coord], None] = None) -> bool:
+        """
+        this coordinate is in an exit area
+
+        `custom_exits` is for checking a different set of exits from what is stored in the `Grid`
+        """
+        exits_to_check = self.exits if custom_exits is None else custom_exits
+        if (row, col) in exits_to_check:
             return True
-        if (row, col - 1) in self.exits:
+        if (row, col - 1) in exits_to_check:
             return True
-        if (row + 1, col) in self.exits:
+        if (row + 1, col) in exits_to_check:
             return True
-        return (row + 1, col - 1) in self.exits
+        return (row + 1, col - 1) in exits_to_check
 
     def in_end(self, row: int, col: int) -> bool:
         """ this coordinate is in an end area """
