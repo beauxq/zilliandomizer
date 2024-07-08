@@ -580,7 +580,6 @@ def make_paperclip(mb: MapBuilder, base: Union[Base, None]) -> None:
     mb.r["r14c3"].to(mb.r["r15c3w"], door=True)
     mb.r["r15c3w"].to(mb.r["r15c2se"], door=mb.r["r15c3e"].door)  # pre-opened door
     mb.r["r15c2se"].to(mb.r["r16c2e"], door=mb.r["r15c2nw"].door)
-    # ^ or is this door always open? (doesn't matter unless I change map)
     mb.r["r16c2e"].to(mb.r["r15c6e"], door=True)  # long hallway
     mb.r["r15c6e"].to(mb.r["r14c6s"], door=mb.r["r15c6w"].door)  # pre-opened door
     # dun, dun, du-u-un-n-n-n....
