@@ -55,7 +55,7 @@ def find_enter_by_elevator(nodes: Iterable[Node], bm: BaseMaker, start: Node) ->
 
 def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Dict[Node, Node]:
     possible_splits = bm.get_possible_splits(start, no_doors)
-    print(bm.map_str(1, possible_splits))
+    # print(bm.map_str(1, possible_splits))
 
     path_to_goal = bm.path(start, Node(0, 5))
 
@@ -85,7 +85,7 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
         to_evict = bm.random.choice(adj_candidates)
         del possible_splits[to_evict]
 
-    print(f"no adjacents - {len(possible_splits)=}\n{bm.map_str(1, possible_splits)}")
+    # print(f"no adjacents - {len(possible_splits)=}\n{bm.map_str(1, possible_splits)}")
 
     # now need to eliminate dependency cycles
     while True:
@@ -116,7 +116,7 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
         to_evict = bm.random.choice(cycle_list)
         del possible_splits[to_evict]
 
-    print(f"no cycles - {len(possible_splits)=}\n{bm.map_str(1, possible_splits, split_edges(possible_splits))}")
+    # print(f"no cycles - {len(possible_splits)=}\n{bm.map_str(1, possible_splits, split_edges(possible_splits))}")
 
     return possible_splits
 
