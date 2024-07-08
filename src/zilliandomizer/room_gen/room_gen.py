@@ -247,19 +247,22 @@ class RoomGen:
         ends.append((bottom_y, bottom_left_x))
         ends.append((bottom_y, bottom_right_x))
 
-        highest_dipped_ninth_y = min(dipped_ninth // 3 for dipped_ninth in dipped_ninths)
-        all_highest_dipped_ninths = [
-            n
-            for n in range(highest_dipped_ninth_y * 3, highest_dipped_ninth_y * 3 + 3)
-            if n in dipped_ninths
-        ]
-        top_left_ninth = all_highest_dipped_ninths[0]
-        top_right_ninth = all_highest_dipped_ninths[-1]
-        top_left_x = (top_left_ninth % 3) * 5
-        top_right_x = (top_right_ninth % 3) * 5 + 2
-        top_y = (top_left_ninth // 3) * 2 + 1
-        top_x = top_left_x if random() < 0.5 else top_right_x
-        ends.append((top_y, top_x))
+        # I previously added a top end unconditionally,
+        # but that was costing too much rom data space.
+        if all(end[0] == bottom_y for end in ends):
+            highest_dipped_ninth_y = min(dipped_ninth // 3 for dipped_ninth in dipped_ninths)
+            all_highest_dipped_ninths = [
+                n
+                for n in range(highest_dipped_ninth_y * 3, highest_dipped_ninth_y * 3 + 3)
+                if n in dipped_ninths
+            ]
+            top_left_ninth = all_highest_dipped_ninths[0]
+            top_right_ninth = all_highest_dipped_ninths[-1]
+            top_left_x = (top_left_ninth % 3) * 5
+            top_right_x = (top_right_ninth % 3) * 5 + 2
+            top_y = (top_left_ninth // 3) * 2 + 1
+            top_x = top_left_x if random() < 0.5 else top_right_x
+            ends.append((top_y, top_x))
 
         # which grid spaces to not change
         no_change: Set[Coord] = set()
