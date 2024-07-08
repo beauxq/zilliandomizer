@@ -21,6 +21,7 @@ some_options = Options(item_counts={
 
 def generate(seed: int) -> None:
     seed_str = f"{seed:016x}"
+    print(f"generating seed {seed_str}")
     logger = Logger()
     logger.spoil_stdout = False
     system = System(logger)

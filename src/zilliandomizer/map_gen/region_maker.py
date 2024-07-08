@@ -55,7 +55,7 @@ def make_regions_bm(bm: BaseMaker,
         map_col = col + bm.col_offset
         region_name_base = reg_name(node)
         adjs = list(bm.adjs(node))
-        dead_end = (len(adjs) == 1) and (node not in exits)
+        dead_end = (len(adjs) == 1) and (node not in exits) and (node not in splits.values())
         computer_opens_door = region_name_base not in no_doors
         dead_end_door = dead_end and computer_opens_door
 

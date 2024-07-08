@@ -414,7 +414,8 @@ class RoomGen:
                 print(".", end="")
                 fail_count += 1
                 if fail_count > 1500:
-                    raise MakeFailure("too many failures in Zillion room generation - try generating again")
+                    raise MakeFailure("too many failures in Zillion room generation - try generating again"
+                                      f" - index {map_index} sl {size_limit}")
         print()
 
         jump_blocks_required = 2 if g.solve(2) else (2.5 if g.solve(2.5) else 3)

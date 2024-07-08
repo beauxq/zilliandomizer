@@ -84,8 +84,8 @@ class DoorManager:
     """ this `DoorStatusIndex` existed in vanilla, but all its doors have been deleted """
     status_reference_counts: Dict[DoorStatusIndex, List[int]]
     """
-    which room has a door data structure that
-    shares the same share the same info on whether the door is open or not
+    which rooms have door data structures that
+    share the same info on whether the door is open or not
 
     the index is `(a, b)` - the first 2 bytes of the door data structure
     """
@@ -113,7 +113,7 @@ class DoorManager:
         self._fill()
 
     def _fill(self) -> None:
-        # paperclip maker needs to know map_index 57 status
+        # paperclip maker needs to know map_index 57 status bit
         self.original_statuses[57] = (0x13, 0x01)
 
         for map_index, door_list in self.doors.items():
@@ -150,7 +150,7 @@ class DoorManager:
 
     def add_door(self, map_index: int, y_large: int, x_pixel: int, opened_by: int) -> None:
         assert not self._locked, "del_room on locked door manager"
-        status = self._get_available_status(opened_by)
+        status = self._get_available_status(map_index, opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_door(map_index, x_door)
         door_data = bytes((status[0], status[1], x_door, y_large, sprite))
@@ -160,7 +160,7 @@ class DoorManager:
     def add_elevator(self, map_index: int, y_large: Literal[0, 5], x_pixel: int, opened_by: int) -> None:
         """ both in this room and destination room """
         assert not self._locked, "del_room on locked door manager"
-        status = self._get_available_status(opened_by)
+        status = self._get_available_status(map_index, opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_elevator(map_index, y_large)
         door_data = bytes((status[0], status[1], x_door, y_large, sprite))
@@ -199,13 +199,19 @@ class DoorManager:
                     return status
             index += 1
 
-    def _get_available_status(self, opening_map_index: int) -> DoorStatusIndex:
+    def _get_available_status(self, map_index: int, opening_map_index: int) -> DoorStatusIndex:
         """
         get a status that will be opened by this map index
         and register in original_statuses
 
         to be used when generating doors
         """
+        if map_index == opening_map_index:
+            status = self._get_new_status()
+            self.original_statuses[opening_map_index] = status
+            return status
+
+        # opened by a different room
         status = self.original_statuses.get(opening_map_index)
         if status:
             return status
@@ -232,6 +238,8 @@ class DoorManager:
                 status: DoorStatusIndex = (door_data[0], door_data[1])
                 if door_data[4] < 30:  # 30 is the lowest elevator, everything lower is door
                     if status in used_in_this_room:
+                        # TODO: delete this function after more testing
+                        assert False, "I don't think I need this anymore"
                         new_status = self._get_new_status()
                         new_door_data = bytes([new_status[0], new_status[1], door_data[2], door_data[3], door_data[4]])
                         door_list[i] = new_door_data
