@@ -12,6 +12,11 @@ class DeathEventFromGame(EventFromGame):
 
 
 @dataclass
+class MapEventFromGame(EventFromGame):
+    map_index: int
+
+
+@dataclass
 class AcquireLocationEventFromGame(EventFromGame):
     """ 0 for main computer """
     id: int
