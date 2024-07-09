@@ -665,9 +665,14 @@ class Grid:
         if not success:
             raise MakeFailure("make terrain failed")
 
-    def get_goables(self, jump_blocks: float) -> Set[Tuple[int, int, bool]]:
-        """ coordinates can go to, and whether I can stand there """
-        return self._search(self.ends[0], jump_blocks)
+    def get_goables(self, jump_blocks: float, custom_start: Union[Coord, None] = None) -> Set[Tuple[int, int, bool]]:
+        """
+        coordinates can go to, and whether I can stand there
+
+        `custom_start` allows the search to start from somewhere other than the normal entrance
+        """
+        start = self.ends[0] if custom_start is None else custom_start
+        return self._search(start, jump_blocks)
 
     def get_standing_goables(self, jump_blocks: float) -> List[Tuple[int, int, bool]]:
         return [

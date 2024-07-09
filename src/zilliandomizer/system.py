@@ -114,6 +114,8 @@ class System:
             self._room_gen = RoomGen(rm.tm, rm.sm, rm.aem, self._logger, self._options.skill, room_gen_data)
             self._room_gen.generate_all(jump_req_rooms)
             self._modified_rooms = self._room_gen.get_modified_rooms()
+            if self._base:
+                self._base.pudding_cans = self._room_gen.pudding_cans
             print("Zillion room gen complete")
 
     def post_fill(self) -> None:

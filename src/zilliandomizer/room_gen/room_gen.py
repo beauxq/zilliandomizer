@@ -41,6 +41,9 @@ class RoomGen:
     _canisters: Dict[int, List[Tuple[Coord, float]]]
     """ placed canisters { map_index: [(Coord, jump_blocks_required), ...] } """
 
+    pudding_cans: Set[int]
+    """ which map indexes have a can in the pudding """
+
     _computers: Dict[int, Tuple[Coord, float]]
     """ placed computers { map_index: (Coord, jump_blocks_required) } """
 
@@ -74,6 +77,7 @@ class RoomGen:
 
     def reset(self) -> None:
         self._canisters = {}
+        self.pudding_cans = set()
         self._computers = {}
         self._rooms = {}
 
@@ -87,12 +91,21 @@ class RoomGen:
         shuffled_gen_rooms = list(self._gen_rooms.keys())
         shuffle(shuffled_gen_rooms)
 
+        # TODO: make sure no split rooms are in the last few
+        # because the remaining space at the end probably won't be enough
+
         # TODO: better source of this information, instead of
         # magic number that isn't right now that I've change GEN_ROOMS
         # (After more looking into this, it's not the calculation that
         #  I thought it was, so I don't know what it's safe to change to.
         #  Maybe the reason it's less is so that randomized alarms
         #  still have wiggle room. So maybe this 59 per room is ok.)
+        """
+        >>> 0x120da - 0x10ef0  # all the rom space for rooms
+        4586
+        >>> 4586 / 77  # all the rooms
+        59.55844155844156
+        """
         TOTAL_SPACE_LIMIT = len(self._gen_rooms) * 59
         success = False  # generated all rooms without going over the byte limit
         while not success:
@@ -113,7 +126,16 @@ class RoomGen:
                 # that can be traversed from bottom to top.
                 limit_to_reserve_space = space_remaining - (n_rooms_remaining - 1) * 45
                 scaling_pad_on_target = space_target + (20 * (n_rooms_remaining - 1) / len(self._gen_rooms)) - 1
-                hard_space_limit = min(limit_to_reserve_space, scaling_pad_on_target)
+
+                # different types of rooms need different amounts of space
+                # we shouldn't give the same amount of space to the simpler rooms
+                room_heuristic_mult = 0.95  # + 0.5 * (map_index // 8) / 16
+                if self._gen_rooms[map_index].split_dip_entrance:
+                    room_heuristic_mult *= 1.1
+                elif self._gen_rooms[map_index].dead_end_can is None:  # no dead end can and no split
+                    room_heuristic_mult *= 0.95
+
+                hard_space_limit = min(limit_to_reserve_space, scaling_pad_on_target * room_heuristic_mult)
                 # print(f"save {important_space_save}  scale {scaling_pad_on_target}  hard {hard_space_limit}")
                 space_taken, jump_required = self._generate_room(map_index, jump_block_ability, hard_space_limit)
                 total_space_taken += space_taken
@@ -350,7 +372,8 @@ class RoomGen:
             pudding_tiles = {}
 
         g: Optional[Grid] = None
-        placed: List[Coord] = []
+        primary_placed: List[Coord] = []
+        pudding_placed: List[Coord] = []
         alarm_blocks: Dict[int, Literal['v', 'h', 'n']] = {}
 
         fail_count = 0
@@ -376,27 +399,59 @@ class RoomGen:
                             candidate_goables = candidate_2_goables
                 # TODO: find out which exits require jump 2.5, 3
                 standing = [g for g in candidate_goables if g[2]]
-                placeables = [(y, x) for y, x, _ in standing if not candidate.in_exit(y, x)]
+                primary_placeables = [(y, x) for y, x, _ in standing if not candidate.in_exit(y, x)]
                 location_count = map_index_to_loc_count[map_index] - (1 if this_room.dead_end_can else 0)
                 sprites = self.sm.get_room(map_index)
-                floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
-                placeable_count = (
-                    location_count +
+                room_floor_sprite_count = sum(s.type[0] in floor_sprite_types for s in sprites)
+
+                pudding_can = False
+                # only place anything in pudding if we have more than 2 ninths of pudding
+                if len(pudding_tiles) > 20:
+                    # some magic numbers I experimented with in a calculator
+                    # to decide how many things to put in pudding
+                    #  - might be able to lower the divisor for more
+                    can_place_in_pudding = (len(pudding_tiles) - 14) // 6
+                    if location_count > 4:
+                        pudding_can = True
+                    pudding_floor_sprite_count = min((can_place_in_pudding - pudding_can), room_floor_sprite_count)
+                    will_place_in_pudding = pudding_floor_sprite_count + pudding_can
+                    pudding_goables = candidate.get_goables(jump_blocks, this_room.exits[0])
+                    pudding_standing = [g for g in pudding_goables if g[2]]
+                    pudding_placeables = [
+                        (y, x)
+                        for y, x, _ in pudding_standing
+                        if not candidate.in_exit(y, x, this_room.exits)
+                    ]
+                    print(f"{pudding_placeables=}")
+                    if len(pudding_placeables) < will_place_in_pudding:
+                        raise MakeFailure(f"Not enough room in {map_index=} pudding to place {will_place_in_pudding}")
+                    pudding_placed = sample(pudding_placeables, will_place_in_pudding)
+                else:
+                    will_place_in_pudding = 0
+                    pudding_floor_sprite_count = 0
+
+                primary_floor_sprite_count = room_floor_sprite_count - pudding_floor_sprite_count
+                primary_placeable_count = (
+                    (location_count - pudding_can) +
                     this_room.computer +
-                    floor_sprite_count
+                    primary_floor_sprite_count
                 )
-                self._logger.debug(f"need to place {placeable_count} in room {map_index}")
-                if len(placeables) < placeable_count:
+                print(f"{len(pudding_tiles)=}")
+                self._logger.debug(f"need to place {primary_placeable_count} in room {map_index} primary region "
+                                   f"and {will_place_in_pudding} in pudding region, including {pudding_can=}")
+                if len(primary_placeables) < primary_placeable_count:
                     raise MakeFailure("not enough places to put things")
-                if placeable_count > 0:
+                if primary_placeable_count > 0:
                     # take 2 samples, and choose whichever has higher coords
                     # (to counter the tendency of putting most on the lowest level)
-                    placed_1 = sample(placeables, placeable_count)
-                    placed_2 = sample(placeables, placeable_count)
+                    placed_1 = sample(primary_placeables, primary_placeable_count)
+                    placed_2 = sample(primary_placeables, primary_placeable_count)
                     sum_1 = sum(p[0] for p in placed_1)
                     sum_2 = sum(p[0] for p in placed_2)
-                    placed = placed_1 if sum_1 < sum_2 else placed_2
-                alarm_blocks = self.place(placed, sprites, map_index, candidate, this_room.dead_end_can)
+                    primary_placed = placed_1 if sum_1 < sum_2 else placed_2
+                alarm_blocks = self.place(
+                    primary_placed, sprites, map_index, candidate, this_room.dead_end_can, pudding_placed, pudding_can
+                )
 
                 if map_index == 0x10:
                     # This is part of making sure 1st sphere is not empty.
@@ -410,6 +465,8 @@ class RoomGen:
                 compressed = candidate.to_room_data(alarm_blocks)
                 if len(compressed) > size_limit:
                     raise MakeFailure("over size limit")
+                if pudding_can:
+                    self.pudding_cans.add(map_index)
                 g = candidate
                 # testing - TODO: make unit test for Grid.no_space
                 # if map_index in (0x4b, 0x21):
@@ -434,38 +491,49 @@ class RoomGen:
         if self._logger.debug_stdout:  # check to reduce processing of creating the map string
             self._logger.debug("map_index {:#02x}".format(map_index))
             self._logger.debug(f"jump blocks required {jump_blocks_required}")
-            self._logger.debug(g.map_str(placed))
+            self._logger.debug(g.map_str(primary_placed + pudding_placed))
         compressed = g.to_room_data(alarm_blocks)
         self.tc.set_room(map_index, compressed)
         return len(compressed), jump_blocks_required
 
     def place(self,
-              coords: List[Coord],
+              primary_coords: List[Coord],
               sprites: RoomSprites,
               map_index: int,
               grid: Grid,
-              dead_end_can: Union[Coord, None]) -> Dict[int, Literal['v', 'h', 'n']]:
+              dead_end_can: Union[Coord, None],
+              pudding_placed: List[Coord],
+              pudding_can: bool) -> Dict[int, Literal['v', 'h', 'n']]:
         """
         place the things that need to be placed in this room
 
-        length of coords should be the sum (
+        length of primary_coords + pudding_placed should be the sum (
             the number of floor sprites in the non-player sprite table
             + (the number of canisters in the room - (1 if this_room.dead_end_can else 0))
             + 1 if there's a computer in the room
         )
 
+        For split rooms, the `pudding_placed` list has coordinates from the pudding.
+        Floor sprites will be taken from the end of the list.
+        There needs to be enough coordinates from dipped for all the canisters and the computer
+        (taken from the beginning of the list).
+
         returns alarm block data (input to `Alarms.add_alarms_to_room_terrain_bytes`)
         """
         # TODO: possible uncompletable seed: Make sure I can get to 2 places
         # in the height of the lowest canister.
+        # (This might be solved with new end adding near the beginning of _generate_room)
+
+        all_floor_placements_pudding_at_end = primary_coords + pudding_placed
         agp = auto_gun_places(grid, self._gen_rooms[map_index].exits)
-        bp = barrier_places(grid, coords)
-        cursor = 0
+        bp = barrier_places(grid, all_floor_placements_pudding_at_end)
+        # last index will be saved for pudding_can
+        end_cursor = len(all_floor_placements_pudding_at_end) - (1 + pudding_can)
         for sprite in sprites:
             if sprite.type[0] in floor_sprite_types:
                 # TODO: can I make it so it's always possible to jump over mines?
-                y, x = coord_to_pixel(coords[cursor])
-                cursor += 1
+                y, x = coord_to_pixel(all_floor_placements_pudding_at_end[end_cursor])
+                end_cursor -= 1
                 if sprite.type[0] == SpriteType.mine:
                     y += 0x10
                 elif sprite.type[0] == SpriteType.falling_enemy:
@@ -539,18 +607,19 @@ class RoomGen:
                 self._logger.warn(f"sprite type {sprite.type[0]} unhandled in room {map_index}")
         goables_2 = grid.get_standing_goables(2)
         goables_25 = grid.get_standing_goables(2.5)
+        begin_cursor = 0
         if self._gen_rooms[map_index].computer:
-            y, x = coords[cursor]
+            y, x = primary_coords[begin_cursor]
             # to make sure computer can be accessed to traverse room
             state = (y, x, True)
             jump = 2 if state in goables_2 else (
                 2.5 if state in goables_25 else 3
             )
-            self._computers[map_index] = (coords[cursor], jump)
-            cursor += 1
+            self._computers[map_index] = (primary_coords[begin_cursor], jump)
+            begin_cursor += 1
         # canisters
         cans: List[Tuple[Coord, float]] = []
-        for coord in coords[cursor:]:
+        for coord in primary_coords[begin_cursor:end_cursor + 1]:
             y, x = coord
             state = (y, x, True)
             jump = 2 if state in goables_2 else (
@@ -558,7 +627,12 @@ class RoomGen:
             )
             cans.append((coord, jump))
         self._canisters[map_index] = cans
+        print(f"{map_index=} placed {len(cans)=} {begin_cursor=} {end_cursor=} {pudding_can=}")
+        if pudding_can:
+            # jump_blocks 0 assuming no interesting terrain in pudding
+            self._canisters[map_index].append((all_floor_placements_pudding_at_end[-1], 0))
         if dead_end_can:
+            # TODO: verify jump blocks required for dead end can works correctly  
             self._canisters[map_index].append((dead_end_can, 0))
 
         self.sm.set_room(map_index, sprites)
@@ -599,7 +673,7 @@ class RoomGen:
             count = 0
             while count < 1:
                 count = round(gauss(mu, 1))
-            ap = alarm_places(grid, coords)
+            ap = alarm_places(grid, all_floor_placements_pudding_at_end)
             return choose_alarms(ap, count)
         else:
             return {}

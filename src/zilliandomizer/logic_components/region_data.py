@@ -257,7 +257,8 @@ def make_paperclip(mb: MapBuilder, base: Union[Base, None]) -> None:
 
     if base:
         from zilliandomizer.map_gen.region_maker import make_paperclip_bm
-        make_paperclip_bm(base.paperclip, mb, base.pc_splits)
+        assert base.pudding_cans
+        make_paperclip_bm(base.paperclip, mb, base.pc_splits, base.pudding_cans)
         return
 
     mb.split(10, 1, {

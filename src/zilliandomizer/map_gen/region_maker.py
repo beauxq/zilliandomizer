@@ -19,7 +19,9 @@ def make_regions_bm(bm: BaseMaker,
                     pre_entrance_region: str,
                     start_node: Node,
                     exits: Container[Node],
-                    splits: Mapping[Node, Node]) -> None:
+                    splits: Mapping[Node, Node],
+                    pudding_cans: Container[int]) -> None:
+    """ `pudding_cans` is which nodes have a can in the pudding """
 
     def reg_name(node: Node) -> str:
         row, col = node
@@ -71,8 +73,7 @@ def make_regions_bm(bm: BaseMaker,
 
         if dead_end_door:
             locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
-            # assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"
-            # ^ This assert doesn't work because of the double pass of `Randomizer.reset`
+            assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"
             mb.split(map_row, map_col, {
                 "enter": locations_in_room[:-1],
                 "locked": [locations_in_room[-1]],
@@ -107,9 +108,16 @@ def make_regions_bm(bm: BaseMaker,
             mb.r["r13c3n"].to(mb.r["r13c2"], door=mb.r["r13c3s"].door)  # pudding to pudding child
             """
             locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
+            map_index = map_row * 8 + map_col
+            if map_index in pudding_cans:
+                dipped_locations = locations_in_room[:-1]
+                pudding_locations = locations_in_room[-1:]
+            else:
+                dipped_locations = locations_in_room
+                pudding_locations = []
             mb.split(map_row, map_col, {
-                _pudding_suffix: [],
-                _dipped_suffix: locations_in_room,
+                _pudding_suffix: pudding_locations,
+                _dipped_suffix: dipped_locations,
             }, True)
             pudding_name = region_name_base + _pudding_suffix
             logical_region_name = pudding_name
@@ -163,7 +171,7 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder, splits: Mapping[Node, Node]
     start_node = Node(0, 3)
     exits = _red_exits
 
-    make_regions_bm(bm, mb, node_no_doors, pre_entrance_region, start_node, exits, splits)
+    make_regions_bm(bm, mb, node_no_doors, pre_entrance_region, start_node, exits, splits, ())
 
     mb.hall("red_elevator")
 
@@ -172,13 +180,15 @@ def make_red_right_bm(bm: BaseMaker, mb: MapBuilder, splits: Mapping[Node, Node]
     mb.r["r06c3"].to(mb.r["red_elevator"], door=True)
 
 
-def make_paperclip_bm(bm: BaseMaker, mb: MapBuilder, splits: Mapping[Node, Node]) -> None:
+def make_paperclip_bm(
+    bm: BaseMaker, mb: MapBuilder, splits: Mapping[Node, Node], pudding_cans: Container[int]
+) -> None:
     assert bm.height == 7 and bm.width == 8, f"{bm.height=} {bm.width=}"
     node_no_doors = pc_no_doors
     pre_entrance_region = "big_elevator"
     start_node = Node(0, 0)
     exits = _pc_exits
 
-    make_regions_bm(bm, mb, node_no_doors, pre_entrance_region, start_node, exits, splits)
+    make_regions_bm(bm, mb, node_no_doors, pre_entrance_region, start_node, exits, splits, pudding_cans)
 
     assert "r10c5" in mb.r
