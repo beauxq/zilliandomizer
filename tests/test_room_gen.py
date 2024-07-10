@@ -1,8 +1,12 @@
-from typing import List
+from typing import Dict, List
 
 from zilliandomizer.logger import Logger
-from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT, Coord
+from zilliandomizer.logic_components.locations import Location
+from zilliandomizer.np_sprite_manager import NPSpriteManager
+from zilliandomizer.room_gen.aem import AlarmEntranceManager
+from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT, Coord, RoomData
 from zilliandomizer.room_gen.maze import Grid, Cell
+from zilliandomizer.room_gen.room_gen import RoomGen
 from zilliandomizer.terrain_modifier import TerrainModifier
 
 
@@ -14,7 +18,7 @@ def test_navigation() -> None:
 
     skill = 5
     ends: List[Coord] = [BOT_LEFT, BOT_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, skill, [])
+    g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
     g.data = [
         list("        |||__|"),
         list("__    ___  |||"),
@@ -72,7 +76,7 @@ def test_jump_requirements() -> None:
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 5, [])
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 5, [], [])
     g.data = [
         list("         |__  "),
         list("__       |||  "),
@@ -94,7 +98,7 @@ def test_softlock_detect() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0, [])
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0, [], [])
     g.data = [
         list("             |"),
         list("__          _ "),
@@ -105,7 +109,7 @@ def test_softlock_detect() -> None:
     ]
     assert g.softlock_exists(), "softlock detection can jump 4 tiles"
 
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0, [])
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0, [], [])
     g.data = [
         list("             |"),
         list("__            "),
@@ -128,7 +132,7 @@ def test_hard_jumps() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 5, [])
+    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     g.data = [
         list("              "),
         list("__          __"),
@@ -195,7 +199,7 @@ def test_from_early_dev() -> None:
 
     skill = 5
     ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, skill, [])
+    g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
     g.data = [
         list("| _   _       "),
         list("    _ |  _ ___"),
@@ -207,7 +211,7 @@ def test_from_early_dev() -> None:
     assert g.softlock_exists()
 
     ends = [BOT_LEFT, (2, 1)]
-    g = Grid(ends, ends, 0x31, tc, log, skill, [])
+    g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
     g.data = [
         list("         _    "),
         list("   _ _  _|  _ "),
@@ -227,7 +231,7 @@ def test_skill_required_for_jumps() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 0, [])
+    g = Grid(ends, ends, 0x31, tc, log, 0, [], [])
     g.data = [
         list("              "),
         list("            __"),
@@ -237,17 +241,17 @@ def test_skill_required_for_jumps() -> None:
         list("______________"),
     ]
     assert not g.solve(2), "whether skill 0 can jump around ledges"
-    h = Grid(ends, ends, 0x31, tc, log, 2, [])
+    h = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     h.data = g.data
     assert h.solve(2), "whether skill 2 can jump around ledges"
     h.data[1][10] = Cell.floor
     assert not h.solve(2), "whether skill 2 can jump with horizontal movement into 1-tile holes"
-    i = Grid(ends, ends, 0x31, tc, log, 5, [])
+    i = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     i.data = h.data
     assert i.solve(2), "whether skill 5 can jump with horizontal movement into 1-tile holes"
 
     # make sure it doesn't think impossible jump is possible
-    g = Grid(ends, ends, 0x31, tc, log, 5, [])
+    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     g.data = [
         list("              "),
         list("        _   __"),
@@ -257,7 +261,7 @@ def test_skill_required_for_jumps() -> None:
         list("______________"),
     ]
     assert not g.solve(2)
-    g = Grid(ends, ends, 0x31, tc, log, 5, [])
+    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     g.data = [
         list("          _   "),
         list("            __"),
@@ -268,7 +272,7 @@ def test_skill_required_for_jumps() -> None:
     ]
     assert not g.solve(2)
     assert not g.solve(3)
-    g = Grid(ends, ends, 0x31, tc, log, 5, [])
+    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     g.data = [
         list("          _   "),
         list("            __"),
@@ -303,7 +307,7 @@ def test_long_distance_jumps() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 0, [])
+    g = Grid(ends, ends, 0x31, tc, log, 0, [], [])
     g.data = [
         list("              "),
         list("            __"),
@@ -365,7 +369,7 @@ def test_jump_from_walkway() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g0 = Grid(ends, ends, 0x31, tc, log, 0, [])
+    g0 = Grid(ends, ends, 0x31, tc, log, 0, [], [])
     g0.data = [
         list("              "),
         list("     ___  ____"),
@@ -380,7 +384,7 @@ def test_jump_from_walkway() -> None:
     g0.is_walkway[3][7] = 2
     assert not g0.solve(2)
 
-    g5 = Grid(ends, ends, 0x31, tc, log, 5, [])
+    g5 = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     g5.data = g0.data
     assert g5.solve(2)
     g5.is_walkway[3][7] = 1  # right
@@ -396,7 +400,7 @@ def test_stand_in_moving_walkway() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("____          "),
         list("|_ ____     __"),
@@ -444,7 +448,7 @@ def test_low_skill_jump_1_distance_5() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_LEFT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("              "),
         list("_____         "),
@@ -467,7 +471,7 @@ def test_low_skill_jump_1_distance_4() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [(1, 7), BOT_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("||            "),
         list("___    _______"),
@@ -487,7 +491,7 @@ def test_skill_horizontal_jump_from_walkway() -> None:
     log.spoil_stdout = True
 
     ends: List[Coord] = [BOT_LEFT, TOP_LEFT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [])
+    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("              "),
         list("___ _  _      "),
@@ -503,6 +507,55 @@ def test_skill_horizontal_jump_from_walkway() -> None:
     setattr(g, "_skill", 5)
     assert g.solve(2), "jump 2 skill 5 with walkway"
     assert g.solve(3), "jump 3 skill 5 with walkway"
+
+
+def test_dead_end_can_logic() -> None:
+    count_tries = 0
+    while True:
+        tc = TerrainModifier()
+        sm = NPSpriteManager()
+        aem = AlarmEntranceManager()
+        log = Logger()
+        log.debug_stdout = True
+        log.spoil_stdout = True
+
+        map_index = 28
+        region_name = f"r0{map_index // 8}c{map_index % 8}"
+        dead_end_loc_name = region_name + "y18xd0"
+
+        gen_data = {
+            map_index: RoomData([BOT_LEFT, TOP_RIGHT], True, [], None, TOP_RIGHT, None)
+        }
+
+        room_gen = RoomGen(tc, sm, aem, log, 5, gen_data)
+
+        room_gen.generate_all({map_index: 3})
+
+        room_jump_req = room_gen.get_jump_blocks_required(map_index)
+        canister_jumps: List[float] = [c[1] for c in getattr(room_gen, "_canisters")[map_index]]
+        computer_jump: float = getattr(room_gen, "_computers")[map_index][1]
+        jump_req_to_open_door = max([computer_jump, *canister_jumps])
+
+        assert room_jump_req >= jump_req_to_open_door, f"{room_jump_req=} {canister_jumps=} {computer_jump=}"
+        count_tries += 1
+        print(f"{count_tries=}")
+        if jump_req_to_open_door == room_jump_req:
+            continue
+
+        print(f"{room_jump_req=}")
+        print(f"{canister_jumps=}")
+        print(f"{computer_jump=}")
+
+        locs = room_gen.make_locations()
+        room_locs: Dict[str, Location] = {}
+        for loc_name, loc in locs.items():
+            if loc_name.startswith(region_name):
+                room_locs[loc_name] = loc
+
+        from pprint import pp
+        pp(room_locs)
+        print(f"{dead_end_loc_name=}")
+        break
 
 
 if __name__ == "__main__":
