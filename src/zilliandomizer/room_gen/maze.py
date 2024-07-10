@@ -36,6 +36,9 @@ class MakeFailure(Exception):
     pass
 
 
+assert Cell.space == " ", "a performance optimization relies on this"
+
+
 class Grid:
     data: List[List[str]]
     exits: List[Coord]
@@ -288,19 +291,27 @@ class Grid:
                                 (distance == 3 and is_walkway)
                             ):
                                 start_of_needing_space = col
-                        # check all space before target
-                        if all(
-                            all(
-                                self.data[y][col_i] == Cell.space
-                                for col_i in range(start_of_needing_space, target_col, dir)
-                            )
-                            for y in range(target_row - 1, row)
-                        ) and (
-                            # and landing
-                            self.data[target_row][target_col] == Cell.floor
-                            and self.data[target_row - 1][target_col] == Cell.space
+
+                        if (
+                            # check landing first
+                            self.data[target_row][target_col] == Cell.floor and
+                            self.data[target_row - 1][target_col] == Cell.space
                         ):
-                            yield target_row, target_col, True
+                            # check all space before target
+                            # This is a big performance optimization that used to be `all` with generator expressions.
+                            # changed to `for` loops with break statements
+                            # This was also an improvement over a function returning bool to avoid double break.
+                            found_something_blocking_jump = False
+                            for y in range(target_row - 1, row):
+                                for col_i in range(start_of_needing_space, target_col, dir):
+                                    if self.data[y][col_i] != " ":  # Cell.space performance optimized to " "
+                                        found_something_blocking_jump = True
+                                        break
+                                if found_something_blocking_jump:
+                                    break
+
+                            if not found_something_blocking_jump:
+                                yield target_row, target_col, True
 
             for dir in (-1, 1):
                 # check move
