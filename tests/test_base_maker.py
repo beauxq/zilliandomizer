@@ -26,26 +26,6 @@ def test_no_changes() -> None:
     assert bm.no_changes == {(4, 0), (1, 2), (0, 3), (4, 3)}
 
 
-def test_something_else() -> None:
-    from zilliandomizer.map_gen.base_maker import BaseMaker, Edge, h, v
-    from zilliandomizer.map_gen.door_manager import DoorManager
-
-    height = 2
-    width = 2
-
-    possible: list[Edge] = []
-    for y in range(height):
-        for x in range(width):
-            if y < height - 1:
-                possible.append(v(y, x))
-            if x < width - 1:
-                possible.append(h(y, x))
-
-    bm = BaseMaker(0, 0, height, width, 0, possible, [], DoorManager(), None)
-    bm.make()
-    print(bm.map_str(2))
-
-
 def test_make_paperclip() -> None:
     from zilliandomizer.map_gen.base_maker import Node, get_paperclip_base
     from zilliandomizer.map_gen.door_manager import DoorManager
@@ -101,7 +81,6 @@ if __name__ == "__main__":
     sys.path.append(str((Path(__file__) / ".." / ".." / "src").resolve()))
     test_no_changes()
     test_make()
-    test_something_else()
     test_make_paperclip()
     test_choose_splits()
     test_vanilla_path_rate()

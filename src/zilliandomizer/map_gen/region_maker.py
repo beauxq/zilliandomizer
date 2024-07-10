@@ -127,7 +127,7 @@ def make_regions_bm(bm: BaseMaker,
                 mb.r[parent].to(mb.r[pudding_name], door=True)
             if parent.endswith(_pudding_suffix):
                 assert False, "not pudding [sic] two split rooms next to each other"
-                split_doors_to_correct_later[parent].append(pudding_name)
+                split_doors_to_correct_later[parent].append(pudding_name)  # type: ignore[unreachable]
         else:  # not divided
             mb.room(map_row, map_col, len(mb.reg_name_to_loc_name[region_name_base]), computer_opens_door)
             if parent in no_doors:

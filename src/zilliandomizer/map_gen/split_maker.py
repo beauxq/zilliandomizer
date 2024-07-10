@@ -14,7 +14,7 @@ def find_cycles(nodes: Iterable[Node], dependencies: Mapping[Node, Iterable[Node
 
     cycle_nodes: Set[Node] = set()
 
-    def dfs(node: Node):
+    def dfs(node: Node) -> None:
         visited.add(node)
 
         path_index[node] = len(path_stack)

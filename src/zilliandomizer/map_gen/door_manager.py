@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import IntEnum
-from typing import Dict, List, Literal, Set, Tuple
+from typing import Dict, List, Literal, Set, Tuple, Union
 
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.utils.deterministic_set import DetSet
@@ -206,6 +206,7 @@ class DoorManager:
 
         to be used when generating doors
         """
+        status: Union[DoorStatusIndex, None]
         if map_index == opening_map_index:
             status = self._get_new_status()
             self.original_statuses[opening_map_index] = status
@@ -240,7 +241,7 @@ class DoorManager:
                     if status in used_in_this_room:
                         # TODO: delete this function after more testing
                         assert False, "I don't think I need this anymore"
-                        new_status = self._get_new_status()
+                        new_status = self._get_new_status()  # type: ignore[unreachable]
                         new_door_data = bytes([new_status[0], new_status[1], door_data[2], door_data[3], door_data[4]])
                         door_list[i] = new_door_data
                         self.status_reference_counts[new_status].append(map_index)

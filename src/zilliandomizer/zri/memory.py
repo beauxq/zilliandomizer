@@ -3,7 +3,7 @@ from collections import Counter
 from dataclasses import dataclass
 import sys
 from types import TracebackType
-from typing import Dict, Final, Iterable, Literal, Optional, Sequence, Tuple, Iterator
+from typing import Dict, Iterable, Optional, Sequence, Tuple, Iterator
 import typing
 
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
@@ -15,7 +15,7 @@ from zilliandomizer.zri.events import DeathEventFromGame, DoorEventFromGame, \
 from zilliandomizer.zri.rai import RAInterface, DOOR_BYTE_COUNT, RamDataWrapper
 from zilliandomizer.zri.ram_interface import RamInterface
 
-BYTE_ORDER: Final[Literal['little', 'big']] = sys.byteorder  # type: ignore
+BYTE_ORDER = sys.byteorder
 # mypy doesn't see literal types of byteorder
 
 ITEM_BYTE_COUNT = 0x0c

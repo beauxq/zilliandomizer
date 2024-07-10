@@ -20,6 +20,9 @@ from .room_gen.data import GEN_ROOMS
 from .room_gen.room_gen import RoomGen
 
 
+_MapData = Tuple[Base, Dict[int, RoomData], Dict[Node, Node]]
+
+
 class System:
     """
     composition of the highest level components
@@ -72,9 +75,7 @@ class System:
         assert self._options, "must `set_options` first"
         if self._options.map_gen == "full":
 
-            def try_base_and_room_gen_data() -> Union[
-                Tuple[Base, Dict[int, RoomData], Dict[Node, Node]], None
-            ]:
+            def try_base_and_room_gen_data() -> Union[_MapData, None]:
                 dm = DoorManager()
                 red_base = get_red_base(dm, self._random.randrange(1999999999))
                 pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
@@ -90,7 +91,7 @@ class System:
 
                 return base, room_gen_data, pc_splits
 
-            result = None
+            result: Union[_MapData, None] = None
             while result is None:
                 result = try_base_and_room_gen_data()
             base, room_gen_data, pc_splits = result

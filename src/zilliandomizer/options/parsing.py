@@ -111,7 +111,7 @@ def cleaned_and_ordered(text: str) -> Iterable[Tuple[str, str]]:
 
 def parse_options(t: str) -> Options:
     # mypy doesn't know about __dataclass_fields__
-    fields: Dict[str, Any] = Options.__dataclass_fields__  # type: ignore
+    fields = Options.__dataclass_fields__
 
     def get_typed_value(option: str, value: str, opts: Options) -> Any:
         if value == "random" and option in choices:
