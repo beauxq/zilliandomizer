@@ -632,7 +632,8 @@ class RoomGen:
             # jump_blocks 0 assuming no interesting terrain in pudding
             self._canisters[map_index].append((all_floor_placements_pudding_at_end[-1], 0))
         if dead_end_can:
-            # TODO: verify jump blocks required for dead end can works correctly  
+            # Room traversal to all exits covers the jump requirement for this (in the "enter" region).
+            # See doc of `get_jump_blocks_required`.
             self._canisters[map_index].append((dead_end_can, 0))
 
         self.sm.set_room(map_index, sprites)
@@ -719,7 +720,20 @@ class RoomGen:
         return frozenset(self._rooms)
 
     def get_jump_blocks_required(self, map_index: int) -> float:
-        """ returns 0 if this map index wasn't generated """
+        """
+        For the given `map_index`, returns the number of large tiles in height that you need
+        to be able to jump in order to traverse to all the exits.
+
+        For the dead end canister rooms, this is important because
+        the canister itself doesn't have the jump requirement on it.
+
+        In split rooms, this only applies to the dipped section,
+        and is therefore useless in those rooms,
+        since there are no exits to go to from the dipped section.
+        The pudding section should always require only 2 jump blocks.
+
+        returns 0 if this map index wasn't generated
+        """
         if map_index in self._rooms:
             return self._rooms[map_index]
         return 0
