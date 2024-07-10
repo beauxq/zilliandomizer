@@ -422,7 +422,7 @@ class RoomGen:
                         for y, x, _ in pudding_standing
                         if not candidate.in_exit(y, x, this_room.exits)
                     ]
-                    print(f"{pudding_placeables=}")
+                    self._logger.debug(f"{pudding_placeables=}")
                     if len(pudding_placeables) < will_place_in_pudding:
                         raise MakeFailure(f"Not enough room in {map_index=} pudding to place {will_place_in_pudding}")
                     pudding_placed = sample(pudding_placeables, will_place_in_pudding)
@@ -436,9 +436,10 @@ class RoomGen:
                     this_room.computer +
                     primary_floor_sprite_count
                 )
-                print(f"{len(pudding_tiles)=}")
-                self._logger.debug(f"need to place {primary_placeable_count} in room {map_index} primary region "
-                                   f"and {will_place_in_pudding} in pudding region, including {pudding_can=}")
+                self._logger.debug(
+                    f"need to place {primary_placeable_count} in room {map_index} primary region and "
+                    f"{will_place_in_pudding} in pudding region, including {pudding_can=} with {len(pudding_tiles)=}"
+                )
                 if len(primary_placeables) < primary_placeable_count:
                     raise MakeFailure("not enough places to put things")
                 if primary_placeable_count > 0:
@@ -627,7 +628,7 @@ class RoomGen:
             )
             cans.append((coord, jump))
         self._canisters[map_index] = cans
-        print(f"{map_index=} placed {len(cans)=} {begin_cursor=} {end_cursor=} {pudding_can=}")
+        self._logger.debug(f"{map_index=} placed {len(cans)=} {begin_cursor=} {end_cursor=} {pudding_can=}")
         if pudding_can:
             # jump_blocks 0 assuming no interesting terrain in pudding
             self._canisters[map_index].append((all_floor_placements_pudding_at_end[-1], 0))

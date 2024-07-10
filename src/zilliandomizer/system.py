@@ -98,6 +98,7 @@ class System:
             self._base = base
             self._logger.spoil(base.red.map_str())
             self._logger.spoil(base.paperclip.map_str(1, pc_splits, split_edges(pc_splits)))
+            self._logger.debug(f"{len(pc_splits)=}\n{base.paperclip.map_str(1, pc_splits, split_edges(pc_splits))}")
         elif self._options.map_gen == "rooms":
             self._base = None
             room_gen_data = GEN_ROOMS.copy()
