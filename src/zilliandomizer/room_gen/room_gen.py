@@ -169,7 +169,6 @@ class RoomGen:
                                     no_change: Iterable[Coord],
                                     edge_doors: EdgeDoors,
                                     pudding_tiles: Mapping[Coord, str]) -> Grid:
-        # TODO: maybe better if I don't take `room` argument, because it's not taking all info from that
         tr = Grid(exits,
                   ends,
                   map_index,
