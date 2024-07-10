@@ -3,7 +3,7 @@ from collections import Counter
 from dataclasses import dataclass
 import sys
 from types import TracebackType
-from typing import Dict, Final, Iterable, Literal, Optional, Tuple, Iterator
+from typing import Dict, Iterable, Optional, Sequence, Tuple, Iterator
 import typing
 
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
@@ -11,11 +11,11 @@ from zilliandomizer.low_resources import ram_info, rom_info
 from zilliandomizer.options import Chars
 from zilliandomizer.zri.events import DeathEventFromGame, DoorEventFromGame, \
     DoorEventToGame, EventFromGame, EventToGame, AcquireLocationEventFromGame, \
-    ItemEventToGame, DeathEventToGame, WinEventFromGame
+    ItemEventToGame, DeathEventToGame, MapEventFromGame, WinEventFromGame
 from zilliandomizer.zri.rai import RAInterface, DOOR_BYTE_COUNT, RamDataWrapper
 from zilliandomizer.zri.ram_interface import RamInterface
 
-BYTE_ORDER: Final[Literal['little', 'big']] = sys.byteorder  # type: ignore
+BYTE_ORDER = sys.byteorder
 # mypy doesn't see literal types of byteorder
 
 ITEM_BYTE_COUNT = 0x0c
@@ -111,6 +111,7 @@ class Memory:
     known_in_game: bool
     known_win_state: bool
     known_dead: bool
+    known_map: bool
 
     state: State
 
@@ -172,6 +173,7 @@ class Memory:
         self.known_in_game = False
         self.known_win_state = False
         self.known_dead = False
+        self.known_map = False
         self.known_doors = bytes(0 for _ in range(DOOR_BYTE_COUNT))
         self.known_cans = bytes(0 for _ in range(rom_info.CANISTER_ROOM_COUNT))
 
@@ -210,6 +212,24 @@ class Memory:
             print("death")
             event = True
         self.known_dead = dead
+        return event
+
+    def _looked_at_map(self, scene: int, computer_state: Sequence[int]) -> bool:
+        """
+        given the scene (c11f) and the computer state (c280 - c28b)
+        return whether the player just used the map code
+        """
+        scene = scene & 0x7f
+        looking_at_map = (
+            scene == 8 and
+            computer_state[0] == 1 and computer_state[1] == 1 and computer_state[2] == 1 and computer_state[3] == 1 and
+            computer_state[7] == 0x0c and computer_state[11] == 1
+        )
+        event = False
+        if looking_at_map and (looking_at_map != self.known_map):
+            print("looked at map")
+            event = True
+        self.known_map = looking_at_map
         return event
 
     def _process_change(self, new_cans: Iterable[int]) -> None:
@@ -309,12 +329,17 @@ class Memory:
                 if self._died(current_scene, cutscene, hp) and not (self.from_game_queue is None):
                     self.from_game_queue.put_nowait(DeathEventFromGame())
 
+                map_index = ram[ram_info.map_current_index_c198]
+                if self._looked_at_map(
+                    current_scene, ram[ram_info.computer_state_c280:ram_info.computer_state_c280 + 12]
+                ) and not (self.from_game_queue is None):
+                    self.from_game_queue.put_nowait(MapEventFromGame(map_index))
+
                 current_state = State(ram)
 
                 lost = current_state.anything_lost(self.state)
-                map = ram[ram_info.map_current_index_c198]
 
-                if lost and map < 8:  # outside of base
+                if lost and map_index < 8:  # outside of base
                     self._restore_target = self.state
                 else:
                     self.state.doors = bytes_or(current_state.doors, self.state.doors)

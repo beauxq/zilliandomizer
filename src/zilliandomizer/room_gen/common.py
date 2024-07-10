@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Container, List, Tuple, Union
+from typing import Collection, List, Tuple, Union
 
 Coord = Tuple[int, int]
 """ row, col - 0 inside walls """
 
-EdgeDoors = Union[Tuple[Container[int], Container[int]], None]
+EdgeDoors = Union[Tuple[Collection[int], Collection[int]], None]
 """
 for the left wall and the right wall, the y tiles with the platforms that I can walk out of the room on
 
@@ -26,6 +26,7 @@ class RoomData:
     no_space: List[Coord]
     edge_doors: EdgeDoors = None
     dead_end_can: Union[Coord, None] = None
+    split_dip_entrance: Union[Coord, None] = None
 
 
 def coord_to_pixel(coord: Coord) -> Tuple[int, int]:

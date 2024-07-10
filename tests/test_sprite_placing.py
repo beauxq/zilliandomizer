@@ -11,7 +11,7 @@ def test_alarm_places() -> None:
     tc = TerrainModifier()
     logger = Logger()
     exits: List[Coord] = [BOT_LEFT, BOT_RIGHT]
-    g = Grid(exits, exits, 0x0a, tc, logger, 5, [])
+    g = Grid(exits, exits, 0x0a, tc, logger, 5, [], [])
     g.data = [
         list("              "),
         list("              "),

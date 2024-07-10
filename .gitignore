@@ -10,3 +10,4 @@ spoiler*.txt
 toxwo.sh
 .venv*/
 build/
+/profile*

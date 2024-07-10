@@ -2,12 +2,12 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import Dict, FrozenSet, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
+from typing import AbstractSet, Container, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
 from zilliandomizer.low_resources.terrain_tiles import Tile
-from zilliandomizer.room_gen.common import Coord, EdgeDoors
+from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors
 from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
 from zilliandomizer.terrain_modifier import TerrainModifier
 
@@ -17,6 +17,7 @@ TOP = 0
 BOTTOM = 5
 
 
+# TODO: StrEnum ?
 class Cell:
     wall = '|'
     floor = '_'
@@ -35,6 +36,9 @@ class MakeFailure(Exception):
     pass
 
 
+assert Cell.space == " ", "a performance optimization relies on this"
+
+
 class Grid:
     data: List[List[str]]
     exits: List[Coord]
@@ -47,8 +51,10 @@ class Grid:
     """ whether to put walkways in this room """
     is_walkway: List[List[int]]
     """ moving walkway - 0 normal floor - 1 right - 2 left """
-    no_space: FrozenSet[Coord]
+    no_space: AbstractSet[Coord]
     """ special places that I'm not allowed to put space """
+    no_change: AbstractSet[Coord]
+    """ special places that I'm not allowed to change at all """
     _tc: TerrainModifier
     _logger: Logger
     _skill: int
@@ -63,16 +69,30 @@ class Grid:
                  logger: Logger,
                  skill: int,
                  no_space: Iterable[Coord],
+                 no_change: Iterable[Coord],
                  edge_doors: EdgeDoors = None) -> None:
         self.exits = exits
         self.ends = ends
         self.map_index = map_index
         self.no_space = frozenset(no_space)
+        self.no_change = frozenset(no_change)
         self._tc = tc
         """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
         self._skill = skill
         self._edge_doors = edge_doors
+
+        # special case row 14 col 1 - because of the exit-only door
+        if map_index == 113:
+            assert not (self._edge_doors is None)
+            left = self._edge_doors[0]
+            left_list = list(left)
+            if 5 not in left_list:
+                left_list.append(5)
+                self._edge_doors = (left_list, self._edge_doors[1])
+            if BOT_LEFT not in self.ends:
+                self.ends.append(BOT_LEFT)
+
         self.walkways = self.walkways_in_room()
         self.reset()
 
@@ -271,19 +291,27 @@ class Grid:
                                 (distance == 3 and is_walkway)
                             ):
                                 start_of_needing_space = col
-                        # check all space before target
-                        if all(
-                            all(
-                                self.data[y][col_i] == Cell.space
-                                for col_i in range(start_of_needing_space, target_col, dir)
-                            )
-                            for y in range(target_row - 1, row)
-                        ) and (
-                            # and landing
-                            self.data[target_row][target_col] == Cell.floor
-                            and self.data[target_row - 1][target_col] == Cell.space
+
+                        if (
+                            # check landing first
+                            self.data[target_row][target_col] == Cell.floor and
+                            self.data[target_row - 1][target_col] == Cell.space
                         ):
-                            yield target_row, target_col, True
+                            # check all space before target
+                            # This is a big performance optimization that used to be `all` with generator expressions.
+                            # changed to `for` loops with break statements
+                            # This was also an improvement over a function returning bool to avoid double break.
+                            found_something_blocking_jump = False
+                            for y in range(target_row - 1, row):
+                                for col_i in range(start_of_needing_space, target_col, dir):
+                                    if self.data[y][col_i] != " ":  # Cell.space performance optimized to " "
+                                        found_something_blocking_jump = True
+                                        break
+                                if found_something_blocking_jump:
+                                    break
+
+                            if not found_something_blocking_jump:
+                                yield target_row, target_col, True
 
             for dir in (-1, 1):
                 # check move
@@ -443,7 +471,7 @@ class Grid:
     def map_str(self, marks: Union[None, Iterable[Coord]] = None) -> str:
         if not marks:
             marks = frozenset()
-        coord_marks: FrozenSet[Coord] = frozenset(marks)
+        coord_marks: AbstractSet[Coord] = frozenset(marks)
         under = "̲"  # unicode underline prev char
         tr = " "
         for y, row in enumerate(self.data):
@@ -458,15 +486,20 @@ class Grid:
             tr += '\n '
         return tr
 
-    def in_exit(self, row: int, col: int) -> bool:
-        """ this coordinate is in an exit area """
-        if (row, col) in self.exits:
+    def in_exit(self, row: int, col: int, custom_exits: Union[Container[Coord], None] = None) -> bool:
+        """
+        this coordinate is in an exit area
+
+        `custom_exits` is for checking a different set of exits from what is stored in the `Grid`
+        """
+        exits_to_check = self.exits if custom_exits is None else custom_exits
+        if (row, col) in exits_to_check:
             return True
-        if (row, col - 1) in self.exits:
+        if (row, col - 1) in exits_to_check:
             return True
-        if (row + 1, col) in self.exits:
+        if (row + 1, col) in exits_to_check:
             return True
-        return (row + 1, col - 1) in self.exits
+        return (row + 1, col - 1) in exits_to_check
 
     def in_end(self, row: int, col: int) -> bool:
         """ this coordinate is in an end area """
@@ -487,7 +520,7 @@ class Grid:
         clearables: List[Coord] = []
 
         def is_clearable(row: int, col: int) -> bool:
-            if self.in_end(row, col):
+            if self.in_end(row, col) or ((row, col) in self.no_change):
                 return False
 
             here = self.data[row][col]
@@ -534,7 +567,7 @@ class Grid:
         def is_changeable(row: int, col: int) -> List[str]:
             """ returns what it can change to """
             tr: List[str] = []
-            if self.in_end(row, col):
+            if self.in_end(row, col) or ((row, col) in self.no_change):
                 return tr
 
             here = self.data[row][col]
@@ -643,9 +676,14 @@ class Grid:
         if not success:
             raise MakeFailure("make terrain failed")
 
-    def get_goables(self, jump_blocks: float) -> Set[Tuple[int, int, bool]]:
-        """ coordinates can go to, and whether I can stand there """
-        return self._search(self.ends[0], jump_blocks)
+    def get_goables(self, jump_blocks: float, custom_start: Union[Coord, None] = None) -> Set[Tuple[int, int, bool]]:
+        """
+        coordinates can go to, and whether I can stand there
+
+        `custom_start` allows the search to start from somewhere other than the normal entrance
+        """
+        start = self.ends[0] if custom_start is None else custom_start
+        return self._search(start, jump_blocks)
 
     def get_standing_goables(self, jump_blocks: float) -> List[Tuple[int, int, bool]]:
         return [
@@ -656,7 +694,7 @@ class Grid:
 
     def copy(self) -> "Grid":
         tr = Grid(self.exits, self.ends, self.map_index, self._tc,
-                  self._logger, self._skill, self.no_space, self._edge_doors)
+                  self._logger, self._skill, self.no_space, self.no_change, self._edge_doors)
         tr.data = deepcopy(self.data)
         return tr
 
@@ -766,6 +804,9 @@ class Grid:
         for _ in range(2):  # 2 passes
             for y, row in enumerate(self.data):
                 for x, col in enumerate(row):
+                    # TODO: investigate: Does optimize_encoding respect no_space?
+                    if (y, x) in self.no_change:
+                        continue
                     left = self.data[y][x - 1] if x > LEFT else Cell.wall
                     right = self.data[y][x + 1] if x < RIGHT else Cell.wall
                     if col != left and col != right:

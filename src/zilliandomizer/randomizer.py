@@ -5,7 +5,7 @@ from typing import Deque, Dict, List, Optional, Set, Counter as _Counter, cast
 
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logger import Logger
-from zilliandomizer.map_gen.base_maker import BaseMaker
+from zilliandomizer.map_gen.base import Base
 from zilliandomizer.options import ID, Chars, Options, char_to_hp, char_to_gun, char_to_jump
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.logic_components.regions import Region, RegionData
@@ -28,7 +28,7 @@ class Randomizer:
     regions: Dict[str, Region]
     locations: Dict[str, Location]
     _room_gen: Optional[RoomGen]
-    _base_maker: Optional[BaseMaker]
+    _base: Optional[Base]
     loc_name_2_pretty: Dict[str, str]
     """ example: from "r02c6y88x50" to "B-7 bottom left" """
 
@@ -39,7 +39,7 @@ class Randomizer:
     def __init__(self,
                  options: Options,
                  room_gen: Optional[RoomGen],
-                 base_maker: Optional[BaseMaker],
+                 base: Optional[Base],
                  logger: Optional[Logger] = None) -> None:
         self.options = options
         if logger is None:
@@ -47,28 +47,31 @@ class Randomizer:
             logger.spoil_stdout = False
         self.logger = logger
         self._room_gen = room_gen
-        self._base_maker = base_maker
+        self._base = base
 
         self._reset()
 
     def _reset(self) -> None:
         locations = self._room_gen.make_locations() if self._room_gen else make_locations()
-        regions = make_regions(locations, self._base_maker)
+        regions = make_regions(locations, self._base)
         if self._room_gen:
             for region_name, region in regions.items():
                 if (
                     len(region_name) >= 5 and region_name[0] == 'r' and region_name[3] == 'c'
-                    and (len(region_name) == 5 or region_name.endswith("enter"))
+                    and (len(region_name) == 5 or region_name.endswith("enter") or region_name.endswith("unlocker"))
+                    # TODO: there's a constant saved somewhere else for this "unlocker" string
+                    # (and there should be but isn't for "enter")
                 ):
                     row, col = parse_reg_name(region_name)
                     map_index = row * 8 + col
                     region.computer = self._room_gen.get_computer(map_index)
                     jump_blocks = self._room_gen.get_jump_blocks_required(map_index)
                     if jump_blocks:  # 0 means this room wasn't generated
+                        jump_req = 3 if jump_blocks == 3 else (
+                            2 if jump_blocks == 2.5 else 1
+                        )
                         for req in region.connections.values():
-                            req.jump = 3 if jump_blocks == 3 else (
-                                2 if jump_blocks == 2.5 else 1
-                            )
+                            req.jump = jump_req
         self.regions = regions
         self.locations = locations
 

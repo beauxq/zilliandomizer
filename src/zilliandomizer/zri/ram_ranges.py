@@ -13,9 +13,9 @@ RANGE_READS: Tuple[Tuple[int, int], ...] = (
         ram_info.current_scene_c11f,
         ram_info.map_current_index_c198 + 1
     ),
-    # new ram
+    # new ram and computer state
     (
-        ram_info.item_pickup_record,
+        ram_info.computer_state_c280,
         ram_info.opas_c2ee + 1
     ),
     # doors and canisters

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import IntEnum
-from typing import Dict, List, Literal, Set, Tuple
+from typing import Dict, List, Literal, Set, Tuple, Union
 
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.utils.deterministic_set import DetSet
@@ -76,16 +76,16 @@ class DoorSprite(IntEnum):
 class DoorManager:
     original_statuses: Dict[int, DoorStatusIndex]
     """
-    This room is the first time these statuses are opened.
+    a status that will first be opened by this `map_index`
 
-    (only newly created doors)
+    (only newly created doors and special case 57)
     """
     freed_statuses: DetSet[DoorStatusIndex]
     """ this `DoorStatusIndex` existed in vanilla, but all its doors have been deleted """
     status_reference_counts: Dict[DoorStatusIndex, List[int]]
     """
-    which room has a door data structure that
-    shares the same share the same info on whether the door is open or not
+    which rooms have door data structures that
+    share the same info on whether the door is open or not
 
     the index is `(a, b)` - the first 2 bytes of the door data structure
     """
@@ -98,11 +98,14 @@ class DoorManager:
         - y - 0 top row (both door and elevator), 4 door on bottom, 5 elevator on bottom
         - t - `DoorSprite`
     """
+    _locked: bool
+    """ instance shouldn't be changed anymore """
 
     def __init__(self) -> None:
         self.original_statuses = {}
         self.freed_statuses = DetSet()
         self.status_reference_counts = defaultdict(list)
+        self._locked = False
         from copy import deepcopy
         from .door_data import doors
         self.doors = defaultdict(list, deepcopy(doors))
@@ -110,6 +113,9 @@ class DoorManager:
         self._fill()
 
     def _fill(self) -> None:
+        # paperclip maker needs to know map_index 57 status bit
+        self.original_statuses[57] = (0x13, 0x01)
+
         for map_index, door_list in self.doors.items():
             for door_data in door_list:
                 a, b, _, _, _ = door_data
@@ -125,6 +131,7 @@ class DoorManager:
 
     def del_room(self, map_index: int) -> None:
         """ and matching status references in other rooms (elevator in destination room) """
+        assert not self._locked, "del_room on locked door manager"
         if map_index in self.doors:
             door_list = self.doors[map_index]
             while len(door_list):
@@ -142,7 +149,8 @@ class DoorManager:
                 self.freed_statuses.add(status)
 
     def add_door(self, map_index: int, y_large: int, x_pixel: int, opened_by: int) -> None:
-        status = self._get_available_status(opened_by)
+        assert not self._locked, "del_room on locked door manager"
+        status = self._get_available_status(map_index, opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_door(map_index, x_door)
         door_data = bytes((status[0], status[1], x_door, y_large, sprite))
@@ -151,7 +159,8 @@ class DoorManager:
 
     def add_elevator(self, map_index: int, y_large: Literal[0, 5], x_pixel: int, opened_by: int) -> None:
         """ both in this room and destination room """
-        status = self._get_available_status(opened_by)
+        assert not self._locked, "del_room on locked door manager"
+        status = self._get_available_status(map_index, opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_elevator(map_index, y_large)
         door_data = bytes((status[0], status[1], x_door, y_large, sprite))
@@ -190,13 +199,20 @@ class DoorManager:
                     return status
             index += 1
 
-    def _get_available_status(self, opening_map_index: int) -> DoorStatusIndex:
+    def _get_available_status(self, map_index: int, opening_map_index: int) -> DoorStatusIndex:
         """
         get a status that will be opened by this map index
         and register in original_statuses
 
         to be used when generating doors
         """
+        status: Union[DoorStatusIndex, None]
+        if map_index == opening_map_index:
+            status = self._get_new_status()
+            self.original_statuses[opening_map_index] = status
+            return status
+
+        # opened by a different room
         status = self.original_statuses.get(opening_map_index)
         if status:
             return status
@@ -209,6 +225,10 @@ class DoorManager:
         2 doors in the same room will bug if they have the same status reference.
         (Elevators can share status reference in the same room.)
 
+        later discovery: A door sharing the bit with an elevator in paperclip
+        in the same room will have the same bug.
+        So a door can't share the bit with anything else in the same room.
+
         This invalidates the `add_door` and `add_elevator` functions
         and should only be used after no more doors will be created.
         """
@@ -216,10 +236,12 @@ class DoorManager:
             used_in_this_room: Set[DoorStatusIndex] = set()
             for i in range(len(door_list)):
                 door_data = door_list[i]
+                status: DoorStatusIndex = (door_data[0], door_data[1])
                 if door_data[4] < 30:  # 30 is the lowest elevator, everything lower is door
-                    status: DoorStatusIndex = (door_data[0], door_data[1])
                     if status in used_in_this_room:
-                        new_status = self._get_new_status()
+                        # TODO: delete this function after more testing
+                        assert False, "I don't think I need this anymore"
+                        new_status = self._get_new_status()  # type: ignore[unreachable]
                         new_door_data = bytes([new_status[0], new_status[1], door_data[2], door_data[3], door_data[4]])
                         door_list[i] = new_door_data
                         self.status_reference_counts[new_status].append(map_index)
@@ -228,8 +250,11 @@ class DoorManager:
                         used_in_this_room.add(new_status)
                     else:
                         used_in_this_room.add(status)
+                else:  # elevator
+                    used_in_this_room.add(status)
 
     def get_writes(self) -> Dict[int, int]:
+        self._locked = True
         self._fix_double_doors()
 
         null_address = rom_info.door_data_begin_13ce8
@@ -255,10 +280,14 @@ class DoorManager:
                 tr[door_data_pointer_address] = banked_data_lo
                 tr[door_data_pointer_address + 1] = banked_data_hi
 
+                if address >= 0x14000:
+                    raise OverflowError(f"door data overflowed bank: {hex(address)}")
                 tr[address] = len(doors)
                 address += 1
                 for door in doors:
                     for b in door:
+                        if address >= 0x14000:
+                            raise OverflowError(f"door data overflowed bank: {hex(address)}")
                         tr[address] = b
                         address += 1
 

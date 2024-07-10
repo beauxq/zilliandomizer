@@ -50,6 +50,15 @@ map_current_index_c198 = 0xc198
 alarm_status_c26a = 0xc26a
 """ bit 7 set means alarms are visible """
 
+computer_state_c280 = 0xc280
+"""
+`code, code, code, code, _, _, _, state_a, _, _, _, state_b`
+
+- `code` - the keywords entered by the player
+- `state_a` - set to 0c when entering computer (stays after leaving)
+- `state_b` - 0 while entering codes, 1 after "ok", 3 after "exit"
+"""
+
 game_started_flag_c300 = 0xc300
 """ 129 after game started """
 
