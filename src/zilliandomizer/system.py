@@ -133,6 +133,8 @@ class System:
 
             `path_through_red` is the number of rooms that the right red area has to go through -
             vanilla is 7 (F-4 through E-7)
+
+            `path_through_paperclip` vanilla is 12
             """
 
             # adjusted with map_gen
