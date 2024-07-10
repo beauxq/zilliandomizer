@@ -91,8 +91,17 @@ class RoomGen:
         shuffled_gen_rooms = list(self._gen_rooms.keys())
         shuffle(shuffled_gen_rooms)
 
-        # TODO: make sure no split rooms are in the last few
-        # because the remaining space at the end probably won't be enough
+        # testing code to make sure the last room can be generated if it's a split room
+        # I was worried that it would run out of space and fail generation.
+        # But a few samples had no problem generating the last room.
+        #
+        # last = self._gen_rooms[shuffled_gen_rooms[-1]]
+        # if last.split_dip_entrance is None:
+        #     exit()
+        # assert last.split_dip_entrance == last.exits[-1]
+        # if all(e[0] == last.exits[0][0] for e in last.exits[:-1]):
+        #     print("all on same level")
+        #     exit()
 
         # TODO: better source of this information, instead of
         # magic number that isn't right now that I've change GEN_ROOMS
