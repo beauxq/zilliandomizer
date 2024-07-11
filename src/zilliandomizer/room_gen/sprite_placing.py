@@ -78,18 +78,18 @@ class BarPlaces:
         self.bars.append(BarPlace(c, horizontal, length))
 
 
-def barrier_places(g: Grid, floor_things: List[Coord]) -> BarPlaces:
+def barrier_places(g: Grid, floor_things: List[Coord], exits: Container[Coord]) -> BarPlaces:
     tr = BarPlaces(frozenset(floor_things))
     for y, row in enumerate(g.data):
         for x, this_cell in enumerate(row):
             here = (y, x)
-            if this_cell == Cell.space and not g.in_exit(y, x):
+            if this_cell == Cell.space and not g.in_exit(y, x, exits):
                 if x == LEFT or g.data[y][x - 1] != Cell.space:
                     # (the bottom of this) is a place where a horizontal bar can start
                     if x == RIGHT or g.data[y][x + 1] != Cell.space:
                         tr.add(here, True, 1)
                     else:  # space to the right
-                        if not g.in_exit(y, x + 1):
+                        if not g.in_exit(y, x + 1, exits):
                             if x + 1 == RIGHT or g.data[y][x + 2] != Cell.space:
                                 tr.add(here, True, 2)
                             # else would have to be longer than 2, but barrier max length is 2
@@ -100,7 +100,7 @@ def barrier_places(g: Grid, floor_things: List[Coord]) -> BarPlaces:
                 ):
                     # length 2 vertical bar can be here
                     tr.add(here, False, 2)
-            elif this_cell == Cell.floor and not g.in_exit(y, x) and (
+            elif this_cell == Cell.floor and not g.in_exit(y, x, exits) and (
                 y > TOP and g.data[y - 1][x] != Cell.space
             ):
                 # length 1 vertical bar can be here

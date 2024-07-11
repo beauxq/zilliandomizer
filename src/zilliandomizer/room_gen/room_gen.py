@@ -534,8 +534,9 @@ class RoomGen:
         # (This might be solved with new end adding near the beginning of _generate_room)
 
         all_floor_placements_pudding_at_end = primary_coords + pudding_placed
-        agp = auto_gun_places(grid, self._gen_rooms[map_index].exits)
-        bp = barrier_places(grid, all_floor_placements_pudding_at_end)
+        full_room_exits = set(self._gen_rooms[map_index].exits)  # set for __contains__ performance
+        agp = auto_gun_places(grid, full_room_exits)
+        bp = barrier_places(grid, all_floor_placements_pudding_at_end, full_room_exits)
         # last index will be saved for pudding_can
         end_cursor = len(all_floor_placements_pudding_at_end) - (1 + pudding_can)
         for sprite in sprites:
