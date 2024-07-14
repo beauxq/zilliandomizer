@@ -78,3 +78,7 @@ starting_cards: 2
 # - full: random path through base
 # (none, rooms, full)
 map_gen: rooms
+
+# defines a fixed map layout regardless of other things randomized.
+#  -1 - map is seeded from the randomizer seed instead.
+map_gen_seed: -1

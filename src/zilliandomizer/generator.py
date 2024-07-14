@@ -39,8 +39,13 @@ def generate(seed: int) -> None:
     logger.spoil(f"zilliandomizer version: {version_hash} {date}")
 
     system.set_options(options)
-    system.seed(seed)
-    system.make_map()
+    if options.map_gen_seed > -1:
+        system.seed(options.map_gen_seed)
+        system.make_map()
+        system.seed(seed)
+    else:
+        system.seed(seed)
+        system.make_map()
     r = system.make_randomizer()
 
     r.roll()

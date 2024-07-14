@@ -46,6 +46,7 @@ valid_choices: Dict[str, Container[Any]] = {
     "balance_defense": (True, False),
     "starting_cards": range(127),
     "map_gen": ("none", "rooms", "full"),
+    "map_gen_seed": range(-1, 2**64)
 }
 
 sub_options = {
@@ -120,6 +121,11 @@ def parse_options(t: str) -> Options:
         typed_value: Any = value
         if option == "continues" and value == "infinity":
             typed_value = -1
+        elif option == "map_gen_seed":
+            try:
+                typed_value = int(value, 0)
+            except ValueError:
+                error("Invalid value for map_gen_seed")
         elif fields[option].type is bool:
             typed_value = (value.lower() in ("true", "yes", "on"))
         else:

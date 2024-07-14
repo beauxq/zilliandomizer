@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 from random import choice
-from typing import Any, Dict, List, Literal, NoReturn, Tuple, cast
+from typing import Any, Dict, List, Literal, NoReturn, Tuple, cast, Union
 
 Chars = Literal["JJ", "Apple", "Champ"]
 VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator in subscript require Python 3.11
@@ -105,6 +105,9 @@ class Options:
     - rooms: random terrain inside rooms, but path through base is vanilla
     - full: random path through base
     """
+    map_gen_seed: Union[int, str] = "-1"
+    """ seed used for generating the map layout.  
+    -1 means randomizer seed is used instead. """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
 
     @staticmethod
