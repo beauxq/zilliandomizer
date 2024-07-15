@@ -105,7 +105,7 @@ class Options:
     - rooms: random terrain inside rooms, but path through base is vanilla
     - full: random path through base
     """
-    map_gen_seed: Union[int, str] = "-1"
+    map_gen_seed: int = -1
     """ seed used for generating the map layout.  
     -1 means randomizer seed is used instead. """
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
