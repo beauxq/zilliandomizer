@@ -125,7 +125,7 @@ def parse_options(t: str) -> Options:
             try:
                 typed_value = int(value, 0)
             except ValueError:
-                error("Invalid value for map_gen_seed")
+                error(f"Invalid value {value} for map_gen_seed")
         elif fields[option].type is bool:
             typed_value = (value.lower() in ("true", "yes", "on"))
         else:
