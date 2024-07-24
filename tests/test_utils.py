@@ -60,6 +60,16 @@ def test_disjoint_set() -> None:
     b = uf.find(4)
     assert a == b, f"{a=} {b=}"
 
+    # also test transitivity
+    a = uf.find(3)
+    c = uf.find(2)
+    assert a != c, f"{a=} {c=}"
+
+    uf.union(2, 4)
+    a = uf.find(3)
+    c = uf.find(2)
+    assert a == c, f"{a=} {c=}"
+
 
 if __name__ == "__main__":
     test_deterministic_set()
