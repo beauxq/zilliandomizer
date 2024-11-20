@@ -110,21 +110,23 @@ def cleaned_and_ordered(text: str) -> Iterable[Tuple[str, str]]:
 
 
 def parse_options(t: str) -> Options:
-    # mypy doesn't know about __dataclass_fields__
     fields = Options.__dataclass_fields__
 
     def get_typed_value(option: str, value: str, opts: Options) -> Any:
         if value == "random" and option in choices:
             return choices[option](opts)
 
+        fields_options_type = fields[option].type
         typed_value: Any = value
         if option == "continues" and value == "infinity":
             typed_value = -1
-        elif fields[option].type is bool:
+        elif fields_options_type is bool:
             typed_value = (value.lower() in ("true", "yes", "on"))
         else:
+            # TODO: deal with str type annotations
+            assert not isinstance(fields_options_type, str), fields_options_type
             try:
-                v = fields[option].type(value)
+                v = fields_options_type(value)
                 typed_value = v
             except TypeError:
                 # probably type Literal

@@ -11,6 +11,8 @@ _pc_exits = {Node(0, 5)}
 
 _dipped_suffix = "unlocker"
 _pudding_suffix = "passage"
+DEAD_END_SUFFIX = "locked"
+""" regions that end with this have a single canister in a dead end behind a door """
 
 
 def make_regions_bm(bm: BaseMaker,
@@ -76,10 +78,10 @@ def make_regions_bm(bm: BaseMaker,
             assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"
             mb.split(map_row, map_col, {
                 "enter": locations_in_room[:-1],
-                "locked": [locations_in_room[-1]],
+                DEAD_END_SUFFIX: [locations_in_room[-1]],
             }, True)
             enter_name = region_name_base + "enter"
-            locked_name = region_name_base + "locked"
+            locked_name = region_name_base + DEAD_END_SUFFIX
             if parent in no_doors:
                 mb.r[parent].to(mb.r[enter_name])
             else:  # parent has door
