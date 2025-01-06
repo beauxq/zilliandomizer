@@ -18,6 +18,7 @@ exclude_lines = [
 
 [tool.mypy]
 mypy_path = "src"
+strict = true
 check_untyped_defs = true
 disallow_untyped_defs = true
 disallow_any_generics = true
@@ -26,6 +27,23 @@ show_error_codes = true
 strict_equality = true
 warn_redundant_casts = true
 warn_return_any = true
-warn_unreachable = true
 warn_unused_configs = true
 no_implicit_reexport = true
+
+[tool.basedpyright]
+include = ["src"]
+typeCheckingMode = "recommended"
+reportImplicitOverride = "none"
+reportImplicitStringConcatenation = "none"
+reportUnusedCallResult = "none"
+reportUnusedParameter = "none"
+pythonVersion = "3.8"
+pythonPlatform = "Linux"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["B", "ANN", "E", "F", "W", "A", "S"]
+ignore = ["B011", "S101", "S311", "S603", "S605", "S607", "E714"]

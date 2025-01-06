@@ -36,7 +36,7 @@ def region_code_maker() -> None:
     rooms: Dict[str, Set[str]] = {}
     for key in locations:
         room = key[:5]
-        if not (room in rooms):
+        if room not in rooms:
             rooms[room] = set()
         rooms[room].add(key)
 

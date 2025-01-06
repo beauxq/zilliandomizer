@@ -210,7 +210,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                         else:  # dipper came from... behind!
                             assert in_desc.de is DE.elevator, f"{here=} {in_desc=}"
                             assert False, "I haven't implemented entering a split room from an elevator."
-                            y_choices = [0 if out_through_in.y == 0 else 4]  # type: ignore[unreachable]
+                            y_choices = [0 if out_through_in.y == 0 else 4]  # pyright: ignore[reportUnreachable]
                     else:  # no split room involved
                         y_choices = [0, 2, 4]
                         if out not in dippers and here not in dippers:
@@ -243,7 +243,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                         else:  # dipper came from... behind!
                             assert in_desc.de is DE.elevator, f"{here=} {in_desc=}"
                             assert False, "I haven't implemented entering a split room from an elevator."
-                            y_choices = [0 if out_through_in.y == 0 else 4]  # type: ignore[unreachable]
+                            y_choices = [0 if out_through_in.y == 0 else 4]  # pyright: ignore[reportUnreachable]
                     else:  # no split room involved
                         y_choices = [0, 2, 4]
                         if out not in dippers and here not in dippers:
@@ -259,7 +259,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                 elif here.y < out.y:  # going down
                     if out in splits:
                         assert False, "haven't implemented entering split with elevator"
-                        dipper_to_out = splits[out]  # type: ignore[unreachable]
+                        dipper_to_out = splits[out]  # pyright: ignore[reportUnreachable]
                         if dipper_to_out.x > out.x:  # dipper right
                             assert Corner.bl not in corners_used_in_this_room, (
                                 "logic for going in to dipper should have prevented this"
@@ -300,7 +300,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
                 elif here.y > out.y:  # going up
                     if out in splits:
                         assert False, "haven't implemented entering split with elevator"
-                        dipper_to_out = splits[out]  # type: ignore[unreachable]
+                        dipper_to_out = splits[out]  # pyright: ignore[reportUnreachable]
                         if dipper_to_out.x > out.x:  # dipper right
                             assert Corner.tl not in corners_used_in_this_room, (
                                 "logic for going in to dipper should have prevented this"

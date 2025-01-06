@@ -16,7 +16,7 @@ class Game:
     regions: List[RegionData]
     resource_writes: Dict[int, int]
 
-    def to_jsonable(self) -> Dict[str, Any]:
+    def to_jsonable(self) -> Dict[str, object]:
         dct = asdict(self)
         dct["regions"] = [rd.to_jsonable() for rd in self.regions]
 

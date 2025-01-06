@@ -4,11 +4,11 @@ from zilliandomizer.generator import some_options
 
 
 def test_cross() -> None:
-    for loc, id in loc_to_id.items():
-        assert id_to_loc[id] == loc
+    for loc, id_ in loc_to_id.items():
+        assert id_to_loc[id_] == loc
 
-    for id, loc in id_to_loc.items():
-        assert loc_to_id[loc] == id
+    for id_, loc in id_to_loc.items():
+        assert loc_to_id[loc] == id_
 
 
 def test_with_data() -> None:

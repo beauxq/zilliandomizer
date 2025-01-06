@@ -26,6 +26,10 @@
 """
 
 
+from typing import final
+
+
+@final
 class SpriteType:
     mine = 0x32
     enemy = 0x14
@@ -34,6 +38,7 @@ class SpriteType:
     barrier = 0x1f
 
 
+@final
 class AutoGunSub:
     """ direction the auto-gun is facing, and whether it's moving """
     down_move = 0x22
@@ -44,6 +49,7 @@ class AutoGunSub:
     left = 0x3b
 
 
+@final
 class BarrierSub:
     """ orientation and length (small tiles) of barrier """
     hor_2 = 0x00

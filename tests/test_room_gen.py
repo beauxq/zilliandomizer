@@ -459,7 +459,7 @@ def test_low_skill_jump_1_distance_5() -> None:
     ]
     assert not g.solve(2), "jump 1, skill 2, distance 5"
 
-    setattr(g, "_skill", 5)
+    g._skill = 5  # pyright: ignore[reportPrivateUsage]
 
     assert g.solve(2), "jump 1, skill 5, distance 5"
 
@@ -504,7 +504,7 @@ def test_skill_horizontal_jump_from_walkway() -> None:
     g.is_walkway[1][7] = 2
     assert not g.solve(2), "jump 2 with walkway"
     assert not g.solve(3), "jump 3 with walkway"
-    setattr(g, "_skill", 5)
+    g._skill = 5  # pyright: ignore[reportPrivateUsage]
     assert g.solve(2), "jump 2 skill 5 with walkway"
     assert g.solve(3), "jump 3 skill 5 with walkway"
 
@@ -532,8 +532,8 @@ def test_dead_end_can_logic() -> None:
         room_gen.generate_all({map_index: 3})
 
         room_jump_req = room_gen.get_jump_blocks_required(map_index)
-        canister_jumps: List[float] = [c[1] for c in getattr(room_gen, "_canisters")[map_index]]
-        computer_jump: float = getattr(room_gen, "_computers")[map_index][1]
+        canister_jumps = [c[1] for c in room_gen._canisters[map_index]]  # pyright: ignore[reportPrivateUsage]
+        computer_jump = room_gen._computers[map_index][1]  # pyright: ignore[reportPrivateUsage]
         jump_req_to_open_door = max([computer_jump, *canister_jumps])
 
         assert room_jump_req >= jump_req_to_open_door, f"{room_jump_req=} {canister_jumps=} {computer_jump=}"

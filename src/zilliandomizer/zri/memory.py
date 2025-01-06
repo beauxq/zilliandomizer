@@ -185,7 +185,7 @@ class Memory:
     def close(self) -> None:
         self._rai.close()
 
-    def __exit__(self, type: type, value: Exception, traceback: TracebackType) -> None:
+    def __exit__(self, exc_type: type, exc_val: Exception, traceback: TracebackType) -> None:
         self.close()
 
     def _in_game(self, scene: int) -> bool:

@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Optional, Tuple, cast
+from typing import Optional, Tuple, cast
 from .version import version_
 
 __version__ = version_
@@ -111,7 +111,7 @@ class Socket:
     async def __aenter__(self) -> "Socket":
         return self
 
-    async def __aexit__(self, *exc_info: Any) -> None:
+    async def __aexit__(self, *exc_info: object) -> None:
         self.close()
 
 
@@ -130,9 +130,4 @@ async def create_socket(local_addr: Optional[Address] = None,
         local_addr=local_addr,
         remote_addr=remote_addr)
 
-    # mypy doesn't see this type
-    dgram_transport = cast(asyncio.DatagramTransport, transport)  # type: ignore
-    # mypy doesn't see this type
-    s_protocol = cast(_SocketProtocol, protocol)  # type: ignore
-
-    return Socket(dgram_transport, s_protocol)
+    return Socket(transport, protocol)

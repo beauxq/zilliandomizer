@@ -70,6 +70,7 @@ class RoomGen:
         self._skill = skill
         self._alarm_rooms = frozenset(ALARM_ROOMS)
         self._gen_rooms = gen_data
+        self.reset()
 
         # testing
         # logger.spoil_stdout = True
@@ -484,7 +485,7 @@ class RoomGen:
                 fail_count += 1
                 if fail_count > 1500:
                     raise MakeFailure("too many failures in Zillion room generation - try generating again"
-                                      f" - index {map_index} sl {size_limit}")
+                                      f" - index {map_index} sl {size_limit}") from None
         print()
 
         jump_blocks_required = 2 if g.solve(2) else (2.5 if g.solve(2.5) else 3)

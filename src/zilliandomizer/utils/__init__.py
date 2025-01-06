@@ -175,7 +175,7 @@ def _success_until_failure(k: float) -> float:
     n = 0
     while total != prev_total:
         prev_total = total
-        total += math.pow(k, (n * (n+1)) // 2)
+        total += math.pow(k, (n * (n + 1)) // 2)
         n += 1
     # print(f"n limit: {n}")  # never more than 48
     return total

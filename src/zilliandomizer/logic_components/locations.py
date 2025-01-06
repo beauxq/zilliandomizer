@@ -94,7 +94,7 @@ class Req:
                 names.append(name)
         names_and_values: List[str] = []
         for name in names:
-            value = getattr(self, name)
+            value: object = getattr(self, name)
             names_and_values.append(f"{name}={repr(value)}")
         return f'Req({", ".join(names_and_values)})'
 
@@ -127,7 +127,7 @@ class Location:
     def __hash__(self) -> int:
         return hash(self.name)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Location) and self.name == other.name
 
 
@@ -148,7 +148,7 @@ class LocationData:
             location.req.gun
         )
 
-    def to_jsonable(self) -> Dict[str, Any]:
+    def to_jsonable(self) -> Dict[str, object]:
         dct = asdict(self)
         dct["item"] = asdict(self.item)
         return dct

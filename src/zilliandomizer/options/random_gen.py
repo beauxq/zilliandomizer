@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List
+from typing import Callable, Dict, List
 from random import choice, randrange
 
 from zilliandomizer.options import Chars, chars, Options, VBLR, ID, \
@@ -52,7 +52,7 @@ def random_start_char(opts: Options) -> Chars:
 
 
 # TODO: TypedDict
-choices: Dict[str, Callable[[Options], Any]] = {
+choices: Dict[str, Callable[[Options], object]] = {
     "jump_levels": random_jump_levels,
     "gun_levels": random_gun_levels,
     "opas_per_level": random_opas_per_level,

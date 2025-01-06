@@ -2,7 +2,7 @@ from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import AbstractSet, Container, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union
+from typing import AbstractSet, Container, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union, final
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
@@ -18,6 +18,7 @@ BOTTOM = 5
 
 
 # TODO: StrEnum ?
+@final
 class Cell:
     wall = '|'
     floor = '_'
@@ -107,9 +108,9 @@ class Grid:
             self.data[row - 1][col] = Cell.space
             self.data[row - 1][col + 1] = Cell.space
 
-    def side_of_jump_around(self, row: int, col: int, dir: int, jump: int) -> bool:
+    def side_of_jump_around(self, row: int, col: int, direction: int, jump: int) -> bool:
         """ Is there terrain to the side that I can do a jump around ledge through? """
-        next_col = col + dir
+        next_col = col + direction
 
         if not (
             next_col >= LEFT and next_col <= RIGHT and
@@ -120,7 +121,7 @@ class Grid:
         ):
             return False
 
-        next_next_col = next_col + dir
+        next_next_col = next_col + direction
 
         if next_next_col < LEFT or next_next_col > RIGHT:
             return True
@@ -191,8 +192,8 @@ class Grid:
                 yield row, col, True
 
             # move left or right crawling
-            for dir in (-1, 1):
-                target_col = col + dir
+            for direction in (-1, 1):
+                target_col = col + direction
                 if target_col >= LEFT and target_col <= RIGHT:
                     tile = self.data[row][target_col]
                     if tile == Cell.floor:
@@ -232,7 +233,7 @@ class Grid:
                 target_row = row - jump_height
                 if target_row < 1:
                     continue
-                for dir in (-1, 1):
+                for direction in (-1, 1):
                     # some jump distances would require looking at more ceiling
                     # distance 5 example:
                     #     ___|
@@ -276,13 +277,13 @@ class Grid:
                         # only jump distance 2 or 3 from moving walkways
                         if is_walkway and distance not in (2, 3):
                             continue
-                        target_col = col + distance * dir
+                        target_col = col + distance * direction
                         if target_col < LEFT or target_col > RIGHT:
                             continue
                         start_of_needing_space = (
-                            min(col + dir, target_col - dir)
-                            if dir == 1
-                            else max(col + dir, target_col - dir)
+                            min(col + direction, target_col - direction)
+                            if direction == 1
+                            else max(col + direction, target_col - direction)
                         )
                         # require skill to jump with horizontal movement into a 1-tile hole
                         if self._skill < 4 or is_walkway:
@@ -303,7 +304,7 @@ class Grid:
                             # This was also an improvement over a function returning bool to avoid double break.
                             found_something_blocking_jump = False
                             for y in range(target_row - 1, row):
-                                for col_i in range(start_of_needing_space, target_col, dir):
+                                for col_i in range(start_of_needing_space, target_col, direction):
                                     if self.data[y][col_i] != " ":  # Cell.space performance optimized to " "
                                         found_something_blocking_jump = True
                                         break
@@ -313,9 +314,9 @@ class Grid:
                             if not found_something_blocking_jump:
                                 yield target_row, target_col, True
 
-            for dir in (-1, 1):
+            for direction in (-1, 1):
                 # check move
-                next_col = col + dir
+                next_col = col + direction
                 if (
                     next_col >= LEFT and
                     next_col <= RIGHT and
@@ -324,14 +325,14 @@ class Grid:
                     if self.data[row][next_col] == Cell.floor:
                         yield row, next_col, True
                     # horizontal jump over gap of 1
-                    next_next_col = next_col + dir
+                    next_next_col = next_col + direction
                     if next_next_col >= LEFT and next_next_col <= RIGHT and \
                             self.data[row][next_col] == Cell.space and \
                             self.data[row - 1][next_next_col] == Cell.space and \
                             self.data[row][next_next_col] == Cell.floor:
                         yield row, next_next_col, True
                     # horizontal jump over gap of 2
-                    nnn_col = next_next_col + dir
+                    nnn_col = next_next_col + direction
                     if nnn_col >= LEFT and nnn_col <= RIGHT and \
                             self.data[row][next_col] == Cell.space and \
                             self.data[row - 1][next_next_col] == Cell.space and \
@@ -360,7 +361,7 @@ class Grid:
                     # TODO: except if there's no ceiling to bonk, then it's easy with jump 1
                     # TODO: and with ceiling, it's barely possible with jump 2 (same as jump 3?)
                     if row == 1 and highest_jump == 3 and self._skill > 4 and not is_walkway:
-                        nnnn_col = nnn_col + dir
+                        nnnn_col = nnn_col + direction
                         if nnnn_col >= LEFT and nnnn_col <= RIGHT and \
                                 self.data[1][next_col] == Cell.space and \
                                 self.data[0][next_next_col] == Cell.space and \
@@ -379,15 +380,15 @@ class Grid:
 
             # long distance jumps, so jump level 2 (jump_blocks 2.5) can be in logic
             if not is_walkway and highest_jump >= 2.5:
-                for dir in (1, -1):
-                    distance_6 = col + (6 * dir)
+                for direction in (1, -1):
+                    distance_6 = col + (6 * direction)
                     if distance_6 < LEFT or distance_6 > RIGHT:
                         continue
-                    distance_7 = distance_6 + dir
+                    distance_7 = distance_6 + direction
                     if row > 2 and all(
                         self.data[row_i][check_space_col] == Cell.space
                         for row_i in range(row - 3, row + 1)
-                        for check_space_col in range(col + dir, distance_6, dir)
+                        for check_space_col in range(col + direction, distance_6, direction)
                     ):
                         # gap 5 is all space
                         # jump height 2 distance 6 (gap 5) - jump_blocks 2 can't do that
@@ -411,7 +412,7 @@ class Grid:
                         row == 2 and
                         all(
                             self.data[row_i][check_space_col] == Cell.space
-                            for check_space_col in range(col + dir, distance_6, dir)
+                            for check_space_col in range(col + direction, distance_6, direction)
                             for row_i in range(3)
                         ) and
                         self.data[1][distance_6] == Cell.space and
@@ -705,8 +706,8 @@ class Grid:
         for y, row in enumerate(self.data):
             if y > 0:
                 for x, col in enumerate(row):
-                    for dir in (-1, 1):
-                        target_col = x + dir
+                    for direction in (-1, 1):
+                        target_col = x + direction
                         if target_col >= LEFT and target_col <= RIGHT:
                             if (
                                 col == Cell.floor and
@@ -875,9 +876,9 @@ class Grid:
             count = round(random.gauss(mu, sigma))
         for platform in platform_list[:count]:
             y, x = platform.c
-            dir = random.randrange(1, 3)
+            direction = random.randrange(1, 3)
             for x_i in range(x, x + platform.length):
-                self.is_walkway[y][x_i] = dir
+                self.is_walkway[y][x_i] = direction
 
     def softlock_exists(self) -> bool:
         start = self.ends[0]

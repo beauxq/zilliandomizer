@@ -43,6 +43,7 @@ class System:
     _seed: Optional[Union[int, str]] = None
     _base: Optional[Base] = None
     _logger: Logger
+    _random: Random
     _room_gen: Optional[RoomGen] = None
     _options: Optional[Options] = None  # TODO: default options instead of None
 

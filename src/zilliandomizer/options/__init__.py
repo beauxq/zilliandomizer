@@ -50,8 +50,8 @@ default_item_counts: ItemCounts = {
 def item_counts_factory() -> ItemCounts:
     """ default factory for dataclass item_counts """
     tr: ItemCounts = {}
-    for id in default_item_counts:
-        tr[id] = default_item_counts[id]
+    for id_ in default_item_counts:
+        tr[id_] = default_item_counts[id_]
     return tr
 
 

@@ -50,8 +50,13 @@ blue    red     paperclip
 46-4f d1e  26-2f bbd - ? something with elevator? single 0 byte, blank space in table?
 """
 
+from typing import final
+
 
 # was going to use IntEnum, but I just want them to be seen as int
+
+
+@final
 class Tile:
     # ceiling
     b_ceiling = 0x3a

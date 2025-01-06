@@ -1,4 +1,4 @@
-from typing import Any, Dict, Container, Iterable, Tuple
+from typing import Dict, Container, Iterable, Mapping, Protocol, Tuple
 from collections import defaultdict
 
 from zilliandomizer.options import ItemCounts, Options, error, ID, char_to_jump, \
@@ -31,7 +31,7 @@ def validate(op: Options) -> None:
         error(f"not allowed to lower max level to {op.max_level} with skill {op.skill}")
 
 
-valid_choices: Dict[str, Container[Any]] = {
+valid_choices: Dict[str, Container[object]] = {
     "jump_levels": VBLR_CHOICES,
     "gun_levels": VBLR_CHOICES,
     "opas_per_level": range(1, 127),
@@ -109,15 +109,19 @@ def cleaned_and_ordered(text: str) -> Iterable[Tuple[str, str]]:
     return lines
 
 
-def parse_options(t: str) -> Options:
-    fields = Options.__dataclass_fields__
+class _Field(Protocol):
+    type: object
 
-    def get_typed_value(option: str, value: str, opts: Options) -> Any:
+
+def parse_options(t: str) -> Options:
+    fields: Mapping[str, _Field] = Options.__dataclass_fields__
+
+    def get_typed_value(option: str, value: str, opts: Options) -> object:
         if value == "random" and option in choices:
             return choices[option](opts)
 
         fields_options_type = fields[option].type
-        typed_value: Any = value
+        typed_value: object = value
         if option == "continues" and value == "infinity":
             typed_value = -1
         elif fields_options_type is bool:
@@ -126,6 +130,8 @@ def parse_options(t: str) -> Options:
             # TODO: deal with str type annotations
             assert not isinstance(fields_options_type, str), fields_options_type
             try:
+                if not callable(fields_options_type):
+                    raise TypeError(fields_options_type)
                 v = fields_options_type(value)
                 typed_value = v
             except TypeError:

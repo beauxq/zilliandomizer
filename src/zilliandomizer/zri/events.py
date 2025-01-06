@@ -1,10 +1,9 @@
-import abc
 from dataclasses import dataclass
 from typing import List
 
 
-class EventFromGame(abc.ABC):
-    ...
+class EventFromGame:
+    """ base class """
 
 
 class DeathEventFromGame(EventFromGame):
@@ -32,8 +31,8 @@ class DoorEventFromGame(EventFromGame):
     doors: bytes
 
 
-class EventToGame(abc.ABC):
-    ...
+class EventToGame:
+    """ base class """
 
 
 @dataclass

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Any
+from typing import TYPE_CHECKING, Dict, List, Any
 # some changes here for working on region connections
 # from typing_extensions import Unpack  # type: ignore
 
-from zilliandomizer.logic_components.locations import Location, LocationData, Req  # , ReqArgs
+from zilliandomizer.logic_components.locations import Location, LocationData, Req, ReqArgs
+
+if TYPE_CHECKING:
+    from typing_extensions import Unpack
 
 
 class Region:
@@ -21,12 +24,9 @@ class Region:
         self.door = door
         self.connections = {}
         self.locations = []
-        self.computer = b'\xff'
+        self.computer = b"\xff"
 
-    # this is good for type checking when working with region connections
-    # but it doesn't run (I think it's Python 3.11 or something...)
-    # def to(self, other: "Region", **req_args: Unpack[ReqArgs]) -> None:
-    def to(self, other: "Region", **req_args: Any) -> None:
+    def to(self, other: "Region", **req_args: "Unpack[ReqArgs]") -> None:
         """
         make a connection
 
@@ -57,7 +57,7 @@ class RegionData:
             region.computer
         )
 
-    def to_jsonable(self) -> Dict[str, Any]:
+    def to_jsonable(self) -> Dict[str, object]:
         dct = asdict(self)
         dct["computer"] = list(self.computer)
         return dct
