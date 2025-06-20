@@ -5,7 +5,7 @@ from zilliandomizer.logic_components.locations import Location
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT, Coord, RoomData
-from zilliandomizer.room_gen.maze import Grid, Cell
+from zilliandomizer.room_gen.maze import Cell, Grid
 from zilliandomizer.room_gen.room_gen import RoomGen
 from zilliandomizer.terrain_modifier import TerrainModifier
 

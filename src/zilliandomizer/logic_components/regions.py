@@ -43,6 +43,7 @@ class Region:
 @dataclass
 class RegionData:
     """ just what's needed for output, serializable """
+
     name: str
     door: int
     locations: List[LocationData]

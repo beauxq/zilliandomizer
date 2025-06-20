@@ -18,6 +18,7 @@ class MapEventFromGame(EventFromGame):
 @dataclass
 class AcquireLocationEventFromGame(EventFromGame):
     """ 0 for main computer """
+
     id: int
 
 
@@ -28,6 +29,7 @@ class WinEventFromGame(EventFromGame):
 @dataclass
 class DoorEventFromGame(EventFromGame):
     """ These are the doors I've opened. """
+
     doors: bytes
 
 
@@ -47,4 +49,5 @@ class DeathEventToGame(EventToGame):
 @dataclass
 class DoorEventToGame(EventToGame):
     """ At least these doors should be open. """
+
     doors: bytes

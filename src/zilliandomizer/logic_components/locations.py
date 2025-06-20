@@ -23,6 +23,7 @@ class Req:
 
     object is mutable, don't use one Req object for different access points
     """
+
     gun: int
     """ 1, 2, or 3 """
     jump: int
@@ -88,10 +89,7 @@ class Req:
         )
 
     def __repr__(self) -> str:
-        names: List[str] = []
-        for name in dir(self):
-            if not (name.startswith('_') or name == "have_doors"):
-                names.append(name)
+        names = [name for name in dir(self) if not (name.startswith('_') or name == "have_doors")]
         names_and_values: List[str] = []
         for name in names:
             value: object = getattr(self, name)

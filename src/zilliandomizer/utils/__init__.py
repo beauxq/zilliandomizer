@@ -37,6 +37,7 @@ class ItemData(NamedTuple):
 
     1 byte for each of these values C Y X R M I S G
     """
+
     code: int
     """
     codes for type of data in item data (index 0):
@@ -169,7 +170,7 @@ _interpolation_table = []
 def _success_until_failure(k: float) -> float:
     """
     https://math.stackexchange.com/questions/4494669/roll-until-lose-game-with-changing-probability/4494686#4494686
-    """
+    """  # noqa: D200
     prev_total = -1.0
     total = 0.0
     n = 0

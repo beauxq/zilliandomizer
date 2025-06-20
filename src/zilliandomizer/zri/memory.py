@@ -79,9 +79,7 @@ c11f_in_game_scenes = frozenset((
 
 
 def get_changed_lost(new: Iterable[int], old: Iterable[int]) -> Tuple[int, int, int]:
-    """
-    changed bits, lost bits, new bits as `int`
-    """
+    """ changed bits, lost bits, new bits as `int` """
     new_int = int.from_bytes(new, BYTE_ORDER)
     old_int = int.from_bytes(old, BYTE_ORDER)
     changed = new_int ^ old_int

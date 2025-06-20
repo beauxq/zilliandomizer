@@ -11,6 +11,7 @@ class Alarms:
     Anything else modifying terrain needs to be done before initializing this object,
     because this could use all of the space for terrain.
     """
+
     tc: TerrainModifier
     _space_pacer_init: float  # I wanted to use `typing.Final` here, but mypy doesn't allow that
     """ how many extra bytes we start with before choosing alarms """

@@ -18,7 +18,7 @@ def test_alarm_places() -> None:
         list("              "),
         list("              "),
         list("              "),
-        list("______________")
+        list("______________"),
     ]
     ap = alarm_places(g, [(5, 7)])
     horizontals = list(filter(lambda b: b.horizontal, ap.bars))

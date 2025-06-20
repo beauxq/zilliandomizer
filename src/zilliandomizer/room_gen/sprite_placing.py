@@ -40,9 +40,8 @@ def auto_gun_places(g: Grid, exits: Container[Coord]) -> AutoGunPlaces:
 
 @dataclass
 class BarPlace:
-    """
-    horizontal bars go at the bottom of the large tiles
-    """
+    """ horizontal bars go at the bottom of the large tiles """
+
     c: Coord
     horizontal: bool
     length: int
@@ -61,9 +60,7 @@ class BarPlaces:
         self.bars = []
 
     def add(self, c: Coord, horizontal: bool, length: int) -> None:
-        """
-        add a bar if it doesn't cross a sprite placed on the floor
-        """
+        """ add a bar if it doesn't cross a sprite placed on the floor """
         if horizontal:
             for x in range(c[1], c[1] + length):
                 here = (c[0], x)
@@ -258,11 +255,7 @@ def choose_alarms(ap: BarPlaces, count: int) -> Dict[int, Literal["v", "h", "n"]
         count -= 1
 
         # remove everything that collides with this one
-        remaining_bars: List[BarPlace] = []
-        for bar in ap.bars:
-            if not collides(this_one, bar):
-                remaining_bars.append(bar)
-        ap.bars = remaining_bars
+        ap.bars = [bar for bar in ap.bars if not collides(this_one, bar)]
 
         # add modifications
         if this_one.horizontal:

@@ -43,6 +43,7 @@ class Sprite:
        07 vertical   length 2 - small tile
     ```
     """
+
     ram: int
     """ ram address where this byte is loaded """
     y: int

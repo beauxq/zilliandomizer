@@ -22,6 +22,7 @@ class DoorSprite(IntEnum):
     - D elevator at bottom to go down
     - U elevator at top to go up
     """
+
     BL = 0
     BR = 5
     BD = 30

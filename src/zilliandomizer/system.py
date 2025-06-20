@@ -36,6 +36,7 @@ class System:
     - `post_fill`
     - `get_game`
     """
+
     randomizer: Optional[Randomizer] = None
     resource_managers: ResourceManagers
     patcher: Optional[Patcher] = None

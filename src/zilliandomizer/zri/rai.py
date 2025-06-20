@@ -38,9 +38,9 @@ class RamDataWrapper:
     @overload
     def __getitem__(self, addr: int) -> int: ...
     @overload
-    def __getitem__(self, addr: slice) -> bytes: ...
+    def __getitem__(self, addr: slice[int, int, Union[int, None]]) -> bytes: ...
 
-    def __getitem__(self, addr: Union[int, slice]) -> Union[int, bytes]:
+    def __getitem__(self, addr: Union[int, slice[int, int, Union[int, None]]]) -> Union[int, bytes]:
         slc = slice(addr, addr + 1, 1) if isinstance(addr, int) else addr
         chunk_index = bisect.bisect_right(self.base_addr, slc.start) - 1
         if chunk_index == -1:

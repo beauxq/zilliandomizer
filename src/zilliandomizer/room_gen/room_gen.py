@@ -31,6 +31,7 @@ class RoomGen:
     Anything else modifying terrain needs to be done before initializing this object,
     because this could use all of the space for terrain.
     """
+
     tc: TerrainModifier
     sm: NPSpriteManager
     aem: AlarmEntranceManager
@@ -499,7 +500,7 @@ class RoomGen:
         # TODO: make unit test for Grid.no_space
         # if map_index in (0x4b, 0x21):
         if self._logger.debug_stdout:  # check to reduce processing of creating the map string
-            self._logger.debug("map_index {:#02x}".format(map_index))
+            self._logger.debug(f"map_index {map_index:#02x}")
             self._logger.debug(f"jump blocks required {jump_blocks_required}")
             self._logger.debug(g.map_str(primary_placed + pudding_placed))
         compressed = g.to_room_data(alarm_blocks)

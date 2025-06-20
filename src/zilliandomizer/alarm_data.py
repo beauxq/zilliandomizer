@@ -40,6 +40,7 @@ fs = frozenset
 @dataclass
 class Alarm:
     """ can look at vertical and the number of blocks to see how expensive it is """
+
     id: str
     """ referenced by `disables` and `lessens` """
     vertical: bool

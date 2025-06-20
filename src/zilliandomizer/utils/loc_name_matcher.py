@@ -102,7 +102,7 @@ def loc_name_maker(locs: Collection[str]) -> Dict[str, str]:
                 here_d = distance(lcs[0], i)
                 total_d = here_d + after_d
                 if total_d < lowest_d:
-                    lowest_l = [i] + after_l
+                    lowest_l = [i, *after_l]
                     lowest_d = total_d
             return lowest_l, lowest_d
 

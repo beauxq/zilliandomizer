@@ -1,14 +1,16 @@
-from copy import deepcopy
-from typing import Tuple, Counter as _Counter
 from collections import Counter
-import pytest
+from copy import deepcopy
 from random import seed
+from typing import Counter as _Counter
+from typing import Tuple
+
+import pytest
 
 from zilliandomizer.game import Game
 from zilliandomizer.generator import some_options
 from zilliandomizer.logger import Logger
-from zilliandomizer.logic_components.locations import Req
 from zilliandomizer.logic_components.location_data import make_locations
+from zilliandomizer.logic_components.locations import Req
 from zilliandomizer.logic_components.region_data import make_regions
 from zilliandomizer.options import ID, Options, char_to_gun, char_to_jump
 from zilliandomizer.options.parsing import parse_options
@@ -160,7 +162,7 @@ def test_early_scope() -> None:
             gun=char_to_gun[o.start_char][o.gun_levels][0],
             jump=char_to_jump[o.start_char][o.jump_levels][0],
             char=(o.start_char,),
-            skill=o.skill
+            skill=o.skill,
         )
         locs = r.get_locations(req1)
         found1 = False

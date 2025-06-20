@@ -34,6 +34,7 @@ class Randomizer:
 
     class RollFail(RuntimeError):
         """ randomizing algorithm failed """
+
         pass
 
     def __init__(self,
@@ -179,7 +180,7 @@ class Randomizer:
             base_choices = [1, 1, 2, 3]
             while i < len(locs):
                 if locs[i] != self.locations['main']:  # location_data might set gun reqs on main for final boss
-                    choices = base_choices[:]
+                    choices = base_choices.copy()
                     row = int(region_name[1:3])
                     if row > 4:
                         choices.append(2)
@@ -250,7 +251,7 @@ class Randomizer:
 
     def reachable_locations(self, items: List[Item], checking: bool = False) -> List[Location]:
         """ multiple spheres until I can't get any more items """
-        items = items[:]  # don't mutate
+        items = items.copy()  # don't mutate
         prev_item_count = len(items)
         # Python set order is determined by OS memory state,
         # making it "random" and not determined by random.seed()

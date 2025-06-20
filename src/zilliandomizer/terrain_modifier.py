@@ -67,13 +67,13 @@ class TerrainModifier:
 
     def get_room(self, map_index: int) -> List[int]:
         """ compressed """
-        return self._rooms[map_index][:]
+        return self._rooms[map_index].copy()
 
     def set_room(self, map_index: int, data: List[int]) -> None:
         """ compressed, return number of bytes from limit (negative if over limit) """
         self._size -= len(self._rooms[map_index])
         self._size += len(data)
-        self._rooms[map_index] = data[:]  # copy to make sure it doesn't get modified after setting
+        self._rooms[map_index] = data.copy()  # copy to make sure it doesn't get modified after setting
 
     def save_state(self) -> None:
         self._saved_rooms = deepcopy(self._rooms)

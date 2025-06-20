@@ -1,12 +1,14 @@
 from collections import defaultdict
 from typing import Dict, List
+
 from zilliandomizer.map_gen.base_maker import Node
 from zilliandomizer.map_gen.split_maker import find_cycles
 
 
 def test_find_cycles() -> None:
     # an example I found during development
-    """```
+    """
+    ```
     -   O - O - @ - O   - - - - -
     |   |           |           |
     - - O - O - O   @ - O - O   -
@@ -20,7 +22,8 @@ def test_find_cycles() -> None:
     -   - - @   O - @ - O - O - -
     |   |                       |
     - - - - O - - - - - - - - - -
-    ```"""
+    ```
+    """
 
     possible_splits = {
         Node(y=0, x=3): Node(y=1, x=3),

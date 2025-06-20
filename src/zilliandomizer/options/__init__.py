@@ -20,6 +20,7 @@ def error(s: str) -> NoReturn:
 
 class ID(IntEnum):
     """ item ids used in rom """
+
     key0 = 0
     key1 = 1
     key2 = 2

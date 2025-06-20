@@ -1,7 +1,10 @@
-import os
-import pytest
-from typing import Counter as _Counter, Iterator, Set
 from collections import Counter
+import os
+from typing import Counter as _Counter
+from typing import Iterator, Set
+
+import pytest
+
 from zilliandomizer.game import Game
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.options import Options
@@ -41,7 +44,7 @@ def test_read_items_from_rom() -> None:
 
     print(totals)
     print(sum(totals.values()))
-    print(sorted(list(door_code_rooms)))
+    print(sorted(door_code_rooms))
 
 
 @pytest.mark.usefixtures("fake_rom")

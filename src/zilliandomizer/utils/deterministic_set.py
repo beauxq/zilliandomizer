@@ -5,6 +5,7 @@ _T = TypeVar('_T')
 
 class DetSet(MutableSet[_T]):
     """ python set is not deterministic """
+
     _set: Dict[_T, Literal[True]]
 
     def __init__(self, iterable: Optional[Iterable[_T]] = None) -> None:

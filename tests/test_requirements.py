@@ -1,4 +1,5 @@
 from typing import Set
+
 from zilliandomizer.logic_components.locations import Req
 
 

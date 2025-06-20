@@ -41,6 +41,7 @@ class SpriteType:
 @final
 class AutoGunSub:
     """ direction the auto-gun is facing, and whether it's moving """
+
     down_move = 0x22
     right_move = 0x23
     left_move = 0x24
@@ -52,6 +53,7 @@ class AutoGunSub:
 @final
 class BarrierSub:
     """ orientation and length (small tiles) of barrier """
+
     hor_2 = 0x00
     hor_4 = 0x01
     ver_4 = 0x02
