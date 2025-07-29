@@ -1,7 +1,6 @@
-from typing import Dict, List
+from typing import List
 
 from zilliandomizer.logger import Logger
-from zilliandomizer.logic_components.locations import Location
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT, Coord, RoomData
@@ -316,7 +315,9 @@ def test_long_distance_jumps() -> None:
         list("              "),
         list("______________"),
     ]
-    assert not (g.solve(2) or g.solve(2.5) or g.solve(3)), "can't jump 5"
+    assert not g.solve(2), "jump 5"
+    assert not g.solve(2.5), "jump 5"
+    assert not g.solve(3), "jump 5"
     g.data[3][6] = Cell.floor
     assert not g.solve(2), "height 2 distance 6, jump blocks 2"
     assert g.solve(2.5), "height 2 distance 6, jump blocks 2.5"
@@ -333,7 +334,8 @@ def test_long_distance_jumps() -> None:
         list("              "),
         list("______________"),
     ]
-    assert not (g.solve(2) or g.solve(2.5)), "can't jump distance 8"
+    assert not g.solve(2), "can't jump distance 8"
+    assert not g.solve(2.5), "can't jump distance 8"
     g.data[3][4] = Cell.floor
     assert not g.solve(2), "height 1 distance 7, jump blocks 2"
     assert g.solve(2.5), "height 1 distance 7, jump blocks 2.5"
@@ -346,7 +348,8 @@ def test_long_distance_jumps() -> None:
         list("              "),
         list("______________"),
     ]
-    assert not (g.solve(2) or g.solve(2.5)), "can't jump height 1 distance 7 with ceiling"
+    assert not g.solve(2), "can't jump height 1 distance 7 with ceiling"
+    assert not g.solve(2.5), "can't jump height 1 distance 7 with ceiling"
 
     g.data = [
         list("              "),
@@ -356,7 +359,8 @@ def test_long_distance_jumps() -> None:
         list("              "),
         list("______________"),
     ]
-    assert not (g.solve(2) or g.solve(2.5)), "can't jump height 0 distance 7"
+    assert not g.solve(2), "can't jump height 0 distance 7"
+    assert not g.solve(2.5), "can't jump height 0 distance 7"
     g.data[2][5] = Cell.floor
     assert not g.solve(2), "height 0 distance 6, jump blocks 2"
     assert g.solve(2.5), "height 0 distance 6, jump blocks 2.5"
@@ -547,10 +551,11 @@ def test_dead_end_can_logic() -> None:
         print(f"{computer_jump=}")
 
         locs = room_gen.make_locations()
-        room_locs: Dict[str, Location] = {}
-        for loc_name, loc in locs.items():
-            if loc_name.startswith(region_name):
-                room_locs[loc_name] = loc
+        room_locs = {
+            loc_name: loc
+            for loc_name, loc in locs.items()
+            if loc_name.startswith(region_name)
+        }
 
         from pprint import pp
         pp(room_locs)

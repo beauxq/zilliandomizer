@@ -134,14 +134,14 @@ def test_problems() -> None:
     options.item_counts[ID.card] = 200
     r = Randomizer(options, None, None)
     seed(88)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="items"):
         r.roll()
 
     options = deepcopy(some_options)
     options.floppy_req = 30
     r = Randomizer(options, None, None)
     seed(88)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="items"):
         r.roll()
 
 

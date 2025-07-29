@@ -51,7 +51,8 @@ def test_vanilla_path_rate() -> None:
             count_vanilla += 1
 
     print(f"{count_vanilla=}")
-    assert count_vanilla >= 40 and count_vanilla <= 400
+    assert count_vanilla >= 40
+    assert count_vanilla <= 400
 
 
 def test_choose_splits() -> None:
@@ -70,9 +71,10 @@ def test_choose_splits() -> None:
     from pprint import pp
     pp(splits)
 
-    split_edges: Set[Edge] = set()
-    for nodes in splits.items():
-        split_edges.add(frozenset(nodes))
+    split_edges: Set[Edge] = {
+        frozenset(nodes)
+        for nodes in splits.items()
+    }
 
     print(bm.map_str(1, splits, split_edges))
 

@@ -15,7 +15,7 @@ def test_req() -> None:
 
     # test == only matches same object
     r4 = Req(skill=2)
-    assert not (r3 == r4)
+    assert r3 != r4
 
     rs: Set[Req] = set()
     rs.add(r3)
