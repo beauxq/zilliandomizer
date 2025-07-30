@@ -7,10 +7,11 @@ from typing import Literal, final
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
+from zilliandomizer.low_resources.room_data import WALKWAYS_IN_MAP_INDEX
+from zilliandomizer.low_resources.terrain_mods import terrain_mods
 from zilliandomizer.low_resources.terrain_tiles import Tile
 from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors
 from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
-from zilliandomizer.terrain_modifier import TerrainModifier
 
 LEFT = 0
 RIGHT = 13
@@ -24,14 +25,6 @@ class Cell:
     wall = '|'
     floor = '_'
     space = ' '
-
-
-walkway_tiles = (
-    (Tile.b_right_walkway, Tile.b_left_walkway),
-    (Tile.r_right_walkway, Tile.r_left_walkway),
-    (Tile.p_right_walkway, Tile.p_left_walkway)
-)
-""" 0 blue - 1 red - 2 paperclip """
 
 
 class MakeFailure(Exception):
@@ -57,7 +50,6 @@ class Grid:
     """ special places that I'm not allowed to put space """
     no_change: AbstractSet[Coord]
     """ special places that I'm not allowed to change at all """
-    _tc: TerrainModifier
     _logger: Logger
     _skill: int
     """ skill from options """
@@ -67,7 +59,6 @@ class Grid:
                  exits: list[Coord],
                  ends: list[Coord],
                  map_index: int,
-                 tc: TerrainModifier,
                  logger: Logger,
                  skill: int,
                  no_space: Iterable[Coord],
@@ -78,8 +69,6 @@ class Grid:
         self.map_index = map_index
         self.no_space = frozenset(no_space)
         self.no_change = frozenset(no_change)
-        self._tc = tc
-        """ doesn't modify any terrain - this is just to read terrain data (to know where walls are) """
         self._logger = logger
         self._skill = skill
         self._edge_doors = edge_doors
@@ -693,7 +682,7 @@ class Grid:
         ]
 
     def copy(self) -> "Grid":
-        tr = Grid(self.exits, self.ends, self.map_index, self._tc,
+        tr = Grid(self.exits, self.ends, self.map_index,
                   self._logger, self._skill, self.no_space, self.no_change, self._edge_doors)
         tr.data = deepcopy(self.data)
         return tr
@@ -823,14 +812,7 @@ class Grid:
         # TODO: another pass on the top row? (often ends up with small useless platforms)
 
     def walkways_in_room(self) -> bool:
-        original_tiles = TerrainCompressor.decompress(self._tc.get_room(self.map_index))
-        # 0 blue - 1 red - 2 paperclip
-        section_index = 0 if self.map_index < 0x28 else (1 if self.map_index < 0x50 else 2)
-        here_walkway_tiles = walkway_tiles[section_index]
-        return any(
-            tile in original_tiles
-            for tile in here_walkway_tiles
-        )
+        return WALKWAYS_IN_MAP_INDEX[self.map_index]
 
     def place_walkways(self) -> None:
         self.is_walkway = [[0 for _ in range(14)] for _ in range(6)]
@@ -934,7 +916,7 @@ class Grid:
             right_walkway = Tile.p_right_walkway
             left_walkway = Tile.p_left_walkway
 
-        original_data = TerrainCompressor.decompress(self._tc.get_room(self.map_index))
+        original_data = TerrainCompressor.decompress(terrain_mods[self.map_index])
 
         tr: list[int] = []
         for row in range(len(self.data)):

@@ -9,14 +9,13 @@ from zilliandomizer.terrain_modifier import TerrainModifier
 
 
 def test_navigation() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     skill = 5
     ends: list[Coord] = [BOT_LEFT, BOT_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
+    g = Grid(ends, ends, 0x31, log, skill, [], [])
     g.data = [
         list("        |||__|"),
         list("__    ___  |||"),
@@ -70,11 +69,10 @@ def test_navigation() -> None:
 
 
 def test_jump_requirements() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 5, [], [])
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, log, 5, [], [])
     g.data = [
         list("         |__  "),
         list("__       |||  "),
@@ -91,12 +89,11 @@ def test_jump_requirements() -> None:
 
 def test_softlock_detect() -> None:
     """ jumping to known softlock """
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0, [], [])
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, log, 0, [], [])
     g.data = [
         list("             |"),
         list("__          _ "),
@@ -107,7 +104,7 @@ def test_softlock_detect() -> None:
     ]
     assert g.softlock_exists(), "softlock detection can jump 4 tiles"
 
-    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, tc, log, 0, [], [])
+    g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, log, 0, [], [])
     g.data = [
         list("             |"),
         list("__            "),
@@ -124,13 +121,12 @@ def test_softlock_detect() -> None:
 
 def test_hard_jumps() -> None:
     """ jumping to known softlock """
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
+    g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
         list("              "),
         list("__          __"),
@@ -190,14 +186,13 @@ def test_hard_jumps() -> None:
 
 
 def test_from_early_dev() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     skill = 5
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
+    g = Grid(ends, ends, 0x31, log, skill, [], [])
     g.data = [
         list("| _   _       "),
         list("    _ |  _ ___"),
@@ -209,7 +204,7 @@ def test_from_early_dev() -> None:
     assert g.softlock_exists()
 
     ends = [BOT_LEFT, (2, 1)]
-    g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
+    g = Grid(ends, ends, 0x31, log, skill, [], [])
     g.data = [
         list("         _    "),
         list("   _ _  _|  _ "),
@@ -223,13 +218,12 @@ def test_from_early_dev() -> None:
 
 
 def test_skill_required_for_jumps() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 0, [], [])
+    g = Grid(ends, ends, 0x31, log, 0, [], [])
     g.data = [
         list("              "),
         list("            __"),
@@ -239,17 +233,17 @@ def test_skill_required_for_jumps() -> None:
         list("______________"),
     ]
     assert not g.solve(2), "whether skill 0 can jump around ledges"
-    h = Grid(ends, ends, 0x31, tc, log, 2, [], [])
+    h = Grid(ends, ends, 0x31, log, 2, [], [])
     h.data = g.data
     assert h.solve(2), "whether skill 2 can jump around ledges"
     h.data[1][10] = Cell.floor
     assert not h.solve(2), "whether skill 2 can jump with horizontal movement into 1-tile holes"
-    i = Grid(ends, ends, 0x31, tc, log, 5, [], [])
+    i = Grid(ends, ends, 0x31, log, 5, [], [])
     i.data = h.data
     assert i.solve(2), "whether skill 5 can jump with horizontal movement into 1-tile holes"
 
     # make sure it doesn't think impossible jump is possible
-    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
+    g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
         list("              "),
         list("        _   __"),
@@ -259,7 +253,7 @@ def test_skill_required_for_jumps() -> None:
         list("______________"),
     ]
     assert not g.solve(2)
-    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
+    g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
         list("          _   "),
         list("            __"),
@@ -270,7 +264,7 @@ def test_skill_required_for_jumps() -> None:
     ]
     assert not g.solve(2)
     assert not g.solve(3)
-    g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
+    g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
         list("          _   "),
         list("            __"),
@@ -299,13 +293,12 @@ def test_skill_required_for_jumps() -> None:
 
 
 def test_long_distance_jumps() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 0, [], [])
+    g = Grid(ends, ends, 0x31, log, 0, [], [])
     g.data = [
         list("              "),
         list("            __"),
@@ -366,13 +359,12 @@ def test_long_distance_jumps() -> None:
 
 
 def test_jump_from_walkway() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g0 = Grid(ends, ends, 0x31, tc, log, 0, [], [])
+    g0 = Grid(ends, ends, 0x31, log, 0, [], [])
     g0.data = [
         list("              "),
         list("     ___  ____"),
@@ -387,7 +379,7 @@ def test_jump_from_walkway() -> None:
     g0.is_walkway[3][7] = 2
     assert not g0.solve(2)
 
-    g5 = Grid(ends, ends, 0x31, tc, log, 5, [], [])
+    g5 = Grid(ends, ends, 0x31, log, 5, [], [])
     g5.data = g0.data
     assert g5.solve(2)
     g5.is_walkway[3][7] = 1  # right
@@ -397,13 +389,12 @@ def test_jump_from_walkway() -> None:
 
 
 def test_stand_in_moving_walkway() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
+    g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
         list("____          "),
         list("|_ ____     __"),
@@ -445,13 +436,12 @@ def test_stand_in_moving_walkway() -> None:
 
 
 def test_low_skill_jump_1_distance_5() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_LEFT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
+    g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
         list("              "),
         list("_____         "),
@@ -468,13 +458,12 @@ def test_low_skill_jump_1_distance_5() -> None:
 
 
 def test_low_skill_jump_1_distance_4() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [(1, 7), BOT_RIGHT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
+    g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
         list("||            "),
         list("___    _______"),
@@ -488,13 +477,12 @@ def test_low_skill_jump_1_distance_4() -> None:
 
 
 def test_skill_horizontal_jump_from_walkway() -> None:
-    tc = TerrainModifier()
     log = Logger()
     log.debug_stdout = True
     log.spoil_stdout = True
 
     ends: list[Coord] = [BOT_LEFT, TOP_LEFT]
-    g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
+    g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
         list("              "),
         list("___ _  _      "),

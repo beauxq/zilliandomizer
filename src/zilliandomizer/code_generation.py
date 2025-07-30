@@ -5,6 +5,9 @@ Most of it is outdated and will not generate the correct format for the current 
 
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
 from zilliandomizer.low_resources import rom_info
+from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
+from zilliandomizer.low_resources.terrain_mods import terrain_mods
+from zilliandomizer.low_resources.terrain_tiles import Tile
 from zilliandomizer.utils import make_loc_name, ItemData
 from zilliandomizer.patch import Patcher  # for access to rom data
 from zilliandomizer.logic_components.location_data import make_locations
@@ -254,5 +257,28 @@ def doors_d() -> None:
     pp(doors)
 
 
+_walkway_tiles = (
+    (Tile.b_right_walkway, Tile.b_left_walkway),
+    (Tile.r_right_walkway, Tile.r_left_walkway),
+    (Tile.p_right_walkway, Tile.p_left_walkway)
+)
+""" 0 blue - 1 red - 2 paperclip """
+
+
+def walkways_in_room() -> None:
+    print("walkways_in_map_index = {")
+    for map_index, data in terrain_mods.items():
+        original_tiles = TerrainCompressor.decompress(data)
+        # 0 blue - 1 red - 2 paperclip
+        section_index = 0 if map_index < 0x28 else (1 if map_index < 0x50 else 2)
+        here_walkway_tiles = _walkway_tiles[section_index]
+        in_this_one = any(
+            tile in original_tiles
+            for tile in here_walkway_tiles
+        )
+        print("    " + hex(map_index) + ": " + str(in_this_one) + ",")
+    print("}")
+
+
 if __name__ == "__main__":
-    doors_d()
+    walkways_in_room()

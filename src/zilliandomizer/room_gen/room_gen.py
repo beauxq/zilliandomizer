@@ -175,7 +175,6 @@ class RoomGen:
         tr = Grid(exits,
                   ends,
                   map_index,
-                  self.tc,
                   self._logger,
                   self._skill,
                   no_space,
