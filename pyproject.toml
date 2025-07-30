@@ -37,6 +37,7 @@ reportImplicitOverride = "none"
 reportImplicitStringConcatenation = "hint"
 reportUnusedCallResult = "hint"
 reportUnusedParameter = "hint"
+reportAny = "hint"
 pythonVersion = "3.10"
 pythonPlatform = "Linux"
 

@@ -148,6 +148,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> dict[N
         """ map_index of last keyword room in path """
         back: Node | None = node
         while back in no_doors:
+            assert back is not None
             back = parents[back]
         if back is None:
             return bm.prev_door

@@ -121,7 +121,7 @@ def parse_options(t: str) -> Options:
         if value == "random" and option in choices:
             return choices[option](opts)
 
-        fields_options_type = fields[option].type
+        fields_options_type: object = fields[option].type
         typed_value: object = value
         if option == "continues" and value == "infinity":
             typed_value = -1
