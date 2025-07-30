@@ -1,4 +1,3 @@
-from typing import List
 
 from zilliandomizer.logger import Logger
 from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, Coord
@@ -10,7 +9,7 @@ from zilliandomizer.terrain_modifier import TerrainModifier
 def test_alarm_places() -> None:
     tc = TerrainModifier()
     logger = Logger()
-    exits: List[Coord] = [BOT_LEFT, BOT_RIGHT]
+    exits: list[Coord] = [BOT_LEFT, BOT_RIGHT]
     g = Grid(exits, exits, 0x0a, tc, logger, 5, [], [])
     g.data = [
         list("              "),

@@ -1,7 +1,6 @@
 from pathlib import Path
 import random
 import sys
-from typing import Set
 
 
 def test_make() -> None:
@@ -71,7 +70,7 @@ def test_choose_splits() -> None:
     from pprint import pp
     pp(splits)
 
-    split_edges: Set[Edge] = {
+    split_edges: set[Edge] = {
         frozenset(nodes)
         for nodes in splits.items()
     }

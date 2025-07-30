@@ -1,7 +1,6 @@
-from typing import Dict
 
 
-loc_to_id: Dict[str, int] = {
+loc_to_id: dict[str, int] = {
     "A-3 top far left": 0,
     "A-3 top left": 1,
     "A-3 top left-center": 2,
@@ -1560,7 +1559,7 @@ loc_to_id: Dict[str, int] = {
 }
 """ ids starting with 0 """
 
-id_to_loc: Dict[int, str] = {
+id_to_loc: dict[int, str] = {
     0: "A-3 top far left",
     1: "A-3 top left",
     2: "A-3 top left-center",

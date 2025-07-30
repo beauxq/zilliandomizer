@@ -1,4 +1,4 @@
-from typing import Dict, Iterable, List, Mapping, Sized, Tuple, Union
+from collections.abc import Iterable, Mapping, Sized
 
 from zilliandomizer.map_gen.base import Base
 from zilliandomizer.map_gen.base_maker import BaseMaker, Node
@@ -43,15 +43,15 @@ _split_rooms = {
 """ rooms that I don't generate in map_gen rooms, but do generate in map_gen full """
 
 
-def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], EdgeDoors, Union[Coord, None]]:
+def room_data_exits_from_descs(descs: Iterable[Desc]) -> tuple[list[Coord], EdgeDoors, Coord | None]:
     """
     `(exits, edge_doors, dip_entrance)` (parameters to `RoomData`)
 
     first value in `descs` should be the entrance
     """
-    out: List[Coord] = []
-    edge_doors: Tuple[List[int], List[int]] = ([], [])
-    dip_entrance: Union[Coord, None] = None
+    out: list[Coord] = []
+    edge_doors: tuple[list[int], list[int]] = ([], [])
+    dip_entrance: Coord | None = None
     for desc in descs:
         if desc.de is DE.door:
             if desc.x == 0x08:
@@ -77,7 +77,7 @@ def room_data_exits_from_descs(descs: Iterable[Desc]) -> Tuple[List[Coord], Edge
     return out, edge_doors, dip_entrance
 
 
-def make_room_gen_data(base: Base, pc_splits: Mapping[Node, Node]) -> Dict[int, RoomData]:
+def make_room_gen_data(base: Base, pc_splits: Mapping[Node, Node]) -> dict[int, RoomData]:
     out = GEN_ROOMS.copy()
 
     _add_to_gen_rooms(out, base.red, {})
@@ -86,7 +86,7 @@ def make_room_gen_data(base: Base, pc_splits: Mapping[Node, Node]) -> Dict[int, 
     return out
 
 
-def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[Node, Node]) -> None:
+def _add_to_gen_rooms(out: dict[int, RoomData], bm: BaseMaker, splits: Mapping[Node, Node]) -> None:
     edge_descriptions = make_edge_descriptions(bm, splits)
 
     for row in range(bm.row_offset, bm.row_offset + bm.height):
@@ -108,7 +108,7 @@ def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[N
             computer_opens_door = computer and map_index not in _has_computer_no_door
 
             # exits to red elevator, all need space before door to prevent softlock in escape
-            no_space: List[Coord]
+            no_space: list[Coord]
             if map_index in {0x33, 0x43, 0x4b}:
                 no_space = [(3, 0)]
                 assert edge_doors
@@ -124,7 +124,7 @@ def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[N
             else:
                 no_space = []
 
-            dead_end_can: Union[Coord, None] = None
+            dead_end_can: Coord | None = None
             if len(exits) == 1:
                 # dead end
                 if computer_opens_door:

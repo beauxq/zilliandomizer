@@ -1,4 +1,3 @@
-from typing import List
 
 from zilliandomizer.logger import Logger
 from zilliandomizer.np_sprite_manager import NPSpriteManager
@@ -16,7 +15,7 @@ def test_navigation() -> None:
     log.spoil_stdout = True
 
     skill = 5
-    ends: List[Coord] = [BOT_LEFT, BOT_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, BOT_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
     g.data = [
         list("        |||__|"),
@@ -130,7 +129,7 @@ def test_hard_jumps() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 5, [], [])
     g.data = [
         list("              "),
@@ -197,7 +196,7 @@ def test_from_early_dev() -> None:
     log.spoil_stdout = True
 
     skill = 5
-    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, skill, [], [])
     g.data = [
         list("| _   _       "),
@@ -229,7 +228,7 @@ def test_skill_required_for_jumps() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 0, [], [])
     g.data = [
         list("              "),
@@ -305,7 +304,7 @@ def test_long_distance_jumps() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 0, [], [])
     g.data = [
         list("              "),
@@ -372,7 +371,7 @@ def test_jump_from_walkway() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g0 = Grid(ends, ends, 0x31, tc, log, 0, [], [])
     g0.data = [
         list("              "),
@@ -403,7 +402,7 @@ def test_stand_in_moving_walkway() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_RIGHT]
+    ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("____          "),
@@ -451,7 +450,7 @@ def test_low_skill_jump_1_distance_5() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_LEFT]
+    ends: list[Coord] = [BOT_LEFT, TOP_LEFT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("              "),
@@ -474,7 +473,7 @@ def test_low_skill_jump_1_distance_4() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [(1, 7), BOT_RIGHT]
+    ends: list[Coord] = [(1, 7), BOT_RIGHT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("||            "),
@@ -494,7 +493,7 @@ def test_skill_horizontal_jump_from_walkway() -> None:
     log.debug_stdout = True
     log.spoil_stdout = True
 
-    ends: List[Coord] = [BOT_LEFT, TOP_LEFT]
+    ends: list[Coord] = [BOT_LEFT, TOP_LEFT]
     g = Grid(ends, ends, 0x31, tc, log, 2, [], [])
     g.data = [
         list("              "),

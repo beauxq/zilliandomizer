@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from copy import deepcopy
-from typing import Dict, List
 
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
@@ -15,15 +15,15 @@ class TerrainModifier:
     This gives some room to make changes to the terrain.
     """
 
-    _map_indexes: List[int]
+    _map_indexes: list[int]
     """ rooms that aren't hallways """
-    _rooms: Dict[int, List[int]]
+    _rooms: dict[int, Sequence[int]]
     """ map index: recompressed bytes (including 0 on end) """
     _size: int
     """ total """
 
     # need to be able to save state this class, to try generating things multiple times
-    _saved_rooms: Dict[int, List[int]]
+    _saved_rooms: dict[int, Sequence[int]]
     _saved_size: int
 
     def __init__(self) -> None:
@@ -31,7 +31,7 @@ class TerrainModifier:
         self.save_state()  # make sure there's always something to load
 
     def load(self) -> None:
-        self._rooms = deepcopy(terrain_mods)
+        self._rooms = dict(terrain_mods)
         self._map_indexes = list(self._rooms.keys())
         self._size = sum(len(room) for room in self._rooms.values())
 
@@ -41,8 +41,8 @@ class TerrainModifier:
         # print(f"average original size: {original_size / len(self._map_indexes)}")
         # print(f"room count: {len(self._map_indexes)}")
 
-    def get_writes(self) -> Dict[int, int]:
-        tr: Dict[int, int] = {}
+    def get_writes(self) -> dict[int, int]:
+        tr: dict[int, int] = {}
 
         terrain_cursor = rom_info.terrain_begin_10ef0
 
@@ -65,11 +65,11 @@ class TerrainModifier:
         """ return number of bytes from limit (negative if over limit) """
         return (rom_info.terrain_end_120da - rom_info.terrain_begin_10ef0) - self._size
 
-    def get_room(self, map_index: int) -> List[int]:
+    def get_room(self, map_index: int) -> Sequence[int]:
         """ compressed """
-        return self._rooms[map_index].copy()
+        return self._rooms[map_index]
 
-    def set_room(self, map_index: int, data: List[int]) -> None:
+    def set_room(self, map_index: int, data: list[int]) -> None:
         """ compressed, return number of bytes from limit (negative if over limit) """
         self._size -= len(self._rooms[map_index])
         self._size += len(data)

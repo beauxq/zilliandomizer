@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, Iterator, List
+from collections.abc import Iterator
 
 from zilliandomizer.alarm_data import Alarm, alarm_data, to_vertical, to_horizontal, to_none
 from zilliandomizer.low_resources.terrain_compressor import TerrainCompressor
@@ -53,7 +53,7 @@ def all_blocks(a: Alarm) -> Iterator[int]:
 def test_disable() -> None:
     for map_index, room in alarm_data.items():
         alarms_dict = {a.id: a for a in room}
-        block_used_by: Dict[int, List[str]] = defaultdict(list)
+        block_used_by: dict[int, list[str]] = defaultdict(list)
         for a in room:
             for block in all_blocks(a):
                 block_used_by[block].append(a.id)

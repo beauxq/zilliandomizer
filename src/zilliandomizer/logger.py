@@ -1,8 +1,7 @@
-from typing import List
 
 
 class Logger:
-    spoiler_lines: List[str]
+    spoiler_lines: list[str]
     spoil_stdout: bool
     debug_stdout: bool
 

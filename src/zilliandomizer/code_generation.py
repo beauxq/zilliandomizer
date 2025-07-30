@@ -3,7 +3,6 @@ I used code to generate python code for location and region data.
 Most of it is outdated and will not generate the correct format for the current code.
 """
 
-from typing import List, Dict, Set
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE, MAIN
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.utils import make_loc_name, ItemData
@@ -15,7 +14,7 @@ from zilliandomizer.utils import make_room_name
 
 def make_location_code() -> None:
     p = Patcher()
-    locs: List[str] = []
+    locs: list[str] = []
     for map_index, room in enumerate(p.get_item_rooms()):
         for item in p.get_items(room):
             if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
@@ -31,7 +30,7 @@ def region_code_maker() -> None:
     """ outdated way of creating code for `region_data` """
     locations = make_locations()
 
-    rooms: Dict[str, Set[str]] = {}
+    rooms: dict[str, set[str]] = {}
     for key in locations:
         room = key[:5]
         if room not in rooms:
@@ -39,7 +38,7 @@ def region_code_maker() -> None:
         rooms[room].add(key)
 
     # can't print these as we go because neighbor object might not be made yet
-    connections: List[str] = []
+    connections: list[str] = []
 
     for room, locs in rooms.items():
         split = room.split('c')
@@ -85,7 +84,7 @@ def region_code_maker() -> None:
 
 
 def add_doors_to_regions() -> None:
-    lines: List[str]
+    lines: list[str]
     with open("src/region_data.py") as file:
         lines = file.readlines()
     for i, line in enumerate(lines):
@@ -105,8 +104,8 @@ def add_doors_to_regions() -> None:
 
 def location_ids() -> None:
     p = Patcher()
-    loc_to_id: List[str] = []
-    id_to_loc: List[str] = []
+    loc_to_id: list[str] = []
+    id_to_loc: list[str] = []
     for map_index, room in enumerate(p.get_item_rooms()):
         for item in p.get_items(room):
             if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
@@ -118,12 +117,12 @@ def location_ids() -> None:
                 loc_to_id.append(f'    "{name}": {loc_id},')
                 id_to_loc.append(f'    {loc_id}: "{name}",')
 
-    print('loc_to_id: Dict[str, int] = {')
+    print('loc_to_id: dict[str, int] = {')
     for loc in loc_to_id:
         print(loc)
     print('}\n')
 
-    print('id_to_loc: Dict[int, str] = {')
+    print('id_to_loc: dict[int, str] = {')
     for loc in id_to_loc:
         print(loc)
     print('}\n')
@@ -131,8 +130,8 @@ def location_ids() -> None:
 
 def big_location_ids() -> None:
     p = Patcher()
-    loc_to_id: List[str] = []
-    id_to_loc: List[str] = []
+    loc_to_id: list[str] = []
+    id_to_loc: list[str] = []
     count_item_rooms = 0
     for map_index, room in enumerate(p.get_item_rooms()):
         row = map_index // 8
@@ -164,13 +163,13 @@ def big_location_ids() -> None:
     print(f"item room count: {count_item_rooms}")
 
     with open("src/zilliandomizer/low_resources/new_loc_id_maps.py", "wt") as file:
-        file.write('loc_to_id: Dict[str, int] = {\n')
+        file.write('loc_to_id: dict[str, int] = {\n')
         for loc in loc_to_id:
             file.write(loc)
             file.write('\n')
         file.write('}\n\n')
 
-        file.write('id_to_loc: Dict[int, str] = {\n')
+        file.write('id_to_loc: dict[int, str] = {\n')
         for loc in id_to_loc:
             file.write(loc)
             file.write('\n')
@@ -201,7 +200,7 @@ def weird_vanilla_locations() -> None:
 
 
 def region_file_edit() -> None:
-    lines: List[str] = []
+    lines: list[str] = []
     with open("src/zilliandomizer/logic_components/region_data.py", "r") as file:
         reg_name = ""
         loc_count = 0
@@ -235,7 +234,7 @@ def doors_d() -> None:
     p = Patcher()
     rom = p.rom
 
-    doors: Dict[int, List[bytes]] = defaultdict(list)
+    doors: dict[int, list[bytes]] = defaultdict(list)
 
     for map_index in range(136):
         row = map_index // 8

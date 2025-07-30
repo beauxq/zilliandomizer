@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.options import Chars
@@ -15,10 +14,10 @@ class ResourceManagers:
     sm: NPSpriteManager = field(default_factory=NPSpriteManager)
     aem: AlarmEntranceManager = field(default_factory=AlarmEntranceManager)
     escape_time: int = 300
-    char_order: Tuple[Chars, Chars, Chars] = ("JJ", "Apple", "Champ")
+    char_order: tuple[Chars, Chars, Chars] = ("JJ", "Apple", "Champ")
     """ `start_char, captured_1, captured_2` """
 
-    def get_writes(self) -> Dict[int, int]:
+    def get_writes(self) -> dict[int, int]:
         return {
             **self.tm.get_writes(),
             **self.sm.get_writes(),

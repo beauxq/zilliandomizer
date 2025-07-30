@@ -1,5 +1,6 @@
+from collections.abc import Iterable, Mapping, Sequence
 from random import gauss, random, randrange, sample, shuffle
-from typing import Dict, FrozenSet, Iterable, List, Literal, Mapping, Optional, Sequence, Set, Tuple, Union
+from typing import Literal
 
 from zilliandomizer.alarm_data import ALARM_ROOMS
 from zilliandomizer.logic_components.location_data import make_locations
@@ -39,19 +40,19 @@ class RoomGen:
     _skill: int
     """ from options """
 
-    _canisters: Dict[int, List[Tuple[Coord, float]]]
+    _canisters: dict[int, list[tuple[Coord, float]]]
     """ placed canisters { map_index: [(Coord, jump_blocks_required), ...] } """
 
-    pudding_cans: Set[int]
+    pudding_cans: set[int]
     """ which map indexes have a can in the pudding """
 
-    _computers: Dict[int, Tuple[Coord, float]]
+    _computers: dict[int, tuple[Coord, float]]
     """ placed computers { map_index: (Coord, jump_blocks_required) } """
 
-    _rooms: Dict[int, float]
+    _rooms: dict[int, float]
     """ rooms generated {map_index: jump_blocks} """
 
-    _alarm_rooms: FrozenSet[int]
+    _alarm_rooms: frozenset[int]
     """ rooms that can have alarm lines """
 
     _gen_rooms: Mapping[int, RoomData]
@@ -83,7 +84,7 @@ class RoomGen:
         self._computers = {}
         self._rooms = {}
 
-    def generate_all(self, map_index_2_jump_level: Dict[int, int]) -> None:
+    def generate_all(self, map_index_2_jump_level: dict[int, int]) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
         self.sm.save_state()
@@ -162,8 +163,8 @@ class RoomGen:
                 self.reset()
 
     def _make_optimized_no_softlock(self,
-                                    exits: List[Coord],
-                                    ends: List[Coord],
+                                    exits: list[Coord],
+                                    ends: list[Coord],
                                     map_index: int,
                                     jump_blocks: float,
                                     size_limit: float,
@@ -213,9 +214,9 @@ class RoomGen:
         map_index: int,
         jump_blocks: float,
         size_limit: float
-    ) -> Tuple[
-        List[Coord],  # exits
-        List[Coord],  # ends
+    ) -> tuple[
+        list[Coord],  # exits
+        list[Coord],  # ends
         Iterable[Coord],  # no space
         Iterable[Coord],  # no_change
         Mapping[Coord, str]  # pudding_tiles
@@ -297,9 +298,9 @@ class RoomGen:
             ends.append((top_y, top_x))
 
         # which grid spaces to not change
-        no_change: Set[Coord] = set()
-        no_space: Set[Coord] = set()
-        pudding_tiles: Dict[Coord, str] = {}
+        no_change: set[Coord] = set()
+        no_space: set[Coord] = set()
+        pudding_tiles: dict[Coord, str] = {}
         for n in pudding_ninths:
             top_y = (n // 3) * 2
             left_x = (n % 3) * 5
@@ -344,7 +345,7 @@ class RoomGen:
     def _generate_room(self,
                        map_index: int,
                        jump_blocks: float,
-                       size_limit: float) -> Tuple[int, float]:
+                       size_limit: float) -> tuple[int, float]:
         """ returns (the length of the compressed room data, jump blocks required to traverse) """
         this_room = self._gen_rooms[map_index]
 
@@ -381,10 +382,10 @@ class RoomGen:
             no_change = ()
             pudding_tiles = {}
 
-        g: Optional[Grid] = None
-        primary_placed: List[Coord] = []
-        pudding_placed: List[Coord] = []
-        alarm_blocks: Dict[int, Literal['v', 'h', 'n']] = {}
+        g: Grid | None = None
+        primary_placed: list[Coord] = []
+        pudding_placed: list[Coord] = []
+        alarm_blocks: dict[int, Literal['v', 'h', 'n']] = {}
 
         fail_count = 0
         while not g:
@@ -508,13 +509,13 @@ class RoomGen:
         return len(compressed), jump_blocks_required
 
     def place(self,
-              primary_coords: List[Coord],
+              primary_coords: list[Coord],
               sprites: RoomSprites,
               map_index: int,
               grid: Grid,
-              dead_end_can: Union[Coord, None],
-              pudding_placed: List[Coord],
-              pudding_can: bool) -> Dict[int, Literal['v', 'h', 'n']]:
+              dead_end_can: Coord | None,
+              pudding_placed: list[Coord],
+              pudding_can: bool) -> dict[int, Literal['v', 'h', 'n']]:
         """
         place the things that need to be placed in this room
 
@@ -630,7 +631,7 @@ class RoomGen:
             self._computers[map_index] = (primary_coords[begin_cursor], jump)
             begin_cursor += 1
         # canisters
-        cans: List[Tuple[Coord, float]] = []
+        cans: list[tuple[Coord, float]] = []
         for coord in primary_coords[begin_cursor:end_cursor + 1]:
             y, x = coord
             state = (y, x, True)
@@ -691,10 +692,10 @@ class RoomGen:
         else:
             return {}
 
-    def make_locations(self) -> Dict[str, Location]:
+    def make_locations(self) -> dict[str, Location]:
         # original = make_locations()
-        locations: Dict[str, Location] = {}
-        generated_rooms: Set[str] = set()  # 5-letter base region name ("r04c5")
+        locations: dict[str, Location] = {}
+        generated_rooms: set[str] = set()  # 5-letter base region name ("r04c5")
 
         for map_index, placed in self._canisters.items():
             assert len(placed) < 8, f"{map_index=} {placed=}"
@@ -730,7 +731,7 @@ class RoomGen:
         else:
             return b'\xff'
 
-    def get_modified_rooms(self) -> FrozenSet[int]:
+    def get_modified_rooms(self) -> frozenset[int]:
         return frozenset(self._rooms)
 
     def get_jump_blocks_required(self, map_index: int) -> float:

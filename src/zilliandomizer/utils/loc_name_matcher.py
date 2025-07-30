@@ -1,6 +1,6 @@
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 import time
-from typing import Collection, Dict, Iterable, List, Tuple
 
 from zilliandomizer.utils import parse_loc_name
 
@@ -31,16 +31,16 @@ def all_locations_in_room() -> Iterable[str]:
             yield v + h
 
 
-def loc_name_maker(locs: Collection[str]) -> Dict[str, str]:
+def loc_name_maker(locs: Collection[str]) -> dict[str, str]:
     """
     takes a collection of the location names of canisters in 1 room
     and returns a map of those names to descriptions of where in the room they are
     """
-    top: List[LocCoords] = []
-    tmd: List[LocCoords] = []
-    mid: List[LocCoords] = []
-    bmd: List[LocCoords] = []
-    bot: List[LocCoords] = []
+    top: list[LocCoords] = []
+    tmd: list[LocCoords] = []
+    mid: list[LocCoords] = []
+    bmd: list[LocCoords] = []
+    bot: list[LocCoords] = []
 
     for loc in locs:
         _, _, y, x = parse_loc_name(loc)
@@ -80,7 +80,7 @@ def loc_name_maker(locs: Collection[str]) -> Dict[str, str]:
             d += 0x0b  # tunable magic number
         return d
 
-    def shortest_pairs(lcs: List[LocCoords], from_index: int = 0) -> Tuple[List[int], int]:
+    def shortest_pairs(lcs: list[LocCoords], from_index: int = 0) -> tuple[list[int], int]:
         """ returns indexes to _x_list, and the total distance """
         if len(lcs) == 0:
             return [], 2000
@@ -110,7 +110,7 @@ def loc_name_maker(locs: Collection[str]) -> Dict[str, str]:
     mid_i, _ = shortest_pairs(mid)
     bot_i, _ = shortest_pairs(bot)
 
-    tr: Dict[str, str] = {}
+    tr: dict[str, str] = {}
 
     for y_name, lcs, xs in (
         ("top ", top, top_i),

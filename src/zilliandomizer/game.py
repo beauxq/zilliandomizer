@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from .logic_components.regions import RegionData
 from .options import Chars, Options
@@ -11,19 +11,19 @@ from .options import Chars, Options
 class Game:
     options: Options
     escape_time: int
-    char_order: Tuple[Chars, Chars, Chars]
-    loc_name_2_pretty: Dict[str, str]
-    regions: List[RegionData]
-    resource_writes: Dict[int, int]
+    char_order: tuple[Chars, Chars, Chars]
+    loc_name_2_pretty: dict[str, str]
+    regions: list[RegionData]
+    resource_writes: dict[int, int]
 
-    def to_jsonable(self) -> Dict[str, object]:
+    def to_jsonable(self) -> dict[str, object]:
         dct = asdict(self)
         dct["regions"] = [rd.to_jsonable() for rd in self.regions]
 
         return dct
 
     @staticmethod
-    def from_jsonable(game_dict: Dict[str, Any]) -> Game:
+    def from_jsonable(game_dict: dict[str, Any]) -> Game:
         game = Game(**game_dict)
         game.options = Options.from_jsonable(game_dict["options"])
         char_order = (game.char_order[0], game.char_order[1], game.char_order[2])

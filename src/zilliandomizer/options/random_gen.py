@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List
+from typing import Callable
 from random import choice, randrange
 
 from zilliandomizer.options import Chars, chars, Options, VBLR, ID, \
@@ -7,7 +7,7 @@ from zilliandomizer.options import Chars, chars, Options, VBLR, ID, \
 
 def random_jump_levels(opts: Options) -> VBLR:
     opa_count = min(7, opts.item_counts[ID.opa])  # assuming 1 opas_per_level - That will be checked later.
-    possible: List[VBLR] = [
+    possible: list[VBLR] = [
         vblr for vblr in VBLR_CHOICES
         if char_to_jump["Apple"][vblr][opa_count] >= 3
     ]
@@ -17,10 +17,10 @@ def random_jump_levels(opts: Options) -> VBLR:
 
 def random_gun_levels(opts: Options) -> VBLR:
     gun_count = opts.item_counts[ID.gun]
-    possible: List[VBLR] = [
+    possible: list[VBLR] = [
         vblr for vblr in VBLR_CHOICES
-        if (gun_count >= len(char_to_gun["Champ"][vblr])
-            or char_to_gun["Champ"][vblr][gun_count] >= 3)
+        if (gun_count >= len(char_to_gun["Champ"][vblr]) or
+            char_to_gun["Champ"][vblr][gun_count] >= 3)
     ]
     assert len(possible) > 0, "sanity check, gun Champ vanilla 0 == 3"
     return choice(possible)
@@ -52,7 +52,7 @@ def random_start_char(opts: Options) -> Chars:
 
 
 # TODO: TypedDict
-choices: Dict[str, Callable[[Options], object]] = {
+choices: dict[str, Callable[[Options], object]] = {
     "jump_levels": random_jump_levels,
     "gun_levels": random_gun_levels,
     "opas_per_level": random_opas_per_level,

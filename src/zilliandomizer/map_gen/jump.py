@@ -1,12 +1,11 @@
 from random import choice, random
-from typing import Dict
 
 MAX_JUMP = 3
 
 
-def room_jump_requirements() -> Dict[int, int]:
+def room_jump_requirements() -> dict[int, int]:
     """ returns map of room index to the jump requirement cap [1, 2, or 3] for that room """
-    tr: Dict[int, int] = {}  # room index to jump requirement
+    tr: dict[int, int] = {}  # room index to jump requirement
 
     progression_path = [29, 28, 27, 26, 34, 36, 37, 47, 55, 54]  # down from 6666 until junction in red
 

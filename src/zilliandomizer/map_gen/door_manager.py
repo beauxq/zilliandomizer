@@ -1,13 +1,13 @@
 from collections import defaultdict
 from enum import IntEnum
-from typing import Dict, List, Literal, Set, Tuple, Union
+from typing import Literal
 
 from zilliandomizer.low_resources import rom_info
 from zilliandomizer.utils.deterministic_set import DetSet
 
 BANK_4_OFFSET = 0x8000
 
-DoorStatusIndex = Tuple[int, int]
+DoorStatusIndex = tuple[int, int]
 """ low byte of address and bit mask for whether a door is opened """
 
 
@@ -75,7 +75,7 @@ class DoorSprite(IntEnum):
 
 
 class DoorManager:
-    original_statuses: Dict[int, DoorStatusIndex]
+    original_statuses: dict[int, DoorStatusIndex]
     """
     a status that will first be opened by this `map_index`
 
@@ -83,14 +83,14 @@ class DoorManager:
     """
     freed_statuses: DetSet[DoorStatusIndex]
     """ this `DoorStatusIndex` existed in vanilla, but all its doors have been deleted """
-    status_reference_counts: Dict[DoorStatusIndex, List[int]]
+    status_reference_counts: dict[DoorStatusIndex, list[int]]
     """
     which rooms have door data structures that
     share the same info on whether the door is open or not
 
     the index is `(a, b)` - the first 2 bytes of the door data structure
     """
-    doors: Dict[int, List[bytes]]
+    doors: dict[int, list[bytes]]
     """
     map_index: [[a, b, x, y, t], ...]
         - a - byte index pointing to data of whether the door is open
@@ -125,9 +125,9 @@ class DoorManager:
                 # map_index 65 or 90 is the only place where more than 2 doors all share the same status bit
                 # (because no computer to open them)
                 assert (
-                    len(self.status_reference_counts[status]) <= 2
-                    or status == (19, 1)
-                    or status == (37, 1)
+                    len(self.status_reference_counts[status]) <= 2 or
+                    status == (19, 1) or
+                    status == (37, 1)
                 ), f"{map_index=} {status=}"
 
     def del_room(self, map_index: int) -> None:
@@ -207,7 +207,7 @@ class DoorManager:
 
         to be used when generating doors
         """
-        status: Union[DoorStatusIndex, None]
+        status: DoorStatusIndex | None
         if map_index == opening_map_index:
             status = self._get_new_status()
             self.original_statuses[opening_map_index] = status
@@ -234,7 +234,7 @@ class DoorManager:
         and should only be used after no more doors will be created.
         """
         for map_index, door_list in self.doors.items():
-            used_in_this_room: Set[DoorStatusIndex] = set()
+            used_in_this_room: set[DoorStatusIndex] = set()
             for i in range(len(door_list)):
                 door_data = door_list[i]
                 status: DoorStatusIndex = (door_data[0], door_data[1])
@@ -254,7 +254,7 @@ class DoorManager:
                 else:  # elevator
                     used_in_this_room.add(status)
 
-    def get_writes(self) -> Dict[int, int]:
+    def get_writes(self) -> dict[int, int]:
         self._locked = True
         self._fix_double_doors()
 

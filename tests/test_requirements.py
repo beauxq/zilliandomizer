@@ -1,5 +1,3 @@
-from typing import Set
-
 from zilliandomizer.logic_components.locations import Req
 
 
@@ -17,7 +15,7 @@ def test_req() -> None:
     r4 = Req(skill=2)
     assert r3 != r4
 
-    rs: Set[Req] = set()
+    rs: set[Req] = set()
     rs.add(r3)
     rs.add(r3)
     rs.add(r4)

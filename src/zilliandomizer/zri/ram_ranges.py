@@ -1,4 +1,4 @@
-from typing import Literal, Tuple
+from typing import Literal
 
 from zilliandomizer.low_resources import ram_info, rom_info
 
@@ -7,7 +7,7 @@ RangeName = Literal["basic", "new_ram", "door_can"]
 assert ram_info.item_pickup_record == 0xc2d0, "moving item_pickup_record invalidates ram range reads"
 
 
-RANGE_READS: Tuple[Tuple[int, int], ...] = (
+RANGE_READS: tuple[tuple[int, int], ...] = (
     # basic
     (
         ram_info.current_scene_c11f,

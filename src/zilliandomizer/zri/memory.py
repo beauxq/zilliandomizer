@@ -1,10 +1,9 @@
 import asyncio
 from collections import Counter
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 import sys
 from types import TracebackType
-from typing import Dict, Iterable, Optional, Sequence, Tuple, Iterator
-import typing
 
 from zilliandomizer.logic_components.items import RESCUE, NORMAL
 from zilliandomizer.low_resources import ram_info, rom_info
@@ -49,7 +48,7 @@ class State:
     received_items: bytearray
     """ index is item id (rescues 3 and 4) """
 
-    def __init__(self, ram: Optional[RamDataWrapper] = None) -> None:
+    def __init__(self, ram: RamDataWrapper | None = None) -> None:
         if ram:
             self.doors = ram[ram_info.door_state_d600: ram_info.door_state_d600 + DOOR_BYTE_COUNT]
             self.received_items = bytearray(
@@ -78,7 +77,7 @@ c11f_in_game_scenes = frozenset((
 ))
 
 
-def get_changed_lost(new: Iterable[int], old: Iterable[int]) -> Tuple[int, int, int]:
+def get_changed_lost(new: Iterable[int], old: Iterable[int]) -> tuple[int, int, int]:
     """ changed bits, lost bits, new bits as `int` """
     new_int = int.from_bytes(new, BYTE_ORDER)
     old_int = int.from_bytes(old, BYTE_ORDER)
@@ -95,14 +94,14 @@ class Memory:
     """
 
     _rai: RamInterface
-    rescues: Dict[int, Tuple[int, int]]
+    rescues: dict[int, tuple[int, int]]
     """ { ram_char_status_address: (item_room_index, mask) } """
-    loc_mem_to_loc_id: Dict[int, int]
+    loc_mem_to_loc_id: dict[int, int]
     """ { ((item_room_index << 8) | bit_mask): location_id } """
-    from_game_queue: "Optional[asyncio.Queue[EventFromGame]]"
+    from_game_queue: "asyncio.Queue[EventFromGame] | None"
     to_game_queue: "asyncio.Queue[EventToGame]"
 
-    _restore_target: Optional[State]
+    _restore_target: State | None
 
     known_doors: bytes
     known_cans: Iterable[int]
@@ -114,8 +113,8 @@ class Memory:
     state: State
 
     def __init__(self,
-                 from_game_queue: "Optional[asyncio.Queue[EventFromGame]]" = None,
-                 to_game_queue: "Optional[asyncio.Queue[EventToGame]]" = None) -> None:
+                 from_game_queue: "asyncio.Queue[EventFromGame] | None" = None,
+                 to_game_queue: "asyncio.Queue[EventToGame] | None" = None) -> None:
         """
         `rescues` maps a rescue id (0 or 1) to a canister location where that rescue is
 
@@ -145,8 +144,8 @@ class Memory:
         return ram[ram_info.rom_to_ram_data: ram_info.rom_to_ram_data + 96]
 
     def set_generation_info(self,
-                            rescues: Dict[int, RescueInfo],
-                            loc_mem_to_loc_id: Dict[int, int]) -> None:
+                            rescues: dict[int, RescueInfo],
+                            loc_mem_to_loc_id: dict[int, int]) -> None:
         self.rescues = {}
         for rescue_id, ri in rescues.items():
             if ri.start_char == "JJ":
@@ -277,7 +276,7 @@ class Memory:
             # else not a good time to send something to game
         # else queue empty
 
-    async def _process_items(self, counts: typing.Counter[int]) -> None:
+    async def _process_items(self, counts: Counter[int]) -> None:
         counts_to_ram = bytearray(0 for _ in range(ITEM_BYTE_COUNT))
         for comm_item_id in counts:
             code = comm_item_id >> 8

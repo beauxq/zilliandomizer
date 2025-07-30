@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict
+from typing import Any, Literal, TypedDict
 
 from zilliandomizer.logic_components.items import Item
 
-CharReq = Tuple[Literal["JJ", "Apple", "Champ"], ...]
+CharReq = tuple[Literal["JJ", "Apple", "Champ"], ...]
 """ having any member of the tuple will meet requirement """
 
 
@@ -32,11 +32,11 @@ class Req:
     hp: int
     """ max hp, greater than this, not just this """
     door: int
-    have_doors: Set[int]
+    have_doors: set[int]
     """ used for comparing access with a requirement """
     skill: int
     """ get good bro """
-    union: Optional[Tuple["Req", ...]]
+    union: "tuple[Req, ...] | None"
     """ python can't use `or` as a property name """
 
     red: int
@@ -51,7 +51,7 @@ class Req:
                  hp: int = 0,
                  door: int = 0,
                  skill: int = 0,
-                 union: Optional[Tuple["Req", ...]] = None,
+                 union: "tuple[Req, ...] | None" = None,
                  red: int = 0,
                  floppy: int = 0) -> None:
         self.gun = gun
@@ -90,7 +90,7 @@ class Req:
 
     def __repr__(self) -> str:
         names = [name for name in dir(self) if not (name.startswith('_') or name == "have_doors")]
-        names_and_values: List[str] = []
+        names_and_values: list[str] = []
         for name in names:
             value: object = getattr(self, name)
             names_and_values.append(f"{name}={value!r}")
@@ -108,7 +108,7 @@ class ReqArgs(TypedDict, total=False):
     door: int
     skill: int
     """ get good bro """
-    union: Optional[Tuple[Req, ...]]
+    union: tuple[Req, ...] | None
 
 
 @dataclass
@@ -117,9 +117,9 @@ class Location:
     """ unique """
     req: Req
     """ requirement to get this location """
-    after: Optional[Req] = None
+    after: Req | None = None
     """ requirement to get out of this location """
-    item: Optional[Item] = None
+    item: Item | None = None
     """ the item that is at this location """
 
     def __hash__(self) -> int:
@@ -146,13 +146,13 @@ class LocationData:
             location.req.gun
         )
 
-    def to_jsonable(self) -> Dict[str, object]:
+    def to_jsonable(self) -> dict[str, object]:
         dct = asdict(self)
         dct["item"] = asdict(self.item)
         return dct
 
     @staticmethod
-    def from_jsonable(dct: Dict[str, Any]) -> LocationData:
+    def from_jsonable(dct: dict[str, Any]) -> LocationData:
         ld = LocationData(**dct)
         ld.item = Item(**dct["item"])
         return ld

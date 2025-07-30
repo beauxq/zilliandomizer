@@ -1,6 +1,6 @@
+from collections.abc import Container, Iterable, Iterator, Sequence, Set as AbstractSet
 from random import Random
-from typing import (AbstractSet, Container, Dict, FrozenSet, Iterable, Iterator,
-                    List, NamedTuple, Sequence, Set, Tuple, Union)
+from typing import NamedTuple
 
 from zilliandomizer.map_gen.door_manager import DoorManager
 from zilliandomizer.utils.disjoint_set import DisjointSet
@@ -14,7 +14,7 @@ class Node(NamedTuple):
     x: int
 
 
-Edge = FrozenSet[Node]
+Edge = frozenset[Node]
 """ 2 nodes """
 # frozenset because need hashable
 
@@ -39,9 +39,9 @@ class BaseMaker:
     possible_edges: DetSet[Edge]
     existing_edges: DetSet[Edge]
     original_possible_edges: AbstractSet[Edge]
-    paths: Dict[Node, List[Node]]
+    paths: dict[Node, list[Node]]
     """ destination: path """
-    no_changes: Set[Node]
+    no_changes: set[Node]
     """ which rooms will have no changes to the entrances and exits """
     door_manager: DoorManager
 
@@ -54,7 +54,7 @@ class BaseMaker:
                  possible: Iterable[Edge],
                  existing: Iterable[Edge],
                  door_manager: DoorManager,
-                 seed: Union[int, str, None]) -> None:
+                 seed: int | str | None) -> None:
         """
         `prev_door` is the last door I opened before coming to this section of the base
 
@@ -119,14 +119,14 @@ class BaseMaker:
             tr += '\n'
         return tr
 
-    def get_possible_splits(self, start: Node, no_doors: AbstractSet[Node]) -> Dict[Node, Node]:
+    def get_possible_splits(self, start: Node, no_doors: AbstractSet[Node]) -> dict[Node, Node]:
         """
         every node that is not a dead end, has keywords,
         and has another geo-adjacent non-adjacent node that can dip in
 
         `{split_node: dipper}`
         """
-        possible_splits: Dict[Node, Node] = {}
+        possible_splits: dict[Node, Node] = {}
         for y in range(self.height):
             for x in range(self.width):
                 here = Node(y, x)
@@ -161,7 +161,7 @@ class BaseMaker:
 
         def crop_possible() -> Iterable[Edge]:
             """ the edges to remove from possible to avoid cycles """
-            tr: List[Edge] = []
+            tr: list[Edge] = []
             for p_edge in self.possible_edges:
                 a, b = p_edge
                 if components.find(a) == components.find(b):
@@ -206,7 +206,7 @@ class BaseMaker:
             # print("found path in cache")
             return self.paths[to]
 
-        been: Set[Node] = set()
+        been: set[Node] = set()
         path_tr = [fro]
 
         def dfs() -> bool:
@@ -260,7 +260,7 @@ class BaseMaker:
         return total / count
 
 
-def red_inputs() -> Tuple[List[Edge], List[Edge]]:
+def red_inputs() -> tuple[list[Edge], list[Edge]]:
     """
     (in the red section of the map)
     where we can put connections between rooms (not including the places where we must put them),
@@ -268,7 +268,7 @@ def red_inputs() -> Tuple[List[Edge], List[Edge]]:
 
     `(possible, existing)`
     """
-    possible_edges: List[Edge] = [
+    possible_edges: list[Edge] = [
         # vertical
         v(0, 0), v(0, 1),                   v(0, 4),
         v(1, 0), v(1, 1),          v(1, 3), v(1, 4),
@@ -283,7 +283,7 @@ def red_inputs() -> Tuple[List[Edge], List[Edge]]:
                  h(4, 1),                    # noqa: E131
     ]
 
-    existing_edges: List[Edge] = [
+    existing_edges: list[Edge] = [
         h(0, 2), h(0, 3),
         h(1, 1), h(1, 2),
         h(4, 0), h(4, 2), h(4, 3)
@@ -292,7 +292,7 @@ def red_inputs() -> Tuple[List[Edge], List[Edge]]:
     return possible_edges, existing_edges
 
 
-def get_red_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
+def get_red_base(dm: DoorManager, seed: int | str | None) -> BaseMaker:
     random = Random(seed)
     while True:
         possible, existing = red_inputs()
@@ -306,7 +306,7 @@ def get_red_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
             return bm
 
 
-def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
+def paperclip_inputs() -> tuple[list[Edge], list[Edge]]:
     """
     (in the bottom section of the map)
     where we can put connections between rooms (not including the places where we must put them),
@@ -315,7 +315,7 @@ def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
     `(possible, existing)`
     """
 
-    existing_edges: List[Edge] = [
+    existing_edges: list[Edge] = [
         # big entrance elevator
         v(0, 0), v(1, 0), v(2, 0), v(3, 0), v(4, 0), v(5, 0),
         # and hallway at bottom
@@ -332,7 +332,7 @@ def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
         h(4, 6), h(3, 6), h(0, 6), h(0, 5),
     ]
 
-    possible_edges: List[Edge] = []
+    possible_edges: list[Edge] = []
 
     for y in range(6):
         for x in range(1, 6):
@@ -361,12 +361,12 @@ def paperclip_inputs() -> Tuple[List[Edge], List[Edge]]:
     return possible_edges, existing_edges
 
 
-def get_paperclip_base(dm: DoorManager, seed: Union[int, str, None]) -> BaseMaker:
+def get_paperclip_base(dm: DoorManager, seed: int | str | None) -> BaseMaker:
     random = Random(seed)
 
     # make it less likely that the path to the goal is vanilla
     attempts_to_get_non_vanilla_path = 0
-    bm: Union[BaseMaker, None] = None
+    bm: BaseMaker | None = None
     while attempts_to_get_non_vanilla_path < 3:  # 3 gives about 0.125 rate of vanilla path
         possible, existing = paperclip_inputs()
         bm = BaseMaker(10, 0, 7, 8, 0x39, possible, existing, dm, random.randrange(1999999999))

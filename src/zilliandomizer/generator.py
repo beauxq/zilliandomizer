@@ -56,7 +56,7 @@ def generate(seed: int) -> None:
     # from typing import Dict, Tuple
     # from random import randrange
     # p.set_external_item_interface(options.start_char, options.max_level)
-    # empties: Dict[str, Tuple[str, str]] = {}
+    # empties: dict[str, tuple[str, str]] = {}
     # letter = 0
     # for loc in r.locations:
     #     item = r.locations[loc].item

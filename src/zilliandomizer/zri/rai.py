@@ -1,8 +1,9 @@
 import asyncio
 import bisect
 from collections import defaultdict
+from collections.abc import Iterable
 import time
-from typing import Dict, List, Tuple, ClassVar, Literal, Union, Iterable, Optional, overload
+from typing import ClassVar, Literal, overload
 
 from zilliandomizer.low_resources import ram_info
 from zilliandomizer.zri import asyncudp
@@ -28,7 +29,7 @@ def bcd_encode(x: int) -> int:
 
 class RamDataWrapper:
     rd: RamData
-    base_addr: List[int]
+    base_addr: list[int]
     """ sorted list of the beginning of each range """
 
     def __init__(self, rd: RamData) -> None:
@@ -38,9 +39,9 @@ class RamDataWrapper:
     @overload
     def __getitem__(self, addr: int) -> int: ...
     @overload
-    def __getitem__(self, addr: slice[int, int, Union[int, None]]) -> bytes: ...
+    def __getitem__(self, addr: slice[int, int, int | None]) -> bytes: ...
 
-    def __getitem__(self, addr: Union[int, slice[int, int, Union[int, None]]]) -> Union[int, bytes]:
+    def __getitem__(self, addr: int | slice[int, int, int | None]) -> int | bytes:
         slc = slice(addr, addr + 1, 1) if isinstance(addr, int) else addr
         chunk_index = bisect.bisect_right(self.base_addr, slc.start) - 1
         if chunk_index == -1:
@@ -115,7 +116,7 @@ class RamDataWrapper:
 
 
 class NoSpamLog:
-    _lasts: ClassVar[Dict[str, float]] = defaultdict(float)
+    _lasts: ClassVar[dict[str, float]] = defaultdict(float)
 
     @staticmethod
     def log(s: str) -> None:
@@ -126,10 +127,10 @@ class NoSpamLog:
 
 
 class RAInterface(RamInterface):
-    _sock: Optional[asyncudp.Socket]
+    _sock: asyncudp.Socket | None
     _lock: asyncio.Lock
 
-    _read_messages: Dict[Tuple[int, int], Tuple[bytes, bytes]]
+    _read_messages: dict[tuple[int, int], tuple[bytes, bytes]]
 
     RETROARCH: ClassVar[asyncudp.Address] = ("127.0.0.1", 55355)
     SMS_RAM_OFFSET: ClassVar[Literal[0xc000]] = 0xc000
@@ -146,7 +147,7 @@ class RAInterface(RamInterface):
         }
 
     @staticmethod
-    def _build_message(op: OP, addr: int, params: Union[int, Iterable[int]]) -> Tuple[bytes, bytes]:
+    def _build_message(op: OP, addr: int, params: int | Iterable[int]) -> tuple[bytes, bytes]:
         def byte2hex(b: int) -> str:
             return ("0" if b < 16 else "") + hex(b)[2:]
 
@@ -240,7 +241,7 @@ class RAInterface(RamInterface):
 
     async def read(self) -> RamData:
         """ returns the ram that I have registered to read """
-        data_tr: List[bytes] = []
+        data_tr: list[bytes] = []
         for range_ in RamData.RANGE_READS:
             prefix, params = self._read_messages[range_]
             res = await self._message(prefix, params)

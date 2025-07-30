@@ -1,6 +1,7 @@
 import abc
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import ClassVar, Iterable, List, Tuple
+from typing import ClassVar
 
 from zilliandomizer.zri.ram_ranges import RANGE_READS as _RANGE_READS
 
@@ -11,7 +12,7 @@ class RamData:
     `RamInterface.read` can be implemented like this:
 
     ```
-    data: List[bytes] = []
+    data: list[bytes] = []
     for start, end in RamData.RANGE_READS:
         # read this range of ram
         these_bytes = ...
@@ -23,7 +24,7 @@ class RamData:
     ```
     """
 
-    RANGE_READS: ClassVar[Iterable[Tuple[int, int]]] = _RANGE_READS
+    RANGE_READS: ClassVar[Iterable[tuple[int, int]]] = _RANGE_READS
     """
     This tells you what ranges of ram are needed,
     with a start address and end address (last + 1)
@@ -32,7 +33,7 @@ class RamData:
     ( (start, end), (start, end), ... )
     """
 
-    data: List[bytes]
+    data: list[bytes]
     """
     Each range of ram goes in here.
 

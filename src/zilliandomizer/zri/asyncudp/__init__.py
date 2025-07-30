@@ -1,10 +1,10 @@
 import asyncio
-from typing import Optional, Tuple, cast
+from typing import cast
 from .version import version_
 
 __version__ = version_
 
-Address = Tuple[str, int]
+Address = tuple[str, int]
 
 
 class ClosedError(Exception):
@@ -12,8 +12,8 @@ class ClosedError(Exception):
 
 
 class _SocketProtocol(asyncio.BaseProtocol):
-    _packets: "asyncio.Queue[Optional[Tuple[bytes, Address]]]"
-    _error: Optional[Exception]
+    _packets: "asyncio.Queue[tuple[bytes, Address] | None]"
+    _error: Exception | None
 
     def __init__(self) -> None:
         self._packets = asyncio.Queue()
@@ -22,7 +22,7 @@ class _SocketProtocol(asyncio.BaseProtocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         pass
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         self._packets.put_nowait(None)
 
     def datagram_received(self, data: bytes, addr: Address) -> None:
@@ -32,7 +32,7 @@ class _SocketProtocol(asyncio.BaseProtocol):
         self._error = exc
         self._packets.put_nowait(None)
 
-    async def recvfrom(self) -> Optional[Tuple[bytes, Address]]:
+    async def recvfrom(self) -> tuple[bytes, Address] | None:
         return await self._packets.get()
 
     def raise_if_error(self) -> None:
@@ -66,7 +66,7 @@ class Socket:
 
         self._transport.close()
 
-    def sendto(self, data: bytes, addr: Optional[Address] = None) -> None:
+    def sendto(self, data: bytes, addr: Address | None = None) -> None:
         """Send given packet to given address ``addr``. Sends to
         ``remote_addr`` given to the constructor if ``addr`` is
         ``None``.
@@ -80,7 +80,7 @@ class Socket:
         self._transport.sendto(data, addr)
         self._protocol.raise_if_error()
 
-    async def recvfrom(self) -> Tuple[bytes, Address]:
+    async def recvfrom(self) -> tuple[bytes, Address]:
         """Receive a UDP packet.
 
         Raises ClosedError on connection error, often by calling the
@@ -115,8 +115,8 @@ class Socket:
         self.close()
 
 
-async def create_socket(local_addr: Optional[Address] = None,
-                        remote_addr: Optional[Address] = None) -> Socket:
+async def create_socket(local_addr: Address | None = None,
+                        remote_addr: Address | None = None) -> Socket:
     """Create a UDP socket with given local and remote addresses.
 
     >>> sock = await asyncudp.create_socket(local_addr=('127.0.0.1', 9999))

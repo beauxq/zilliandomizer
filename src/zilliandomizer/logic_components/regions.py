@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Dict, List, Any
+from typing import TYPE_CHECKING, Any
 
 from zilliandomizer.logic_components.locations import Location, LocationData, Req, ReqArgs
 
@@ -12,8 +12,8 @@ if TYPE_CHECKING:
 class Region:
     name: str
     door: int
-    connections: Dict["Region", Req]
-    locations: List[Location]
+    connections: "dict[Region, Req]"
+    locations: list[Location]
     computer: bytes
     """ `0xff` for all non-generated rooms """
 
@@ -44,7 +44,7 @@ class RegionData:
 
     name: str
     door: int
-    locations: List[LocationData]
+    locations: list[LocationData]
     computer: bytes
 
     @staticmethod
@@ -56,13 +56,13 @@ class RegionData:
             region.computer
         )
 
-    def to_jsonable(self) -> Dict[str, object]:
+    def to_jsonable(self) -> dict[str, object]:
         dct = asdict(self)
         dct["computer"] = list(self.computer)
         return dct
 
     @staticmethod
-    def from_jsonable(dct: Dict[str, Any]) -> RegionData:
+    def from_jsonable(dct: dict[str, Any]) -> RegionData:
         rd = RegionData(**dct)
         rd.locations = [LocationData.from_jsonable(loc) for loc in dct["locations"]]
         rd.computer = bytes(rd.computer)

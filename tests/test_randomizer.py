@@ -1,8 +1,6 @@
 from collections import Counter
 from copy import deepcopy
 from random import seed
-from typing import Counter as _Counter
-from typing import Tuple
 
 import pytest
 
@@ -104,7 +102,7 @@ def test_get_locations() -> None:
     have = Req(gun=3, jump=3, hp=940, skill=9001)
     locs = rn.get_locations(have)
     print(len(locs))
-    rooms: _Counter[Tuple[int, int]] = Counter()
+    rooms: Counter[tuple[int, int]] = Counter()
     for loc in locs:
         rs, cs = loc.name.split('y')[0].split('c')
         r = int(rs[1:])

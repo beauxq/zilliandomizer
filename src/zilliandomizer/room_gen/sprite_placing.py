@@ -1,14 +1,15 @@
+from collections.abc import Container
 from dataclasses import dataclass
 from random import shuffle
-from typing import Container, Dict, FrozenSet, List, Literal
+from typing import Literal
 from zilliandomizer.room_gen.common import Coord
 from zilliandomizer.room_gen.maze import BOTTOM, LEFT, RIGHT, TOP, Cell, Grid, MakeFailure
 
 
 class AutoGunPlaces:
-    down: List[Coord]
-    right: List[Coord]
-    left: List[Coord]
+    down: list[Coord]
+    right: list[Coord]
+    left: list[Coord]
 
     def __init__(self) -> None:
         self.down = []
@@ -48,14 +49,14 @@ class BarPlace:
 
 
 class BarPlaces:
-    floor_things: FrozenSet[Coord]
-    bars: List[BarPlace]
+    floor_things: frozenset[Coord]
+    bars: list[BarPlace]
     """
     horizontal bars go at the bottom of the large tiles
     (top of the tiles below for alarms)
     """
 
-    def __init__(self, floor_things: FrozenSet[Coord]) -> None:
+    def __init__(self, floor_things: frozenset[Coord]) -> None:
         self.floor_things = floor_things
         self.bars = []
 
@@ -75,7 +76,7 @@ class BarPlaces:
         self.bars.append(BarPlace(c, horizontal, length))
 
 
-def barrier_places(g: Grid, floor_things: List[Coord], exits: Container[Coord]) -> BarPlaces:
+def barrier_places(g: Grid, floor_things: list[Coord], exits: Container[Coord]) -> BarPlaces:
     tr = BarPlaces(frozenset(floor_things))
     for y, row in enumerate(g.data):
         for x, this_cell in enumerate(row):
@@ -105,8 +106,8 @@ def barrier_places(g: Grid, floor_things: List[Coord], exits: Container[Coord]) 
     shuffle(tr.bars)
 
     # put the places I can't go first in the list, so they're the last to get chosen
-    cant_go: List[BarPlace] = []
-    can_go: List[BarPlace] = []
+    cant_go: list[BarPlace] = []
+    can_go: list[BarPlace] = []
     goables = g.get_goables(3)
     for bar in tr.bars:
         y, x = bar.c
@@ -123,7 +124,7 @@ def barrier_places(g: Grid, floor_things: List[Coord], exits: Container[Coord]) 
     return tr
 
 
-def alarm_places(g: Grid, floor_things: List[Coord]) -> BarPlaces:
+def alarm_places(g: Grid, floor_things: list[Coord]) -> BarPlaces:
     """ returns places where alarms can go """
     tr = BarPlaces(frozenset(floor_things))
     for y, row in enumerate(g.data):
@@ -207,8 +208,8 @@ def alarm_places(g: Grid, floor_things: List[Coord]) -> BarPlaces:
     shuffle(tr.bars)
 
     # put the places I can't go first in the list, so they're the last to get chosen
-    cant_go: List[BarPlace] = []
-    can_go: List[BarPlace] = []
+    cant_go: list[BarPlace] = []
+    can_go: list[BarPlace] = []
     goables = g.get_goables(3)
     for bar in tr.bars:
         y, x = bar.c
@@ -229,7 +230,7 @@ def alarm_places(g: Grid, floor_things: List[Coord]) -> BarPlaces:
     return tr
 
 
-def choose_alarms(ap: BarPlaces, count: int) -> Dict[int, Literal["v", "h", "n"]]:
+def choose_alarms(ap: BarPlaces, count: int) -> dict[int, Literal["v", "h", "n"]]:
     """ returns input to `Alarms.add_alarms_to_room_terrain_bytes` """
 
     def collides(a: BarPlace, b: BarPlace) -> bool:
@@ -244,7 +245,7 @@ def choose_alarms(ap: BarPlaces, count: int) -> Dict[int, Literal["v", "h", "n"]
         b_range = range(b.c[1], b.c[1] + b.length)
         return a.c[1] in b_range
 
-    tr: Dict[int, Literal["v", "h", "n"]] = {}
+    tr: dict[int, Literal["v", "h", "n"]] = {}
     while count > 0:
         if len(ap.bars) == 0:
             # print("warning: not enough places to put alarms")

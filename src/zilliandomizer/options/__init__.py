@@ -1,14 +1,14 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 from random import choice
-from typing import Any, Dict, List, Literal, NoReturn, Tuple, cast
+from typing import Any, Literal, NoReturn, cast
 
 Chars = Literal["JJ", "Apple", "Champ"]
 VBLR = Literal["vanilla", "balanced", "low", "restrictive"]  # unpack operator in subscript require Python 3.11
 """ `"vanilla"` `"balanced"` `"low"` `"restrictive"` """
 
-VBLR_CHOICES: Tuple[VBLR, ...] = ("vanilla", "balanced", "low", "restrictive")
-chars: Tuple[Chars, Chars, Chars] = ("JJ", "Champ", "Apple")
+VBLR_CHOICES: tuple[VBLR, ...] = ("vanilla", "balanced", "low", "restrictive")
+chars: tuple[Chars, Chars, Chars] = ("JJ", "Champ", "Apple")
 """ order in rom data """
 
 options_filename = "options.yaml"
@@ -35,7 +35,7 @@ class ID(IntEnum):
     scope = 11
 
 
-ItemCounts = Dict[ID, int]
+ItemCounts = dict[ID, int]
 
 default_item_counts: ItemCounts = {
     ID.card: 55,
@@ -109,7 +109,7 @@ class Options:
     # TODO: hp - ? low2low(start low end low) low2high(start low end vanilla) high2low(vanilla)
 
     @staticmethod
-    def from_jsonable(dct: Dict[str, Any]) -> "Options":
+    def from_jsonable(dct: dict[str, Any]) -> "Options":
         o = Options(**dct)
         o.item_counts = {
             cast(ID, ID._value2member_map_[int(k)]): v
@@ -119,13 +119,13 @@ class Options:
         return o
 
 
-char_to_hp: Dict[Chars, int] = {
+char_to_hp: dict[Chars, int] = {
     "JJ": 700,
     "Apple": 600,
     "Champ": 800
 }
 
-char_to_gun: Dict[Chars, Dict[VBLR, List[int]]] = {
+char_to_gun: dict[Chars, dict[VBLR, list[int]]] = {
     "JJ": {
         "vanilla": [1, 2, 3],
         "balanced": [1, 2, 2, 3],
@@ -162,7 +162,7 @@ jj  ap  ch      jj  ap  ch      jj  ap  ch      jj  ap  ch
 ```
 """
 
-char_to_jump: Dict[Chars, Dict[VBLR, List[int]]] = {
+char_to_jump: dict[Chars, dict[VBLR, list[int]]] = {
     "JJ": {
         "vanilla": [2, 2, 2, 2, 3, 3, 3, 3],
         "balanced": [1, 2, 2, 2, 3, 3, 3, 3],

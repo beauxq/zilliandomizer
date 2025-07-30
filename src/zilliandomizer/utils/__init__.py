@@ -1,5 +1,5 @@
 import math
-from typing import NamedTuple, Optional, Tuple, Union, overload
+from typing import NamedTuple, overload
 
 from zilliandomizer.logic_components.items import RESCUE
 
@@ -128,7 +128,7 @@ def make_loc_name(map_index: int, item_or_y: int, x: int) -> str: ...
 def make_loc_name(map_index: int, item_or_y: ItemData) -> str: ...
 
 
-def make_loc_name(map_index: int, item_or_y: Union[ItemData, int], x: Optional[int] = None) -> str:
+def make_loc_name(map_index: int, item_or_y: ItemData | int, x: int | None = None) -> str:
     if isinstance(item_or_y, int):
         assert not (x is None)
         y = item_or_y
@@ -146,7 +146,7 @@ def make_room_name(row: int, col: int) -> str:
     return f"{chr(ord('A') + row - 1)}-{col + 1}"
 
 
-def parse_reg_name(name: str) -> Tuple[int, int]:
+def parse_reg_name(name: str) -> tuple[int, int]:
     """ row and col from region name """
     assert name[0] == 'r' and name[3] == 'c', name
     row = int(name[1:3])
@@ -154,7 +154,7 @@ def parse_reg_name(name: str) -> Tuple[int, int]:
     return row, col
 
 
-def parse_loc_name(name: str) -> Tuple[int, int, int, int]:
+def parse_loc_name(name: str) -> tuple[int, int, int, int]:
     """ return row, col, y, x """
     room_str, coord_str = name.split('y')
     y_str, x_str = coord_str.split('x')

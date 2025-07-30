@@ -1,10 +1,10 @@
-from typing import Dict, List
+from collections.abc import Mapping, Sequence
 
 from .terrain_compressor import TerrainCompressor
 from . import rom_info
 
 
-terrain_mods = {
+terrain_mods: Mapping[int, Sequence[int]] = {
     0x0a: [
         0x81, 0x30, 0x0f, 0x3a, 0x81, 0x30, 0x03, 0x39, 0x0c, 0x3b, 0x84,
         0x30, 0x3b, 0x39, 0x39, 0x0b, 0x3a, 0x02, 0x30, 0x81, 0x3c, 0x09,
@@ -603,11 +603,12 @@ terrain_mods = {
         0x81, 0x56, 0x0b, 0x5b, 0x00,
     ],
 }
+""" map_index: data """
 
 
 def generate_mods(o: bytes) -> None:
-    map_indexes: List[int] = []
-    rooms: Dict[int, List[int]] = {}
+    map_indexes: list[int] = []
+    rooms: dict[int, list[int]] = {}
     size = 0
 
     for row in range(17):
@@ -630,7 +631,7 @@ def generate_mods(o: bytes) -> None:
                 continue  # hallways
 
             cursor = address
-            original_compressed_bytes: List[int] = []
+            original_compressed_bytes: list[int] = []
             while o[cursor] != 0:
                 original_compressed_bytes.append(o[cursor])
                 # verified[cursor] = rom[cursor]
@@ -677,7 +678,7 @@ def generate_mods(o: bytes) -> None:
     assert all(map_index in map_indexes for map_index in rooms)
     assert all(map_index in rooms for map_index in map_indexes)
 
-    def hex_list(bs: List[int]) -> str:
+    def hex_list(bs: list[int]) -> str:
         tr = "[\n        "
         len_since_newline = 8
         for b in bs:

@@ -1,7 +1,8 @@
 from collections import deque
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Deque, Dict, List, Literal, Mapping, Set, Tuple, Union
+from typing import Literal
 
 from .base_maker import BaseMaker, Node
 from .map_data import pc_no_doors, red_right_no_doors
@@ -42,7 +43,7 @@ class Desc:
     dip_entrance: bool = False
     """ whether this is a dip entrance in a split room """
 
-    def corner_conflicts(self) -> List[Corner]:
+    def corner_conflicts(self) -> list[Corner]:
         """ with possible conflicts (A door in a corner is not a possible conflict - only doors at 1 or 3.) """
         if self.de is DE.elevator:
             if self.y > 2:
@@ -80,12 +81,12 @@ class Desc:
         return []
 
 
-_red_requires_y: Dict[Node, int] = {
+_red_requires_y: dict[Node, int] = {
     Node(1, 2): 4,  # hall
     Node(4, 3): 4,  # hall
 }
 
-_pc_requires_y: Dict[Node, int] = {
+_pc_requires_y: dict[Node, int] = {
     Node(1, 0): 4,
     Node(3, 0): 0,  # M-2
     Node(4, 0): 4,
@@ -105,7 +106,7 @@ _red_right_area_exits = {
 }
 
 
-def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[Node, Dict[Node, Desc]]:
+def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> dict[Node, dict[Node, Desc]]:
     """
     choose locations of doors and elevators
 
@@ -114,12 +115,12 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
     # print(bm.map_str())
 
     if bm.height == 5:  # red
-        parents: Dict[Node, Union[Node, None]] = {
+        parents: dict[Node, Node | None] = {
             Node(0, 3): None,
             Node(0, 2): Node(0, 3),
             Node(0, 4): Node(0, 3),
         }
-        edge_descriptions: Dict[Node, Dict[Node, Desc]] = {
+        edge_descriptions: dict[Node, dict[Node, Desc]] = {
             Node(0, 3): {
                 Node(0, 2): Desc(DE.door, 4, 0x08),
                 Node(0, 4): Desc(DE.door, 4, 0xf0),
@@ -145,7 +146,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
 
     def back_to_computer(node: Node) -> int:
         """ map_index of last keyword room in path """
-        back: Union[Node, None] = node
+        back: Node | None = node
         while back in no_doors:
             back = parents[back]
         if back is None:
@@ -159,8 +160,8 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
 
     dippers = set(splits.values())
 
-    done: Set[Node] = set()
-    q: Deque[Node] = deque([start_node])
+    done: set[Node] = set()
+    q: deque[Node] = deque([start_node])
 
     while len(q):
         here = q.popleft()
@@ -362,7 +363,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
         if dipper.y < split.y:  # dipper above
             y_dipper = 5
             y_split = 0
-            x_not_allowed: Set[int] = set()
+            x_not_allowed: set[int] = set()
             for split_door in split_edges:
                 if split_door.y < 2:
                     if split_door.x < 0x50:
@@ -402,7 +403,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
         elif dipper.x < split.x:  # dipper left
             x_dipper = 0xf0
             x_split = 0x08
-            y_not_allowed: Set[int] = set()
+            y_not_allowed: set[int] = set()
             for split_door in split_edges:
                 if split_door.x < 0x50:
                     if split_door.y < 2:
@@ -447,7 +448,7 @@ def make_edge_descriptions(bm: BaseMaker, splits: Mapping[Node, Node]) -> Dict[N
     return edge_descriptions
 
 
-def get_entrance_coords(here: Node, parent: Node, in_desc: Desc) -> Tuple[int, int]:
+def get_entrance_coords(here: Node, parent: Node, in_desc: Desc) -> tuple[int, int]:
     """ y, x """
     if here.x < parent.x:  # came from right
         assert in_desc.de is DE.door and in_desc.x == 0x08, f"{here=}"

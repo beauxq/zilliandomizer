@@ -1,7 +1,7 @@
 from collections import Counter, defaultdict, deque
 from random import choice, randint, randrange, shuffle
 import time
-from typing import Deque, Dict, List, Optional, Set, Counter as _Counter, cast
+from typing import cast
 
 from zilliandomizer.logic_components.location_data import make_locations
 from zilliandomizer.logger import Logger
@@ -25,11 +25,11 @@ MAX_GUN = 3
 class Randomizer:
     options: Options
     logger: Logger
-    regions: Dict[str, Region]
-    locations: Dict[str, Location]
-    _room_gen: Optional[RoomGen]
-    _base: Optional[Base]
-    loc_name_2_pretty: Dict[str, str]
+    regions: dict[str, Region]
+    locations: dict[str, Location]
+    _room_gen: RoomGen | None
+    _base: Base | None
+    loc_name_2_pretty: dict[str, str]
     """ example: from "r02c6y88x50" to "B-7 bottom left" """
 
     class RollFail(RuntimeError):
@@ -37,9 +37,9 @@ class Randomizer:
 
     def __init__(self,
                  options: Options,
-                 room_gen: Optional[RoomGen],
-                 base: Optional[Base],
-                 logger: Optional[Logger] = None) -> None:
+                 room_gen: RoomGen | None,
+                 base: Base | None,
+                 logger: Logger | None = None) -> None:
         self.options = options
         if logger is None:
             logger = Logger()
@@ -75,7 +75,7 @@ class Randomizer:
         self.regions = regions
         self.locations = locations
 
-        room_2_locs: Dict[int, List[str]] = defaultdict(list)
+        room_2_locs: dict[int, list[str]] = defaultdict(list)
         for loc in locations:
             if loc == 'main':
                 continue
@@ -97,9 +97,9 @@ class Randomizer:
         locations['main'].req.red = 1
         locations['main'].req.floppy = self.options.floppy_req
 
-    def room_door_gun_requirements(self) -> Dict[int, int]:  # noqa: PLR6301
+    def room_door_gun_requirements(self) -> dict[int, int]:  # noqa: PLR6301
         """ returns map of room index to the gun requirement [1, 2, or 3] for that room """
-        tr: Dict[int, int] = {}  # room index to gun requirement
+        tr: dict[int, int] = {}  # room index to gun requirement
 
         progression_path = [29, 28, 27, 26, 34, 36, 37, 47, 55, 54]  # down from 6666 until junction in red
 
@@ -200,14 +200,14 @@ class Randomizer:
                 # locs was shuffled above, so this is shuffled
                 no_jump_locs[0].req.gun = 1
 
-    def _get_locations_inner(self, have: Req) -> List[Location]:
+    def _get_locations_inner(self, have: Req) -> list[Location]:
         """ adds doors to `have`  - see get_locations """
         # Python set order is determined by OS memory state,
         # making it "random" and not determined by random.seed()
         # Otherwise found_locations would be a set.
-        found_locations: List[Location] = []
-        todo_queue: Deque[Region] = deque()
-        regions_finished: Set[str] = set()
+        found_locations: list[Location] = []
+        todo_queue: deque[Region] = deque()
+        regions_finished: set[str] = set()
 
         todo_queue.append(self.regions["start"])
 
@@ -235,26 +235,26 @@ class Randomizer:
 
         return found_locations
 
-    def get_locations(self, have: Req) -> List[Location]:
+    def get_locations(self, have: Req) -> list[Location]:
         """ locations that I have access to without getting any more items (1 sphere) """
         # I don't want a sphere for each door,
         # so I get the sphere modifying what doors I have access to repeatedly
         # until I don't get any more.
         last_count = -1
-        locations: List[Location] = []
+        locations: list[Location] = []
         while len(locations) != last_count:
             last_count = len(locations)
             locations = self._get_locations_inner(have)
 
         return locations
 
-    def reachable_locations(self, items: List[Item], checking: bool = False) -> List[Location]:
+    def reachable_locations(self, items: list[Item], checking: bool = False) -> list[Location]:
         """ multiple spheres until I can't get any more items """
         items = items.copy()  # don't mutate
         prev_item_count = len(items)
         # Python set order is determined by OS memory state,
         # making it "random" and not determined by random.seed()
-        locations_found: Dict[Location, bool] = defaultdict(lambda: False)
+        locations_found: dict[Location, bool] = defaultdict(lambda: False)
 
         sphere = 0
         while True:
@@ -275,9 +275,9 @@ class Randomizer:
             prev_item_count = len(items)
             sphere += 1
 
-    def make_item_pool(self) -> List[Item]:
+    def make_item_pool(self) -> list[Item]:
         """ from options """
-        tr: List[Item] = []
+        tr: list[Item] = []
 
         # normal items
         # If there are empties in the options, they are ignored.
@@ -306,15 +306,15 @@ class Randomizer:
     def can_put_item(self, location: Location) -> bool:
         return location.item is None and location != self.locations['main']
 
-    def make_ability(self, item_list: List[Item]) -> Req:
+    def make_ability(self, item_list: list[Item]) -> Req:
         """ from just these items and options """
-        have_chars: List[Chars] = [self.options.start_char]
+        have_chars: list[Chars] = [self.options.start_char]
         # whichever char I start with is replaced with JJ
-        id_to_char: List[Chars] = [
+        id_to_char: list[Chars] = [
             "JJ" if self.options.start_char == "Apple" else "Apple",
             "JJ" if self.options.start_char == "Champ" else "Champ"
         ]
-        counts: _Counter[int] = Counter()
+        counts: Counter[int] = Counter()
         for item in item_list:
             if item.code == RESCUE:
                 have_chars.append(id_to_char[item.id])
@@ -359,8 +359,8 @@ class Randomizer:
                     loc = choice(locs)
                     loc.item = scope
 
-        progressions: List[Item] = []
-        non_progs: List[Item] = []
+        progressions: list[Item] = []
+        non_progs: list[Item] = []
         for item in to_place:
             if item.is_progression:
                 progressions.append(item)
@@ -411,6 +411,6 @@ class Randomizer:
         if not success:
             raise Randomizer.RollFail(f"roll attempts timed out with {fail_count} failures")
 
-    def get_region_data(self) -> List[RegionData]:
+    def get_region_data(self) -> list[RegionData]:
         """ after end of generation, get region/location/item data needed to write output """
         return [RegionData.from_region(r) for r in self.regions.values()]

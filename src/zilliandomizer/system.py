@@ -1,5 +1,4 @@
 from random import Random
-from typing import Dict, FrozenSet, List, Optional, Tuple, Union
 
 from .alarms import Alarms
 from .game import Game
@@ -20,7 +19,7 @@ from .room_gen.data import GEN_ROOMS
 from .room_gen.room_gen import RoomGen
 
 
-_MapData = Tuple[Base, Dict[int, RoomData], Dict[Node, Node]]
+_MapData = tuple[Base, dict[int, RoomData], dict[Node, Node]]
 
 
 class System:
@@ -37,18 +36,18 @@ class System:
     - `get_game`
     """
 
-    randomizer: Optional[Randomizer] = None
+    randomizer: Randomizer | None = None
     resource_managers: ResourceManagers
-    patcher: Optional[Patcher] = None
-    _modified_rooms: FrozenSet[int] = frozenset()
-    _seed: Optional[Union[int, str]] = None
-    _base: Optional[Base] = None
+    patcher: Patcher | None = None
+    _modified_rooms: frozenset[int] = frozenset()
+    _seed: int | str | None = None
+    _base: Base | None = None
     _logger: Logger
     _random: Random
-    _room_gen: Optional[RoomGen] = None
-    _options: Optional[Options] = None  # TODO: default options instead of None
+    _room_gen: RoomGen | None = None
+    _options: Options | None = None  # TODO: default options instead of None
 
-    def __init__(self, logger: Optional[Logger] = None) -> None:
+    def __init__(self, logger: Logger | None = None) -> None:
         self._logger = logger if logger else Logger()
         self._random = Random()
         self.resource_managers = ResourceManagers()
@@ -56,7 +55,7 @@ class System:
     def set_options(self, options: Options) -> None:
         self._options = options
 
-    def seed(self, seed: Optional[Union[int, str]]) -> None:
+    def seed(self, seed: int | str | None) -> None:
         self._seed = seed
         self._random.seed(seed)
 
@@ -77,7 +76,7 @@ class System:
         assert self._options, "must `set_options` first"
         if self._options.map_gen == "full":
 
-            def try_base_and_room_gen_data() -> Union[_MapData, None]:
+            def try_base_and_room_gen_data() -> _MapData | None:
                 dm = DoorManager()
                 red_base = get_red_base(dm, self._random.randrange(1999999999))
                 pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
@@ -93,7 +92,7 @@ class System:
 
                 return base, room_gen_data, pc_splits
 
-            result: Union[_MapData, None] = None
+            result: _MapData | None = None
             while result is None:
                 result = try_base_and_room_gen_data()
             base, room_gen_data, pc_splits = result
@@ -156,13 +155,13 @@ class System:
         # print(f"{path_through_red=}")
         self.resource_managers.escape_time = choose_escape_time(options.skill, path_through_red, path_through_paperclip)
 
-        def choose_capture_order(start_char: Chars) -> Tuple[Chars, Chars, Chars]:
+        def choose_capture_order(start_char: Chars) -> tuple[Chars, Chars, Chars]:
             """
             choose the order that the captured characters appear in the intro text
 
             returns `start_char, captured_1, captured_2`
             """
-            captured: List[Chars] = [each_char for each_char in chars if each_char != start_char]
+            captured: list[Chars] = [each_char for each_char in chars if each_char != start_char]
             assert len(captured) == 2, f"{captured=}"
             self._random.shuffle(captured)
             return (start_char, captured[0], captured[1])
@@ -183,7 +182,7 @@ class System:
             writes
         )
 
-    def _get_door_writes(self) -> Dict[int, int]:
+    def _get_door_writes(self) -> dict[int, int]:
         """ from `DoorManager` """
         if self._base:
             return self._base.dm.get_writes()

@@ -1,7 +1,8 @@
-from collections import defaultdict
+from collections import defaultdict, UserDict
+from collections.abc import Generator, Iterable, Sequence
 import os
 from pathlib import Path
-from typing import ClassVar, Dict, Generator, Iterable, List, Sequence, Set, Tuple, Union
+from typing import ClassVar
 
 from zilliandomizer.game import Game
 from zilliandomizer.logic_components.items import KEYWORD, NORMAL, RESCUE
@@ -13,7 +14,7 @@ from zilliandomizer.utils import ItemData, parse_loc_name, parse_reg_name
 
 ROM_NAME = "Zillion (UE) [!].sms"
 
-paths: List[List[str]] = [
+paths: list[list[str]] = [
     ["."],  # important that this is first because empty string might be passed to Patcher for cwd
     ["roms"],
     ["src"],
@@ -31,17 +32,17 @@ paths: List[List[str]] = [
 # TODO: lots of JJ rescue graphic work
 
 
-class ByteDict(Dict[int, int]):
+class ByteDict(UserDict[int, int]):
     def __setitem__(self, key: int, value: int) -> None:
         assert 0 <= value <= 255, f"{value=}"
         return super().__setitem__(key, value)
 
 
 class Patcher:  # noqa: PLR0904
-    writes: Dict[int, int]  # address to byte
+    writes: dict[int, int]  # address to byte
     verify: bool
 
-    end_of_available_banked: Dict[int, int]
+    end_of_available_banked: dict[int, int]
     """ 0 for bank independent """
 
     demos_disabled: bool
@@ -53,7 +54,7 @@ class Patcher:  # noqa: PLR0904
     """ memory location of canister to Archipelago location id number """
     _init_code: bytearray
 
-    BANK_OFFSETS: ClassVar[Dict[int, int]] = {
+    BANK_OFFSETS: ClassVar[dict[int, int]] = {
         0: 0,  # bank independent 0x0000 - 0x7fdf
         2: 0,  # bank 2 if I use (unbanked) 0x8000 through 0xbfff
         3: 0x4000,
@@ -63,7 +64,7 @@ class Patcher:  # noqa: PLR0904
         7: 0x14000,
     }
 
-    def __init__(self, path_to_rom: Union[str, Path] = "") -> None:
+    def __init__(self, path_to_rom: str | Path = "") -> None:
         self.writes = {}  # debugging: ByteDict()
         self.verify = True
         self._init_code = bytearray()
@@ -292,7 +293,7 @@ class Patcher:  # noqa: PLR0904
         # 0x1d09 should be [dd, 36, 05, 4c] by default
         self.writes[address] = write
 
-    def set_start_char(self, char_order: Tuple[Chars, Chars, Chars]) -> None:
+    def set_start_char(self, char_order: tuple[Chars, Chars, Chars]) -> None:
         """
         set which character you start the game with
 
@@ -350,7 +351,7 @@ class Patcher:  # noqa: PLR0904
         champ_text_addr = rom_info.champ_rescue_lines_1ae38
 
         # change text that char says depending on who is where
-        apple_text: Dict[int, Tuple[bytes, bytes]] = {
+        apple_text: dict[int, tuple[bytes, bytes]] = {
             apple_text_addr[0]: (b'THANK YOU FOR', b'I<M SO GLAD  '),
             apple_text_addr[1]: (b'RESCUING ME:', b'THAT YOU<RE '),
             apple_text_addr[2]: (b'I<M SORRY THAT', b'ALL RIGHT>    '),
@@ -358,7 +359,7 @@ class Patcher:  # noqa: PLR0904
             apple_text_addr[4]: (b'IS CHAMP', b'LET<S   '),
             apple_text_addr[5]: (b'ALL RIGHT;', b'GO:       ')
         }
-        champ_text: Dict[int, Tuple[bytes, bytes]] = {
+        champ_text: dict[int, tuple[bytes, bytes]] = {
             champ_text_addr[0]: (b'YOU<RE', b'HOW DO'),
             champ_text_addr[1]: (b'VERY LATE:', b'WE KEEP   '),
             champ_text_addr[2]: (b'WHAT<VE YOU', b'GETTING IN '),
@@ -403,7 +404,7 @@ class Patcher:  # noqa: PLR0904
             self.writes[address + i] = v
 
     @staticmethod
-    def checksum(rom: Union[bytes, bytearray], update: bool = False) -> bool:
+    def checksum(rom: bytes | bytearray, update: bool = False) -> bool:
         """
         checks or updates (depending on `update`)
 
@@ -470,7 +471,7 @@ class Patcher:  # noqa: PLR0904
     def write_locations(self,
                         regions: Iterable[RegionData],
                         start_char: Chars) -> None:
-        items_placed_in_map_index: Dict[int, int] = defaultdict(int)
+        items_placed_in_map_index: dict[int, int] = defaultdict(int)
         for region in regions:
             for loc in region.locations:
                 assert loc.item, "There should be an item placed in every location before " \
@@ -806,7 +807,7 @@ class Patcher:  # noqa: PLR0904
         # speed is the byte before jump in char_init_7b98
 
         # vanilla speed values for verification
-        speed_values: Dict[Chars, List[int]] = {
+        speed_values: dict[Chars, list[int]] = {
             "JJ": [1, 1, 1, 1, 2, 2, 3, 3],
             "Champ": [0, 0, 0, 0, 1, 1, 2, 2],
             "Apple": [2, 2, 2, 2, 3, 3, 3, 3]
@@ -912,7 +913,7 @@ class Patcher:  # noqa: PLR0904
         gun_inc = rom_info.increment_gun_code_4af8
 
         # now change existing increment gun code to point at that new code
-        changes: Dict[int, Tuple[int, int]] = {
+        changes: dict[int, tuple[int, int]] = {
             gun_inc + 0: (gn_cu_lo, new_gun_lo),  # increment at this address
             gun_inc + 1: (gn_hi, new_gun_hi),
             gun_inc + 4: (0x02, MAX_GUN_LEVEL_COUNT - 1),  # compare value for limit
@@ -1354,7 +1355,7 @@ class Patcher:  # noqa: PLR0904
         self.writes[splice + 1] = new_code_addr & 0xff
         self.writes[splice + 2] = new_code_addr >> 8
 
-    def set_multiworld_items(self, loc_to_names: Dict[str, Tuple[str, str]]) -> None:
+    def set_multiworld_items(self, loc_to_names: dict[str, tuple[str, str]]) -> None:
         """
         set the text to display for specific canisters
 
@@ -1382,8 +1383,8 @@ class Patcher:  # noqa: PLR0904
                 cleaned += ' '
             return cleaned
 
-        name_to_clean_name: Dict[str, str] = {}
-        clean_names: Set[str] = set()
+        name_to_clean_name: dict[str, str] = {}
+        clean_names: set[str] = set()
 
         for _, player_name in loc_to_names.values():
             # In tests, I was able to put 93 names in the rom without overflow.
@@ -1403,7 +1404,7 @@ class Patcher:  # noqa: PLR0904
         name_tile_table = bytearray()
 
         # enumeration of player names
-        clean_name_to_tile_index: Dict[str, int] = {}
+        clean_name_to_tile_index: dict[str, int] = {}
 
         for i, cleaned in enumerate(sorted(clean_names)):
             clean_name_to_tile_index[cleaned] = i
@@ -1437,7 +1438,7 @@ class Patcher:  # noqa: PLR0904
         # so calculate what hl needs to be for each name to be at index 4
 
         # the address of 4 entries behind the entry
-        entry_to_hl: Dict[int, int] = {
+        entry_to_hl: dict[int, int] = {
             i: banked_name_table_addr + (i - 4) * 2
             for i in range(len(clean_name_to_tile_index))
         }
@@ -1447,7 +1448,7 @@ class Patcher:  # noqa: PLR0904
         # group_count - room coord l h - room coord l h - ... - group_count - ...
         # group based on hi nybble of room
 
-        location_groups: Dict[int, bytearray] = defaultdict(bytearray)
+        location_groups: dict[int, bytearray] = defaultdict(bytearray)
 
         for location_name, (_, player_name) in loc_to_names.items():
             row, col, y, x = parse_loc_name(location_name)
@@ -1466,7 +1467,7 @@ class Patcher:  # noqa: PLR0904
             location_groups[group_id].append(hl_hi)
 
         # save location of each group_count
-        group_id_to_offset: Dict[int, int] = {}
+        group_id_to_offset: dict[int, int] = {}
 
         canister_list = bytearray()
 
@@ -1619,12 +1620,12 @@ class Patcher:  # noqa: PLR0904
     def set_defense(self, skill: int) -> None:
         """ change the defense (damage taken) of the characters according to skill level """
         # damage taken
-        vanilla: Dict[Chars, List[int]] = {
+        vanilla: dict[Chars, list[int]] = {
             "JJ": [3, 3, 3, 3, 2, 2, 2, 1],
             "Champ": [2, 2, 2, 2, 1, 1, 1, 1],
             "Apple": [4, 4, 4, 4, 2, 2, 2, 1]
         }
-        balanced: List[List[int]] = [
+        balanced: list[list[int]] = [
             [2, 2, 2, 1, 1, 1, 1, 1],
             [2, 2, 2, 2, 1, 1, 1, 1],
             [2, 2, 2, 2, 2, 1, 1, 1],
@@ -1638,7 +1639,7 @@ class Patcher:  # noqa: PLR0904
             [4, 4, 4, 3, 3, 2, 2, 1],
             [4, 4, 4, 4, 3, 3, 2, 1],
         ]
-        difficulty_mods: Dict[Chars, int] = {
+        difficulty_mods: dict[Chars, int] = {
             "JJ": 4,
             "Champ": 0,
             "Apple": 6

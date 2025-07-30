@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Optional
 
 from zilliandomizer.low_resources import rom_info
 
@@ -57,7 +56,7 @@ def generate_data(o: bytes) -> None:
         rom_info.alarmed_enemy_entrance_table_7f04:
         rom_info.alarmed_enemy_entrance_table_7f04 + 136
     ])
-    data: List[Optional[AlarmEntrance]] = []
+    data: list[AlarmEntrance | None] = []
     for i in range(16):
         address = rom_info.alarmed_enemy_entrance_data_7f86 + (6 * (i + 1))
         x = o[address]

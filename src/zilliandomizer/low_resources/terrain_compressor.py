@@ -1,12 +1,13 @@
-from typing import ClassVar, List, Literal
+from collections.abc import Sequence
+from typing import ClassVar, Literal
 
 
 class TerrainCompressor:
     BANK_OFFSET: ClassVar[int] = 0x8000
 
     @staticmethod
-    def decompress(_bytes: List[int]) -> List[int]:
-        tr: List[int] = []
+    def decompress(_bytes: Sequence[int]) -> list[int]:
+        tr: list[int] = []
         cursor = 0
         while cursor < len(_bytes):
             command = _bytes[cursor]
@@ -25,9 +26,9 @@ class TerrainCompressor:
         return tr
 
     @staticmethod
-    def compress(_bytes: List[int]) -> List[int]:
+    def compress(_bytes: list[int]) -> list[int]:
         assert len(_bytes) == 96
-        tr: List[int] = []
+        tr: list[int] = []
         current_state: Literal["length", "copy"] = "length"
         cursor = 0
         copy_address = -1

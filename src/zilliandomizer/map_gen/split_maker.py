@@ -1,18 +1,18 @@
 from collections import defaultdict
+from collections.abc import Collection, Iterable, Mapping, Set as AbstractSet
 import itertools
-from typing import AbstractSet, Collection, Dict, Iterable, List, Mapping, Set
 
 from .base_maker import BaseMaker, Edge, Node
 
 
-def find_cycles(nodes: Iterable[Node], dependencies: Mapping[Node, Iterable[Node]]) -> Set[Node]:
+def find_cycles(nodes: Iterable[Node], dependencies: Mapping[Node, Iterable[Node]]) -> set[Node]:
     """ returns the nodes that are part of dependency cycles """
-    visited: Set[Node] = set()
+    visited: set[Node] = set()
 
-    path_stack: List[Node] = []
-    path_index: Dict[Node, int] = {}  # index into path_stack to avoid searching
+    path_stack: list[Node] = []
+    path_index: dict[Node, int] = {}  # index into path_stack to avoid searching
 
-    cycle_nodes: Set[Node] = set()
+    cycle_nodes: set[Node] = set()
 
     def dfs(node: Node) -> None:
         visited.add(node)
@@ -41,7 +41,7 @@ def find_cycles(nodes: Iterable[Node], dependencies: Mapping[Node, Iterable[Node
 
 
 def find_enter_by_elevator(nodes: Iterable[Node], bm: BaseMaker, start: Node) -> Collection[Node]:
-    elevator_entrances: List[Node] = []
+    elevator_entrances: list[Node] = []
     for node in nodes:
         path = bm.path(start, node)
         if len(path) < 2:
@@ -53,7 +53,7 @@ def find_enter_by_elevator(nodes: Iterable[Node], bm: BaseMaker, start: Node) ->
     return elevator_entrances
 
 
-def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Dict[Node, Node]:
+def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> dict[Node, Node]:
     possible_splits = bm.get_possible_splits(start, no_doors)
     # print(bm.map_str(1, possible_splits))
 
@@ -89,7 +89,7 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
 
     # now need to eliminate dependency cycles
     while True:
-        dependencies: Dict[Node, List[Node]] = defaultdict(list)
+        dependencies: dict[Node, list[Node]] = defaultdict(list)
         for node, dipper in possible_splits.items():
             path_to_node = bm.path(start, node)
             path_to_dipper = bm.path(start, dipper)
@@ -121,9 +121,9 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
     return possible_splits
 
 
-def split_edges(splits: Mapping[Node, Node]) -> Set[Edge]:
+def split_edges(splits: Mapping[Node, Node]) -> set[Edge]:
     """ the edges between the splits and their dippers """
-    split_edges: Set[Edge] = set()
+    split_edges: set[Edge] = set()
     for nodes in splits.items():  # noqa: FURB142
         split_edges.add(frozenset(nodes))
     return split_edges

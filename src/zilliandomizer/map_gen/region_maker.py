@@ -1,5 +1,5 @@
 from collections import defaultdict, deque
-from typing import Container, Dict, Iterable, List, Mapping, Set
+from collections.abc import Container, Iterable, Mapping
 
 from zilliandomizer.logic_components.region_data import MapBuilder
 from zilliandomizer.map_gen.base_maker import BaseMaker, Node
@@ -36,16 +36,16 @@ def make_regions_bm(bm: BaseMaker,
 
     entrance_name = reg_name(start_node)
 
-    parents: Dict[str, str] = {entrance_name: pre_entrance_region}
+    parents: dict[str, str] = {entrance_name: pre_entrance_region}
     """ key is only the base region name r00c0, value might be more r00c0passage """
 
-    split_doors_to_correct_later: Dict[str, List[str]] = defaultdict(list)
+    split_doors_to_correct_later: dict[str, list[str]] = defaultdict(list)
     """
     doors from key to values need to be corrected later
     with door value (key - pudding suffix + dipped suffix)
     """
 
-    done: Set[Node] = set()
+    done: set[Node] = set()
     q = deque([start_node])
 
     while len(q):

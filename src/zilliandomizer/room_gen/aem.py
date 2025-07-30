@@ -1,15 +1,15 @@
+from collections.abc import Iterator
 from copy import deepcopy
 from random import shuffle
-from typing import Dict, Iterator, List, Optional, Tuple
 
 from zilliandomizer.low_resources import rom_info
 from .alarm_entrance_data import AlarmEntrance, data, indexes
 
 
 class AlarmEntranceManager:
-    indexes: List[int]
+    indexes: list[int]
     """ bytes pointing to data - all multiples of 6 because an AlarmEntrance is 6 bytes long """
-    data: List[Optional[AlarmEntrance]]
+    data: list[AlarmEntrance | None]
     """
     The order of this data must not change,
     because if there is no ceiling space in one of the rooms,
@@ -20,13 +20,13 @@ class AlarmEntranceManager:
         self.indexes = indexes.copy()
         self.data = deepcopy(data)
 
-    def get_ceiling_entrances(self, level: int) -> Iterator[Tuple[int, int]]:
+    def get_ceiling_entrances(self, level: int) -> Iterator[tuple[int, int]]:
         """
         yield in random order, the ceiling entrances (x, index_byte)
 
         matching closer to the level first
         """
-        level_differences: List[List[Tuple[int, int]]] = [[], [], []]
+        level_differences: list[list[tuple[int, int]]] = [[], [], []]
         for i, entrance in enumerate(self.data):
             if entrance and entrance.ceiling:
                 diff = abs(level - entrance.level)
@@ -57,8 +57,8 @@ class AlarmEntranceManager:
             return entrance.ceiling
         return False
 
-    def get_writes(self) -> Dict[int, int]:
-        tr: Dict[int, int] = {}
+    def get_writes(self) -> dict[int, int]:
+        tr: dict[int, int] = {}
 
         for i in range(136):
             address = rom_info.alarmed_enemy_entrance_table_7f04 + i

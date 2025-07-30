@@ -1,10 +1,10 @@
+from collections.abc import Collection
 from dataclasses import dataclass
-from typing import Collection, List, Tuple, Union
 
-Coord = Tuple[int, int]
+Coord = tuple[int, int]
 """ row, col - 0 inside walls """
 
-EdgeDoors = Union[Tuple[Collection[int], Collection[int]], None]
+EdgeDoors = tuple[Collection[int], Collection[int]] | None
 """
 for the left wall and the right wall, the y tiles with the platforms that I can walk out of the room on
 
@@ -21,15 +21,15 @@ FOUR_CORNERS = [TOP_LEFT, BOT_LEFT, TOP_RIGHT, BOT_RIGHT]
 
 @dataclass
 class RoomData:
-    exits: List[Coord]
+    exits: list[Coord]
     computer: bool
-    no_space: List[Coord]
+    no_space: list[Coord]
     edge_doors: EdgeDoors = None
-    dead_end_can: Union[Coord, None] = None
-    split_dip_entrance: Union[Coord, None] = None
+    dead_end_can: Coord | None = None
+    split_dip_entrance: Coord | None = None
 
 
-def coord_to_pixel(coord: Coord) -> Tuple[int, int]:
+def coord_to_pixel(coord: Coord) -> tuple[int, int]:
     """ returns y_pixel [0x18, 0x98] (-8 for y_coord 0), x_pixel [0x10, 0xe0] """
     y_coord, x_coord = coord
     y_pixel = 0x20 * y_coord - 8

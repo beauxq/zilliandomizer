@@ -1,6 +1,6 @@
+from collections.abc import Iterator
 from pathlib import Path
 import pytest
-from typing import Iterator
 
 from zilliandomizer.patch import ROM_NAME, Patcher
 from zilliandomizer.utils.file_verification import set_verified_bytes

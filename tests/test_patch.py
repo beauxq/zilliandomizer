@@ -1,7 +1,6 @@
 from collections import Counter
+from collections.abc import Iterator
 import os
-from typing import Counter as _Counter
-from typing import Iterator, Set
 
 import pytest
 
@@ -17,8 +16,8 @@ from zilliandomizer.utils import ItemData
 def test_read_items_from_rom() -> None:
     p = Patcher()
 
-    totals: _Counter[int] = Counter()
-    door_code_rooms: Set[int] = set()
+    totals: Counter[int] = Counter()
+    door_code_rooms: set[int] = set()
     for map_index, room in enumerate(p.get_item_rooms()):
         item_count = p.item_count(room)
         items = list(p.get_items(room))

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
 from zilliandomizer.low_resources import rom_info
 
@@ -48,7 +47,7 @@ class Sprite:
     """ ram address where this byte is loaded """
     y: int
     x: int
-    type: Tuple[int, int]
+    type: tuple[int, int]
 
     def to_bytes(self) -> bytes:
         return bytes([
@@ -72,7 +71,7 @@ class Sprite:
         )
 
 
-RoomSprites = List[Sprite]
+RoomSprites = list[Sprite]
 """ all the sprites in 1 room """
 
 
@@ -102,7 +101,7 @@ index is map_index
 """
 
 
-data: Dict[int, RoomSprites] = {
+data: dict[int, RoomSprites] = {
     0: [],
     1: [],
     2: [],
@@ -463,7 +462,7 @@ data: Dict[int, RoomSprites] = {
 
 def make_sprite_rooms(o: bytes) -> None:
     """ iterator that gives the address to the sprite data in each room """
-    out: List[int] = []
+    out: list[int] = []
     for map_index in range(136):
         room_pointer = rom_info.np_sprites_80b6 + 2 * map_index
         room_addr_lo = o[room_pointer]
@@ -473,7 +472,7 @@ def make_sprite_rooms(o: bytes) -> None:
 
 
 def make_sprite_data(o: bytes) -> None:
-    data: Dict[int, RoomSprites] = {}
+    data: dict[int, RoomSprites] = {}
 
     for map_index, room_address in enumerate(sprite_rooms):
         room_sprites: RoomSprites = []

@@ -1,6 +1,6 @@
+from collections.abc import Generator
 from dataclasses import dataclass
 from random import randint
-from typing import Dict, FrozenSet, List, Tuple, Generator
 
 from zilliandomizer.low_resources.terrain_tiles import Tile
 
@@ -13,7 +13,7 @@ from zilliandomizer.low_resources.terrain_tiles import Tile
 # Those rooms look pretty empty when it rolls low.
 # (looks not bad from just eyeballing)
 
-ALARM_ROOMS: List[int] = [
+ALARM_ROOMS: list[int] = [
     0x0b, 0x0f,
     0x17,
     0x1a, 0x1c,
@@ -44,18 +44,18 @@ class Alarm:
     id: str
     """ referenced by `disables` and `lessens` """
     vertical: bool
-    top_left: Tuple[int, int]
+    top_left: tuple[int, int]
     """" (row, col) """
     length: int
     """ how many blocks is this alarm sensor in """
     vanilla: bool
     """ this alarm is present in vanilla """
-    disables: FrozenSet[str]
+    disables: frozenset[str]
     """
     ids of other alarms in the room
     that can't be present at the same time as this one
     """
-    lessens: FrozenSet[str]
+    lessens: frozenset[str]
     """
     ids of other alarms in the room
     that are less likely to be present at the same time as this one
@@ -68,7 +68,7 @@ class Alarm:
     vanilla_vary: int = 0
     """ the varied position this alarm is present in vanilla, ignored if not vanilla """
 
-    def block_iter(self) -> Generator[Tuple[int, bool], None, None]:
+    def block_iter(self) -> Generator[tuple[int, bool], None, None]:
         """
         yield (block_index, erase)
 
@@ -226,7 +226,7 @@ to_none = {
     Tile.p_floor_h: Tile.p_floor,
 }
 
-alarm_data: Dict[int, List[Alarm]] = {
+alarm_data: dict[int, list[Alarm]] = {
     0x0b: [
         Alarm("plat1top", True, (0, 5), 3,
               False, fs(), fs(["plat1bot", "hor-high", "hor-mid"]), 1),

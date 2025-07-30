@@ -1,4 +1,4 @@
-from typing import Mapping
+from collections.abc import Mapping
 
 
 item_room_codes: Mapping[int, int] = {

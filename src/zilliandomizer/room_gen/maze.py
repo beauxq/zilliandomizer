@@ -1,8 +1,9 @@
 from collections import deque
+from collections.abc import Container, Iterable, Iterator, Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import AbstractSet, Container, Dict, Iterable, Iterator, List, Literal, Optional, Set, Tuple, Union, final
+from typing import Literal, final
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
@@ -41,16 +42,16 @@ assert Cell.space == " ", "a performance optimization relies on this"
 
 
 class Grid:
-    data: List[List[str]]
-    exits: List[Coord]
+    data: list[list[str]]
+    exits: list[Coord]
     """ places I enter and exit room - coords of lower left """
-    ends: List[Coord]
+    ends: list[Coord]
     """ superset of exits, places I want to be able to get to - coords of lower left """
     map_index: int
     """ where in base """
     walkways: bool
     """ whether to put walkways in this room """
-    is_walkway: List[List[int]]
+    is_walkway: list[list[int]]
     """ moving walkway - 0 normal floor - 1 right - 2 left """
     no_space: AbstractSet[Coord]
     """ special places that I'm not allowed to put space """
@@ -63,8 +64,8 @@ class Grid:
     _edge_doors: EdgeDoors
 
     def __init__(self,
-                 exits: List[Coord],
-                 ends: List[Coord],
+                 exits: list[Coord],
+                 ends: list[Coord],
                  map_index: int,
                  tc: TerrainModifier,
                  logger: Logger,
@@ -158,8 +159,8 @@ class Grid:
         return True
 
     def _adj_moves(self,
-                   state: Tuple[int, int, bool],
-                   highest_jump: float) -> Iterator[Tuple[int, int, bool]]:
+                   state: tuple[int, int, bool],
+                   highest_jump: float) -> Iterator[tuple[int, int, bool]]:
         """
         yield all the places I can move in one step
 
@@ -424,14 +425,14 @@ class Grid:
                 start: Coord,
                 highest_jump: float,
                 standing: bool = True,
-                target_end: Optional[Tuple[int, int, bool]] = None) -> Set[Tuple[int, int, bool]]:
+                target_end: tuple[int, int, bool] | None = None) -> set[tuple[int, int, bool]]:
         """
         returns the set of all (row, col, standing) where I can go
 
         stops search early if target_end (y, x, standing) is found
         """
         row, col = start
-        been: Set[Tuple[int, int, bool]] = set()
+        been: set[tuple[int, int, bool]] = set()
         to_move_from = deque([(row, col, standing)])
         while len(to_move_from):
             here = to_move_from.pop()
@@ -485,7 +486,7 @@ class Grid:
             tr += '\n '
         return tr
 
-    def in_exit(self, row: int, col: int, custom_exits: Union[Container[Coord], None] = None) -> bool:
+    def in_exit(self, row: int, col: int, custom_exits: Container[Coord] | None = None) -> bool:
         """
         this coordinate is in an exit area
 
@@ -516,7 +517,7 @@ class Grid:
 
         returns whether a change was made
         """
-        clearables: List[Coord] = []
+        clearables: list[Coord] = []
 
         def is_clearable(row: int, col: int) -> bool:
             if self.in_end(row, col) or ((row, col) in self.no_change):
@@ -561,11 +562,11 @@ class Grid:
 
         return whether a change was made
         """
-        changeables: List[Tuple[int, int, List[str]]] = []
+        changeables: list[tuple[int, int, list[str]]] = []
 
-        def is_changeable(row: int, col: int) -> List[str]:
+        def is_changeable(row: int, col: int) -> list[str]:
             """ returns what it can change to """
-            tr: List[str] = []
+            tr: list[str] = []
             if self.in_end(row, col) or ((row, col) in self.no_change):
                 return tr
 
@@ -675,7 +676,7 @@ class Grid:
         if not success:
             raise MakeFailure("make terrain failed")
 
-    def get_goables(self, jump_blocks: float, custom_start: Union[Coord, None] = None) -> Set[Tuple[int, int, bool]]:
+    def get_goables(self, jump_blocks: float, custom_start: Coord | None = None) -> set[tuple[int, int, bool]]:
         """
         coordinates can go to, and whether I can stand there
 
@@ -684,7 +685,7 @@ class Grid:
         start = self.ends[0] if custom_start is None else custom_start
         return self._search(start, jump_blocks)
 
-    def get_standing_goables(self, jump_blocks: float) -> List[Tuple[int, int, bool]]:
+    def get_standing_goables(self, jump_blocks: float) -> list[tuple[int, int, bool]]:
         return [
             goable
             for goable in self.get_goables(jump_blocks)
@@ -716,7 +717,7 @@ class Grid:
                             ):
                                 if self.data[y - 1][x] != Cell.space:
                                     target_col = x
-                                to_restore: Dict[Coord, str] = {}
+                                to_restore: dict[Coord, str] = {}
                                 to_restore[y, target_col] = self.data[y][target_col]
                                 self.data[y][target_col] = Cell.wall
                                 if self.data[y - 1][target_col] == Cell.space:
@@ -754,12 +755,12 @@ class Grid:
             # before_change = self.map_str()
             saved = self.data[y][x]
             self.data[y][x] = value
-            above_saved: Optional[str] = None
+            above_saved: str | None = None
             if value == Cell.wall and y > 0 and self.data[y - 1][x] == Cell.space:
                 above_saved = self.data[y - 1][x]
                 self.data[y - 1][x] = Cell.floor
 
-            def new_goables_ok(new: Set[Tuple[int, int, bool]], base: Set[Tuple[int, int, bool]]) -> bool:
+            def new_goables_ok(new: set[tuple[int, int, bool]], base: set[tuple[int, int, bool]]) -> bool:
                 return (
                     (new == base) or
                     (random.random() < 0.25 and new > base and (
@@ -838,7 +839,7 @@ class Grid:
         class Platform:
             c: Coord
             length: int
-        platform_list: List[Platform] = []
+        platform_list: list[Platform] = []
 
         # red rooms can only have moving walkways in odd rows
         for y in range(1, 6, 2 if 0x27 < self.map_index < 0x50 else 1):
@@ -894,7 +895,7 @@ class Grid:
         self._skill = skill_temp
         return False
 
-    def to_room_data(self, alarm_blocks: Dict[int, Literal['v', 'h', 'n']]) -> List[int]:
+    def to_room_data(self, alarm_blocks: dict[int, Literal['v', 'h', 'n']]) -> list[int]:
         """ to compressed """
         if self.map_index < 0x28:  # blue
             wall = Tile.b_walls
@@ -935,7 +936,7 @@ class Grid:
 
         original_data = TerrainCompressor.decompress(self._tc.get_room(self.map_index))
 
-        tr: List[int] = []
+        tr: list[int] = []
         for row in range(len(self.data)):
 
             # left wall

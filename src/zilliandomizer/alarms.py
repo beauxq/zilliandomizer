@@ -1,5 +1,6 @@
 from random import random, choice
-from typing import Dict, FrozenSet, List, Literal, Set
+from typing import Literal
+
 from zilliandomizer.alarm_data import ALARM_ROOMS, Alarm, alarm_data, to_horizontal, to_vertical, to_none
 from zilliandomizer.terrain_modifier import TerrainModifier
 from zilliandomizer.logger import Logger
@@ -36,7 +37,7 @@ class Alarms:
         # logger.spoil_stdout = True
         # logger.debug_stdout = True
 
-    def choose_all(self, skip_map_index: FrozenSet[int]) -> None:
+    def choose_all(self, skip_map_index: frozenset[int]) -> None:
         # TODO: I haven't tested the tc save state and success loop yet
         self.tc.save_state()
         success = False  # chose all alarm lines without going over the byte limit
@@ -54,9 +55,9 @@ class Alarms:
 
     def _choose_for_room(self, map_index: int) -> None:
         this_room = alarm_data[map_index]
-        chosen: Set[str] = set()
-        eliminated: Set[str] = set()  # chosen already, or conflicting with chosen
-        lessened: Set[str] = set()
+        chosen: set[str] = set()
+        eliminated: set[str] = set()  # chosen already, or conflicting with chosen
+        lessened: set[str] = set()
 
         vanilla_alarm_count = sum(a.vanilla for a in this_room)
         self._logger.debug(f"vanilla alarms in this room: {vanilla_alarm_count}")
@@ -114,7 +115,7 @@ class Alarms:
             # usually at least as many alarms as vanilla, and unlikely to have many more
             (prob * 0.3) if len(chosen) >= vanilla_alarm_count else prob
         ):
-            choices: List[Alarm] = [a for a in this_room if a.id not in eliminated]
+            choices: list[Alarm] = [a for a in this_room if a.id not in eliminated]
             n = len(choices)  # not changing during iteration
             for i in range(n):
                 if choices[i].id not in lessened:
@@ -150,7 +151,7 @@ class Alarms:
         assert len(_bytes) == 96, f"room {map_index} doesn't have the right number of bytes: {len(_bytes)}"
 
         # gather all the blocks involved
-        blocks: Dict[int, Literal["v", "h", "n"]] = {}  # key block_index
+        blocks: dict[int, Literal["v", "h", "n"]] = {}  # key block_index
         for a in this_room:
             for block_index, erase in a.block_iter():
                 # verify
@@ -179,8 +180,8 @@ class Alarms:
 
     @staticmethod
     def add_alarms_to_room_terrain_bytes(
-        bytes_: List[int],
-        blocks: Dict[int, Literal["v", "h", "n"]]
+        bytes_: list[int],
+        blocks: dict[int, Literal["v", "h", "n"]]
     ) -> None:
         """
         `bytes_` is length 96 of what `TerrainCompressor` deals with.

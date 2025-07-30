@@ -1,6 +1,8 @@
+from collections.abc import Iterator
 import os
-from typing import Iterator
+
 import pytest
+
 from zilliandomizer.generator import generate, some_options
 from zilliandomizer.options import Options
 from zilliandomizer.system import System

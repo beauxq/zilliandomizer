@@ -1,8 +1,7 @@
-from typing import Dict
 from zilliandomizer.logic_components.locations import Location, Req
 
 
-def make_locations() -> Dict[str, Location]:
+def make_locations() -> dict[str, Location]:
     # locations["main"] alias at bottom for main computer
 
     locations = {

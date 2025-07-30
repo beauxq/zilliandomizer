@@ -18,7 +18,7 @@ def test_to_from_json() -> None:
 
     json_data = json.dumps(dict_before)
 
-    dict_after = json.loads(json_data)
+    dict_after: dict[str, object] = json.loads(json_data)
 
     game_after = Game.from_jsonable(dict_after)
 

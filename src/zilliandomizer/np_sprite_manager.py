@@ -1,13 +1,12 @@
 from copy import deepcopy
-from typing import Dict
 
 from zilliandomizer.low_resources.sprite_data import RoomSprites, data as sprite_data, sprite_rooms
 
 
 class NPSpriteManager:
-    _data: Dict[int, RoomSprites]
+    _data: dict[int, RoomSprites]
     """ `{ map_index: room_sprites }` """
-    _saved_data: Dict[int, RoomSprites]
+    _saved_data: dict[int, RoomSprites]
 
     def __init__(self) -> None:
         self._load()
@@ -26,8 +25,8 @@ class NPSpriteManager:
             f"{len(sprites)} should be {len(self._data[map_index])}"
         self._data[map_index] = sprites
 
-    def get_writes(self) -> Dict[int, int]:
-        tr: Dict[int, int] = {}
+    def get_writes(self) -> dict[int, int]:
+        tr: dict[int, int] = {}
 
         for map_index, room_address in enumerate(sprite_rooms):
             room_sprites = self._data[map_index]

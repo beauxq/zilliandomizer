@@ -1,4 +1,5 @@
-from typing import Dict, Container, Iterable, Mapping, Protocol, Tuple
+from collections.abc import Container, Iterable, Mapping
+from typing import Protocol
 from collections import defaultdict
 
 from zilliandomizer.options import ItemCounts, Options, error, ID, char_to_jump, \
@@ -31,7 +32,7 @@ def validate(op: Options) -> None:
         error(f"not allowed to lower max level to {op.max_level} with skill {op.skill}")
 
 
-valid_choices: Dict[str, Container[object]] = {
+valid_choices: dict[str, Container[object]] = {
     "jump_levels": VBLR_CHOICES,
     "gun_levels": VBLR_CHOICES,
     "opas_per_level": range(1, 127),
@@ -71,7 +72,7 @@ def make_empty_item_counts() -> ItemCounts:
 # order:
 # Some things that can be random need to go at the end (after item_counts).
 # It's important that the sort is stable so that the sub-options stay together.
-SORT_INDEX: Dict[str, int] = defaultdict(int, {
+SORT_INDEX: dict[str, int] = defaultdict(int, {
     "jump_levels": 1,     # depends on item_counts (assume 1 opas_per_level)
     "max_level": 2,       # depends on jump_levels (bot high enough to give jump 3)
     "opas_per_level": 3,  # depends on max_level (top low enough to give at least max_level)
@@ -80,7 +81,7 @@ SORT_INDEX: Dict[str, int] = defaultdict(int, {
 })
 
 
-def cleaned_and_ordered(text: str) -> Iterable[Tuple[str, str]]:
+def cleaned_and_ordered(text: str) -> Iterable[tuple[str, str]]:
     """ returns option, value """
     def _clean(line: str) -> str:
         try:
@@ -93,7 +94,7 @@ def cleaned_and_ordered(text: str) -> Iterable[Tuple[str, str]]:
     def _filter(line: str) -> bool:
         return bool(len(line))
 
-    def _format(line: str) -> Tuple[str, str]:
+    def _format(line: str) -> tuple[str, str]:
         split = line.split(":")
         if len(split) != 2:
             error(f'invalid line in options: "{line}"')
@@ -101,7 +102,7 @@ def cleaned_and_ordered(text: str) -> Iterable[Tuple[str, str]]:
         value = split[1].strip().strip('"')
         return option, value
 
-    def _ordered(line: Tuple[str, str]) -> int:
+    def _ordered(line: tuple[str, str]) -> int:
         return SORT_INDEX[line[0]]
 
     lines = sorted(map(_format, filter(_filter, map(_clean, text.split("\n")))),

@@ -1,10 +1,10 @@
-from typing import Dict, Generic, TypeVar
+from typing import Generic, TypeVar
 
 _T = TypeVar('_T')
 
 
 class DisjointSet(Generic[_T]):
-    _parents: Dict[_T, _T]
+    _parents: dict[_T, _T]
 
     def __init__(self) -> None:
         self._parents = {}

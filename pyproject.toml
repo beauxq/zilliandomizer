@@ -31,13 +31,13 @@ warn_unused_configs = true
 no_implicit_reexport = true
 
 [tool.basedpyright]
-include = ["src"]
+include = ["src", "tests"]
 typeCheckingMode = "recommended"
 reportImplicitOverride = "none"
 reportImplicitStringConcatenation = "hint"
 reportUnusedCallResult = "hint"
 reportUnusedParameter = "hint"
-pythonVersion = "3.8"
+pythonVersion = "3.10"
 pythonPlatform = "Linux"
 
 [tool.ruff]
@@ -50,9 +50,9 @@ select = ["ALL"]
 ignore = ["B011", "S101",
           "S311", "S603", "S605", "S607",
           "E714",
-          # D200 and D204 are some that I like
+          # D200 and D204 and D211 are some that I like
           "D105", "D107",  # Missing docstring in dunder
-          "D202", "D205", "D210", "D212",
+          "D202", "D203", "D205", "D210", "D212",
           "D400", "D401", "D403", "D404",
           "D413", "D415",
           "DOC201", "DOC402",
@@ -113,7 +113,6 @@ ignore = ["B011", "S101",
           "PYI036", "PYI063",
           "Q000",
           "RUF052",
-          "UP045",
           "COM812",
 
           "I001",

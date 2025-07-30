@@ -1,4 +1,5 @@
-from typing import Dict, Iterable, Iterator, List, Literal, MutableSet, Optional, TypeVar, Union, overload
+from collections.abc import Iterable, Iterator, MutableSet
+from typing import Literal, TypeVar, overload
 
 _T = TypeVar('_T')
 
@@ -6,9 +7,9 @@ _T = TypeVar('_T')
 class DetSet(MutableSet[_T]):
     """ python set is not deterministic """
 
-    _set: Dict[_T, Literal[True]]
+    _set: dict[_T, Literal[True]]
 
-    def __init__(self, iterable: Optional[Iterable[_T]] = None) -> None:
+    def __init__(self, iterable: Iterable[_T] | None = None) -> None:
         if iterable is None:
             self._set = {}
         else:
@@ -33,9 +34,9 @@ class DetSet(MutableSet[_T]):
     @overload
     def __getitem__(self, index: int) -> _T: ...
     @overload
-    def __getitem__(self, index: slice) -> List[_T]: ...
+    def __getitem__(self, index: slice) -> list[_T]: ...
 
-    def __getitem__(self, index: Union[int, slice]) -> Union[_T, List[_T]]:
+    def __getitem__(self, index: int | slice) -> _T | list[_T]:
         return list(self._set.keys())[index]
 
     def copy(self) -> "DetSet[_T]":
