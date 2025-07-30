@@ -135,4 +135,4 @@ ignore = ["B011", "S101",
 "tests/*" = ["PLR2004", "D100", "D103", "T201", "INP001"]
 "src/*" = ["D103", "T201"]
 "src/zilliandomizer/zri/asyncudp/**/*" = ["D", "DOC"]
-"set_version.py" = ["D103", "T201"]
+"./*.py" = ["D103", "T201"]
