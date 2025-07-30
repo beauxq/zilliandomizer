@@ -75,7 +75,7 @@ def generate(seed: int) -> None:
     # TODO: abstract out the spoiler writer (handling directory in a better way)
     spoiler_file_name = p.rom_path + os.sep + f"spoiler-{seed_str}.txt"
     with open(spoiler_file_name, "wt") as file:
-        for line in logger.spoiler_lines:
+        for line in logger.spoiler_lines:  # noqa: FURB122
             file.write(line + "\n")
     print(f"generated: {filename}")
     print(f"spoiler: {spoiler_file_name}")

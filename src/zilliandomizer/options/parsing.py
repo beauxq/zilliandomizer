@@ -147,10 +147,10 @@ def parse_options(t: str) -> Options:
         if option in fields and option not in sub_options:
             parent_option = ""
             typed_value = get_typed_value(option, value, tr)
-            tr.__setattr__(option, typed_value)
+            setattr(tr, option, typed_value)
         elif option in sub_options:
             parent_option = option
-            tr.__setattr__(option, make_empty_item_counts())  # 0 for any item_counts not specified
+            setattr(tr, option, make_empty_item_counts())  # 0 for any item_counts not specified
         else:
             if parent_option == "":
                 error(f"invalid option: {option}")
@@ -162,7 +162,7 @@ def parse_options(t: str) -> Options:
                 int_value = int(value)
             except ValueError:
                 error(f"invalid value {value} for sub-option {option} under {parent_option}")
-            tr.__getattribute__(parent_option)[sub_options[parent_option][option]] = int_value
+            getattr(tr, parent_option)[sub_options[parent_option][option]] = int_value
 
     validate(tr)
     return tr

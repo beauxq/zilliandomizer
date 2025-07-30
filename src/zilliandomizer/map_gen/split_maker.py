@@ -124,6 +124,6 @@ def choose_splits(bm: BaseMaker, no_doors: AbstractSet[Node], start: Node) -> Di
 def split_edges(splits: Mapping[Node, Node]) -> Set[Edge]:
     """ the edges between the splits and their dippers """
     split_edges: Set[Edge] = set()
-    for nodes in splits.items():
+    for nodes in splits.items():  # noqa: FURB142
         split_edges.add(frozenset(nodes))
     return split_edges

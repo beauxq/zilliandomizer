@@ -35,8 +35,6 @@ class Randomizer:
     class RollFail(RuntimeError):
         """ randomizing algorithm failed """
 
-        pass
-
     def __init__(self,
                  options: Options,
                  room_gen: Optional[RoomGen],
@@ -58,8 +56,9 @@ class Randomizer:
         if self._room_gen:
             for region_name, region in regions.items():
                 if (
-                    len(region_name) >= 5 and region_name[0] == 'r' and region_name[3] == 'c'
-                    and (len(region_name) == 5 or region_name.endswith("enter") or region_name.endswith("unlocker"))
+                    len(region_name) >= 5 and region_name[0] == 'r' and region_name[3] == 'c' and (
+                        len(region_name) == 5 or region_name.endswith("enter") or region_name.endswith("unlocker")
+                    )
                     # TODO: there's a constant saved somewhere else for this "unlocker" string
                     # (and there should be but isn't for "enter")
                 ):
@@ -98,7 +97,7 @@ class Randomizer:
         locations['main'].req.red = 1
         locations['main'].req.floppy = self.options.floppy_req
 
-    def room_door_gun_requirements(self) -> Dict[int, int]:
+    def room_door_gun_requirements(self) -> Dict[int, int]:  # noqa: PLR6301
         """ returns map of room index to the gun requirement [1, 2, or 3] for that room """
         tr: Dict[int, int] = {}  # room index to gun requirement
 

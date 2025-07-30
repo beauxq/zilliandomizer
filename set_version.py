@@ -8,10 +8,11 @@ Run this in a pre-commit git hook.
  It needs to be in this directory.)
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 import shlex
 from subprocess import check_output, getoutput
+import sys
 import zlib
 
 VERSION_FILE_NAME = 'src/zilliandomizer/ver.py'
@@ -34,7 +35,7 @@ def main() -> None:
     if src_index != -1:
         lines = git_status[src_index:].splitlines()
         print(f"error: unstaged {lines[0]}")
-        exit(1)
+        sys.exit(1)
 
     src_file_list = getoutput('git ls-files src').splitlines()
     assert len(src_file_list) > 15
@@ -44,7 +45,7 @@ def main() -> None:
             # print(file_name)
             with open(file_name, 'rb') as file:
                 crc = zlib.crc32(file.read(), crc)
-    text = f"version_hash = \"{format(crc, '02x')}\"\ndate = \"{datetime.utcnow()}\"\n"
+    text = f"version_hash = \"{format(crc, '02x')}\"\ndate = \"{datetime.now(timezone.utc)}\"\n"
     with open(VERSION_FILE_NAME, 'w') as file:
         file.write(text)
     check_output(shlex.split(f'git add {VERSION_FILE_NAME}'))

@@ -93,7 +93,7 @@ class Req:
         names_and_values: List[str] = []
         for name in names:
             value: object = getattr(self, name)
-            names_and_values.append(f"{name}={repr(value)}")
+            names_and_values.append(f"{name}={value!r}")
         return f'Req({", ".join(names_and_values)})'
 
 

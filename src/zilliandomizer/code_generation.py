@@ -16,15 +16,13 @@ from zilliandomizer.utils import make_room_name
 def make_location_code() -> None:
     p = Patcher()
     locs: List[str] = []
-    room_no = 0
-    for room in p.get_item_rooms():
+    for map_index, room in enumerate(p.get_item_rooms()):
         for item in p.get_items(room):
             if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
-                name = make_loc_name(room_no, item)
+                name = make_loc_name(map_index, item)
                 if name.startswith("x"):
                     name = "0" + name[1:]
                 locs.append(f'    "{name}": Location("{name}", Req(gun={item.gun + 1})),')
-        room_no += 1
     for loc in locs:
         print(loc)
 
@@ -43,14 +41,14 @@ def region_code_maker() -> None:
     # can't print these as we go because neighbor object might not be made yet
     connections: List[str] = []
 
-    for room in rooms:
+    for room, locs in rooms.items():
         split = room.split('c')
         col = int(split[1])
         row = int(split[0][1:])
 
         print()
         print(f'{room} = Region("{room}")')
-        for loc in rooms[room]:
+        for loc in locs:
             print(f'{room}.locations.add(locations["{loc}"])')
 
         # .connections.add((r01c7, Req(door=23)))
@@ -109,18 +107,16 @@ def location_ids() -> None:
     p = Patcher()
     loc_to_id: List[str] = []
     id_to_loc: List[str] = []
-    room_no = 0
-    for room in p.get_item_rooms():
+    for map_index, room in enumerate(p.get_item_rooms()):
         for item in p.get_items(room):
             if item.code in {KEYWORD, NORMAL, RESCUE, MAIN}:
-                name = make_loc_name(room_no, item)
+                name = make_loc_name(map_index, item)
                 # item.room_code is even number for each room that has items
                 # 0 in both r01c2 and main,
                 # but main has 0 in item.mask so still unique
                 loc_id = (item.room_code << 7) | (item.mask)
                 loc_to_id.append(f'    "{name}": {loc_id},')
                 id_to_loc.append(f'    {loc_id}: "{name}",')
-        room_no += 1
 
     print('loc_to_id: Dict[str, int] = {')
     for loc in loc_to_id:
@@ -219,9 +215,11 @@ def region_file_edit() -> None:
                 loc_count += 1
             else:  # not adding a location to a region
                 if loc_count > 0:
-                    lines.append(f'    assert len(reg_name_to_loc_name["{reg_name}"]) == {loc_count}\n')
-                    lines.append(f'    for loc_name in reg_name_to_loc_name["{reg_name}"]:\n')
-                    lines.append(f'        {reg_name}.locations.append(locations[loc_name])\n')
+                    lines.extend((
+                        f'    assert len(reg_name_to_loc_name["{reg_name}"]) == {loc_count}\n',
+                        f'    for loc_name in reg_name_to_loc_name["{reg_name}"]:\n',
+                        f'        {reg_name}.locations.append(locations[loc_name])\n',
+                    ))
 
                     loc_count = 0
                 lines.append(line)

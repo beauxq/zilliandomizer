@@ -89,7 +89,7 @@ def room_jump_requirements() -> Dict[int, int]:
 
 def test() -> None:
     reqs = room_jump_requirements()
-    for map_index in range(17*8):
+    for map_index in range(17 * 8):
         if map_index in reqs:
             print(f"{reqs[map_index]} ", end="")
         else:

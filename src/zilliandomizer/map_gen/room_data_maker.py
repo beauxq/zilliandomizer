@@ -6,6 +6,7 @@ from zilliandomizer.map_gen.door_decider import DE, Desc, make_edge_descriptions
 from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors, RoomData, TOP_LEFT, TOP_RIGHT
 from zilliandomizer.room_gen.data import GEN_ROOMS
 
+# ruff: noqa: E241
 _red_right_generate = {
     0x2b, 0x2c, 0x2d,       0x2f,
     0x33, 0x34,       0x36, 0x37,
@@ -91,9 +92,7 @@ def _add_to_gen_rooms(out: Dict[int, RoomData], bm: BaseMaker, splits: Mapping[N
     for row in range(bm.row_offset, bm.row_offset + bm.height):
         for col in range(bm.col_offset, bm.col_offset + bm.width):
             map_index = row * 8 + col
-            if map_index in out:
-                # delete vanilla
-                del out[map_index]
+            out.pop(map_index, None)  # delete vanilla
             if map_index not in _red_right_generate and map_index not in _pc_generate:
                 continue
             node = Node(row - bm.row_offset, col - bm.col_offset)

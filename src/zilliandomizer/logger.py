@@ -20,5 +20,5 @@ class Logger:
         if self.debug_stdout:
             print(line)
 
-    def warn(self, line: str) -> None:
+    def warn(self, line: str) -> None:  # noqa: PLR6301
         print(line)

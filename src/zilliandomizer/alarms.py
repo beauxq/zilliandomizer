@@ -189,8 +189,7 @@ class Alarms:
         `blocks` is map of changes that need to be made for alarms,
         index: Literal["v", "h", "n"]
         """
-        for block_index in blocks:
-            block = blocks[block_index]
+        for block_index, block in blocks.items():
             to = to_vertical if block == "v" \
                 else (to_horizontal if block == "h" else to_none)
             bytes_[block_index] = to[bytes_[block_index]]

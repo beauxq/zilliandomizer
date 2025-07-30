@@ -32,7 +32,7 @@ class TerrainModifier:
 
     def load(self) -> None:
         self._rooms = deepcopy(terrain_mods)
-        self._map_indexes = [map_index for map_index in self._rooms]
+        self._map_indexes = list(self._rooms.keys())
         self._size = sum(len(room) for room in self._rooms.values())
 
         original_size = rom_info.terrain_end_120da - rom_info.terrain_begin_10ef0

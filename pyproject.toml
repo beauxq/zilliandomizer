@@ -34,16 +34,105 @@ no_implicit_reexport = true
 include = ["src"]
 typeCheckingMode = "recommended"
 reportImplicitOverride = "none"
-reportImplicitStringConcatenation = "none"
-reportUnusedCallResult = "none"
-reportUnusedParameter = "none"
+reportImplicitStringConcatenation = "hint"
+reportUnusedCallResult = "hint"
+reportUnusedParameter = "hint"
 pythonVersion = "3.8"
 pythonPlatform = "Linux"
 
 [tool.ruff]
 line-length = 120
 indent-width = 4
+preview = true
 
 [tool.ruff.lint]
-select = ["B", "ANN", "E", "F", "W", "A", "S"]
-ignore = ["B011", "S101", "S311", "S603", "S605", "S607", "E714"]
+select = ["ALL"]
+ignore = ["B011", "S101",
+          "S311", "S603", "S605", "S607",
+          "E714",
+          # D200 and D204 are some that I like
+          "D105", "D107",  # Missing docstring in dunder
+          "D202", "D205", "D210", "D212",
+          "D400", "D401", "D403", "D404",
+          "D413", "D415",
+          "DOC201", "DOC402",
+          "ARG",
+          "C401",
+          "C420",  # use dict.from_keys
+          "CPY",
+          "TC001", "TC002", "TC003", "TC006",
+          "ERA001",
+          "EM",  # error message (string literal arguments)
+          "FA",
+          "FIX",
+          # FURB145 is one that I like
+          "FURB110",  # Replace ternary `if` expression with `or` operator
+          "FURB113",
+          "FURB116",  # Replace `hex` call with `f"{thing:x}"
+          "G010",  # type checker is better at finding deprecation
+          "ISC002",
+          "N806",  # function variable lowercase (local constant)
+          "N818",
+          "PERF401",
+          "PIE808",
+          "PIE810",
+          "PLC0415",
+          "PLC1802",
+          "PLC1901",  # falsy container
+          "PLE1141",  # type checker checks this well enough
+          "PLR1714",  # Consider merging multiple comparisons
+          "PLR5501",
+          "PLR6104",
+          "PLR6201",  # Use a set literal when testing for membership
+          "PT015",
+          "PTH",
+          "RET504",  # Unnecessary assignment before return
+          "RET505", "RET506", "RET507", "RET508",  # unnecessary branch after return raise break continue
+          "RSE",  # raise exception class
+          "RUF031",  # no parens on tuples in subscript
+          # SIM113 gave me something I like
+          "SIM102", "SIM103", "SIM105", "SIM108",
+          "SIM109",  # I timed it and found it to be slower.
+          "SIM118",
+          "SIM201",
+          "SLF001",
+          "TD002", "TD003",
+          "TRY003", "TRY301",
+          "UP015", "UP037",
+          
+          # remove from this ignore list:
+          "D100", "D101", "D102", "D104",
+          "DOC501",
+          "G004",
+          "UP006", "UP035",
+          "FBT003",
+          "FURB101", "FURB103",
+          "PLR2004",
+          "PLW1514",
+          "PT011",
+          "PYI036", "PYI063",
+          "Q000",
+          "RUF052",
+          "UP045",
+          "COM812",
+
+          "I001",
+          "C901",
+          "FBT",
+          "PLR1702",
+          "PLR0911",
+          "PLR0912",
+          "PLR0913",
+          "PLR0914",
+          "PLR0915",
+          "PLR0916",
+          "PLR0917",
+          "PT018",
+          "S404",
+          ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "D100", "D103", "T201", "INP001"]
+"src/*" = ["D103", "T201"]
+"src/zilliandomizer/zri/asyncudp/**/*" = ["D", "DOC"]
+"set_version.py" = ["D103", "T201"]

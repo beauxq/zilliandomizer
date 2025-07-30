@@ -236,7 +236,7 @@ class RoomGen:
             for exit_ in exits
             if exit_ != dip_entrance
         ]
-        assert not any(ninth == 4 for ninth in pudding_ninths + [entrance_ninth]), (
+        assert not any(ninth == 4 for ninth in [*pudding_ninths, entrance_ninth]), (
             f"entrance into middle of room? {this_room=}"
         )
         dipped_ninths = [4, entrance_ninth]
@@ -481,7 +481,7 @@ class RoomGen:
                 g = candidate
                 # testing - TODO: make unit test for Grid.no_space
                 # if map_index in (0x4b, 0x21):
-            except MakeFailure:
+            except MakeFailure:  # noqa: PERF203
                 print(".", end="")
                 fail_count += 1
                 if fail_count > 1500:
@@ -711,9 +711,11 @@ class RoomGen:
 
         # copy locations from rooms that I didn't generate
         vanilla_locations = make_locations()
-        for loc_name, loc in vanilla_locations.items():
-            if loc_name[:5] not in generated_rooms:
-                locations[loc_name] = loc
+        locations.update({
+            loc_name: loc
+            for loc_name, loc in vanilla_locations.items()
+            if loc_name[:5] not in generated_rooms
+        })
         locations["main"] = locations["r10c5y98x18"]  # alias
         return locations
 

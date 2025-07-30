@@ -74,7 +74,7 @@ def make_regions_bm(bm: BaseMaker,
         logical_region_name = region_name_base
 
         if dead_end_door:
-            locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
+            locations_in_room = list(mb.reg_name_to_loc_name[region_name_base])
             assert locations_in_room[-1][6:8] == "18", f"locked location should be top row {locations_in_room}"
             mb.split(map_row, map_col, {
                 "enter": locations_in_room[:-1],
@@ -109,7 +109,7 @@ def make_regions_bm(bm: BaseMaker,
             mb.r["r13c4"].to(mb.r["r13c3n"], door=True)  # pudding parent to pudding
             mb.r["r13c3n"].to(mb.r["r13c2"], door=mb.r["r13c3s"].door)  # pudding to pudding child
             """
-            locations_in_room = [loc_name for loc_name in mb.reg_name_to_loc_name[region_name_base]]
+            locations_in_room = list(mb.reg_name_to_loc_name[region_name_base])
             map_index = map_row * 8 + map_col
             if map_index in pudding_cans:
                 dipped_locations = locations_in_room[:-1]

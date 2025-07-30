@@ -1,5 +1,6 @@
 from .base_maker import Node
 
+# ruff: noqa: E241
 
 red_right_no_doors = {
     Node(0, 2),  # no computer  # TODO: implement changing which rooms have computers and doors?

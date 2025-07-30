@@ -95,7 +95,7 @@ class Memory:
     """
 
     _rai: RamInterface
-    rescues: Dict[int, Tuple[int, int]] = {}
+    rescues: Dict[int, Tuple[int, int]]
     """ { ram_char_status_address: (item_room_index, mask) } """
     loc_mem_to_loc_id: Dict[int, int]
     """ { ((item_room_index << 8) | bit_mask): location_id } """
@@ -132,7 +132,7 @@ class Memory:
     async def read(self) -> RamDataWrapper:
         return RamDataWrapper(await self._rai.read())
 
-    def get_rom_to_ram_data(self, ram: RamDataWrapper) -> bytes:
+    def get_rom_to_ram_data(self, ram: RamDataWrapper) -> bytes:  # noqa: PLR6301
         """
         given the ram from `read()`,
         returns the data passed to zilliandomizer.patch.Patcher.set_rom_to_ram_data,

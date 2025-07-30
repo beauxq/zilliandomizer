@@ -1,4 +1,4 @@
-from setuptools import setup  # type: ignore
+from setuptools import setup  # type: ignore[import-not-found]
 # https://github.com/pypa/setuptools/issues/2345
 
 if __name__ == "__main__":

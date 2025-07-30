@@ -469,9 +469,7 @@ class Grid:
             ))
         return all_ends
 
-    def map_str(self, marks: Union[None, Iterable[Coord]] = None) -> str:
-        if not marks:
-            marks = frozenset()
+    def map_str(self, marks: Iterable[Coord] = ()) -> str:
         coord_marks: AbstractSet[Coord] = frozenset(marks)
         under = "̲"  # unicode underline prev char
         tr = " "
@@ -727,15 +725,13 @@ class Grid:
                                 new_goables_2 = self.get_standing_goables(2)
                                 if new_goables_2 != base_goables_2:
                                     # restore
-                                    for y_r, x_r in to_restore:
-                                        value = to_restore[y_r, x_r]
+                                    for (y_r, x_r), value in to_restore.items():
                                         self.data[y_r][x_r] = value
                                 else:
                                     new_goables_3 = self.get_standing_goables(3)
                                     if new_goables_3 != base_goables_3:
                                         # restore
-                                        for y_r, x_r in to_restore:
-                                            value = to_restore[y_r, x_r]
+                                        for (y_r, x_r), value in to_restore.items():
                                             self.data[y_r][x_r] = value
                                     # else:
                                     #     # debug
@@ -750,6 +746,8 @@ class Grid:
 
         def try_change(y: int, x: int, value: str) -> bool:
             """ returns whether change was good """
+            nonlocal base_goables_2, base_goables_3
+
             if value == Cell.space and y < BOTTOM and self.data[y + 1][x] == Cell.wall:
                 # space above wall not allowed
                 return False
@@ -760,9 +758,6 @@ class Grid:
             if value == Cell.wall and y > 0 and self.data[y - 1][x] == Cell.space:
                 above_saved = self.data[y - 1][x]
                 self.data[y - 1][x] = Cell.floor
-
-            nonlocal base_goables_2
-            nonlocal base_goables_3
 
             def new_goables_ok(new: Set[Tuple[int, int, bool]], base: Set[Tuple[int, int, bool]]) -> bool:
                 return (

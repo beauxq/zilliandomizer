@@ -6,6 +6,8 @@ from zilliandomizer.map_gen.door_manager import DoorManager
 from zilliandomizer.utils.disjoint_set import DisjointSet
 from zilliandomizer.utils.deterministic_set import DetSet
 
+# ruff: noqa: E241, RUF102, RUF100
+
 
 class Node(NamedTuple):
     y: int
@@ -278,7 +280,7 @@ def red_inputs() -> Tuple[List[Edge], List[Edge]]:
         h(1, 0),                   h(1, 3),
         h(2, 0), h(2, 1), h(2, 2), h(2, 3),
         h(3, 0), h(3, 1), h(3, 2), h(3, 3),
-                 h(4, 1)                     # noqa: E131
+                 h(4, 1),                    # noqa: E131
     ]
 
     existing_edges: List[Edge] = [

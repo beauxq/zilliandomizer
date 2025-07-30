@@ -30,7 +30,7 @@ class AlarmEntranceManager:
         for i, entrance in enumerate(self.data):
             if entrance and entrance.ceiling:
                 diff = abs(level - entrance.level)
-                level_differences[diff].append((entrance.x, (i+1) * 6))
+                level_differences[diff].append((entrance.x, (i + 1) * 6))
         for ld in level_differences:
             shuffle(ld)
         for ld in level_differences:

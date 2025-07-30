@@ -37,7 +37,7 @@ class ByteDict(Dict[int, int]):
         return super().__setitem__(key, value)
 
 
-class Patcher:
+class Patcher:  # noqa: PLR0904
     writes: Dict[int, int]  # address to byte
     verify: bool
 
@@ -372,13 +372,11 @@ class Patcher:
         for old, new in champ_text.values():
             assert len(old) == len(new)
         if self.verify:
-            for addr in apple_text:
-                old, _ = apple_text[addr]
+            for addr, (old, _new) in apple_text.items():
                 for i in range(len(old)):
                     # print(f"checking addr {hex(addr + i)}: {chr(self.rom[addr + i])} {chr(old[i])}")
                     assert self.rom[addr + i] == old[i]
-            for addr in champ_text:
-                old, _ = champ_text[addr]
+            for addr, (old, _new) in champ_text.items():
                 for i in range(len(old)):
                     assert self.rom[addr + i] == old[i]
         if start_char != "JJ":
@@ -453,9 +451,7 @@ class Patcher:
         return (high << 8) | low
 
     def get_item_rooms(self) -> Generator[int, None, None]:
-        """
-        addresses for the data structures of the items of each map index
-        """
+        """ addresses for the data structures of the items of each map index """
         for i in range(136):
             yield self.get_address_for_room(i)
 
@@ -607,8 +603,8 @@ class Patcher:
         old_lo = rom_info.level_up_code_4adf % 256
 
         # this is the location of the "+" label of the 4ADF section of code in the rom
-        _4ADF_plus_hi = rom_info.level_up_code_plus_4aeb // 256
-        _4ADF_plus_lo = rom_info.level_up_code_plus_4aeb % 256
+        rom_4ADF_plus_hi = rom_info.level_up_code_plus_4aeb // 256
+        rom_4ADF_plus_lo = rom_info.level_up_code_plus_4aeb % 256
 
         # ram locations for each char's level
         lv_hi = 0xc1
@@ -686,7 +682,7 @@ class Patcher:
             asm.CP, opas_per_level,
             asm.JRZ, 6,
             asm.LDVA, opa_lo, opa_hi,
-            asm.JP, _4ADF_plus_lo, _4ADF_plus_hi,
+            asm.JP, rom_4ADF_plus_lo, rom_4ADF_plus_hi,
 
             # check if max level
             asm.XORA,
@@ -694,7 +690,7 @@ class Patcher:
             asm.LDHL, lv_jj_lo, lv_hi,
             asm.LDAVHL,
             asm.CP, max_level - 1,  # memory values are 0 to 7
-            asm.JPNC, _4ADF_plus_lo, _4ADF_plus_hi,
+            asm.JPNC, rom_4ADF_plus_lo, rom_4ADF_plus_hi,
 
             # subroutine in bank 6 for lots of work
             asm.LDAV, 0xff, 0xff,
@@ -923,8 +919,7 @@ class Patcher:
             gun_inc + 8: (after_gun_lo, new_code_addr % 256),  # jump here if we incremented
             gun_inc + 9: (after_gun_hi, new_code_addr // 256)
         }
-        for addr in changes:
-            old, new = changes[addr]
+        for addr, (old, new) in changes.items():
             if self.verify:
                 assert self.rom[addr] == old
             self.writes[addr] = new
@@ -1377,7 +1372,7 @@ class Patcher:
         def clean_name_for_rom(player_name: str) -> str:
             cleaned = ""
             for char in player_name:
-                char = char.upper()
+                char = char.upper()  # noqa: PLW2901
                 if 'A' <= char <= 'Z':
                     cleaned += char
                 # TODO: get available digits
@@ -1454,8 +1449,7 @@ class Patcher:
 
         location_groups: Dict[int, bytearray] = defaultdict(bytearray)
 
-        for location_name in loc_to_names:
-            _, player_name = loc_to_names[location_name]
+        for location_name, (_, player_name) in loc_to_names.items():
             row, col, y, x = parse_loc_name(location_name)
             room = row * 8 + col
             coord = (y & 0xf0) | (x >> 4)

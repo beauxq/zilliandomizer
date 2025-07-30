@@ -485,4 +485,4 @@ def make_sprite_data(o: bytes) -> None:
             ))
         data[map_index] = room_sprites
     from pprint import pprint
-    pprint(data)
+    pprint(data)  # noqa: T203

@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Dict, List, Any
-# some changes here for working on region connections
-# from typing_extensions import Unpack  # type: ignore
 
 from zilliandomizer.logic_components.locations import Location, LocationData, Req, ReqArgs
 
