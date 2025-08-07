@@ -1,6 +1,20 @@
 [build-system]
-requires = ["setuptools>=45.0", "wheel", "setuptools_scm>=6.2"]
+requires = ["setuptools>=80.9", "setuptools_scm>=8.3.1"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "zilliandomizer"
+description = "Zillion randomizer"
+authors = [
+  { name = "Doug Hoskisson" }
+]
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+# We use a different system for writing the `ver.py` file,
+# because not all users will install the package.
 
 [tool.pytest.ini_options]
 addopts = "--cov=zilliandomizer --cov-branch"
@@ -51,7 +65,7 @@ select = ["ALL"]
 ignore = ["B011", "S101",
           "S311", "S603", "S605", "S607",
           "E714",
-          # D200 and D204 and D211 are some that I like
+          # "D200", "D204", "D211" are some that I like
           "D105", "D107",  # Missing docstring in dunder
           "D202", "D203", "D205", "D210", "D212",
           "D400", "D401", "D403", "D404",
@@ -66,7 +80,7 @@ ignore = ["B011", "S101",
           "EM",  # error message (string literal arguments)
           "FA",
           "FIX",
-          # FURB145 is one that I like
+          # "FURB145" is one that I like
           "FURB110",  # Replace ternary `if` expression with `or` operator
           "FURB113",
           "FURB116",  # Replace `hex` call with `f"{thing:x}"
@@ -91,7 +105,7 @@ ignore = ["B011", "S101",
           "RET505", "RET506", "RET507", "RET508",  # unnecessary branch after return raise break continue
           "RSE",  # raise exception class
           "RUF031",  # no parens on tuples in subscript
-          # SIM113 gave me something I like
+          # "SIM113" gave me something I like
           "SIM102", "SIM103", "SIM105", "SIM108",
           "SIM109",  # I timed it and found it to be slower.
           "SIM118",
