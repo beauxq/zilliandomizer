@@ -603,7 +603,8 @@ class RoomGen:
                         y, x = coord_to_pixel(c)
                         y += 16
                     else:
-                        y = randrange(0x48, 0x69)
+                        y = randrange(0x48, 0x69)  # note: not as safe anymore since doors moved to mid rows
+                        # (but unlikely to be a significant issue)
                         x = 0x10
                 else:  # left facing
                     if len(agp.left):
@@ -611,7 +612,7 @@ class RoomGen:
                         y, x = coord_to_pixel(c)
                         y += 16
                     else:
-                        y = randrange(0x48, 0x69)
+                        y = randrange(0x48, 0x69)  # note: not as safe anymore since doors moved to mid rows
                         x = 0xe0
                 sprite.x = x
                 sprite.y = y
