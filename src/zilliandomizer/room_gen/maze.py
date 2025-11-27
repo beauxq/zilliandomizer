@@ -31,6 +31,14 @@ class MakeFailure(Exception):
     pass
 
 
+@dataclass
+class _Platform:
+    """ for placing walkways """
+
+    c: Coord
+    length: int
+
+
 assert Cell.space == " ", "a performance optimization relies on this"
 
 
@@ -816,12 +824,7 @@ class Grid:
 
     def place_walkways(self) -> None:
         self.is_walkway = [[0 for _ in range(14)] for _ in range(6)]
-
-        @dataclass
-        class Platform:
-            c: Coord
-            length: int
-        platform_list: list[Platform] = []
+        platform_list: list[_Platform] = []
 
         # red rooms can only have moving walkways in odd rows
         for y in range(1, 6, 2 if 0x27 < self.map_index < 0x50 else 1):
@@ -834,11 +837,11 @@ class Grid:
                 if here_is_platform:
                     if prev_was_platform:
                         if random.random() < 0.2:  # chance to break 1 platform into multiple
-                            platform_list.append(Platform(here, 1))
+                            platform_list.append(_Platform(here, 1))
                         else:  # not broken
                             platform_list[-1].length += 1
                     else:  # new platform
-                        platform_list.append(Platform(here, 1))
+                        platform_list.append(_Platform(here, 1))
                         prev_was_platform = True
                 else:
                     prev_was_platform = False
