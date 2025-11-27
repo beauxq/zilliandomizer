@@ -19,7 +19,7 @@ from .room_gen.data import GEN_ROOMS
 from .room_gen.room_gen import RoomGen
 
 
-_MapData = tuple[Base, dict[int, RoomData], dict[Node, Node]]
+_MapData = tuple[Base, dict[int, RoomData]]
 
 
 class System:
@@ -82,7 +82,7 @@ class System:
                 pc_base = get_paperclip_base(dm, self._random.randrange(1999999999))
                 pc_splits = choose_splits(pc_base, pc_no_doors, Node(0, 0))
                 base = Base(red_base, pc_base, dm, pc_splits)
-                room_gen_data = make_room_gen_data(base, pc_splits)
+                room_gen_data = make_room_gen_data(base)
 
                 try:
                     dm.get_writes()
@@ -90,17 +90,19 @@ class System:
                     self._logger.debug("door data overflow")
                     return None
 
-                return base, room_gen_data, pc_splits
+                return base, room_gen_data
 
             result: _MapData | None = None
             while result is None:
                 result = try_base_and_room_gen_data()
-            base, room_gen_data, pc_splits = result
+            base, room_gen_data = result
 
             self._base = base
             self._logger.spoil(base.red.map_str())
-            self._logger.spoil(base.paperclip.map_str(1, pc_splits, split_edges(pc_splits)))
-            self._logger.debug(f"{len(pc_splits)=}\n{base.paperclip.map_str(1, pc_splits, split_edges(pc_splits))}")
+            self._logger.spoil(base.paperclip.map_str(1, base.pc_splits, split_edges(base.pc_splits)))
+            self._logger.debug(
+                f"{len(base.pc_splits)=}\n{base.paperclip.map_str(1, base.pc_splits, split_edges(base.pc_splits))}"
+            )
         elif self._options.map_gen == "rooms":
             self._base = None
             room_gen_data = GEN_ROOMS.copy()
