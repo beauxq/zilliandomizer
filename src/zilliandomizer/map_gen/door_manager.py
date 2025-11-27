@@ -150,7 +150,7 @@ class DoorManager:
                 self.freed_statuses.add(status)
 
     def add_door(self, map_index: int, y_large: int, x_pixel: int, opened_by: int) -> None:
-        assert not self._locked, "del_room on locked door manager"
+        assert not self._locked, "add_door on locked door manager"
         status = self._get_available_status(map_index, opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_door(map_index, x_door)
@@ -160,7 +160,7 @@ class DoorManager:
 
     def add_elevator(self, map_index: int, y_large: Literal[0, 5], x_pixel: int, opened_by: int) -> None:
         """ both in this room and destination room """
-        assert not self._locked, "del_room on locked door manager"
+        assert not self._locked, "add_elevator on locked door manager"
         status = self._get_available_status(map_index, opened_by)
         x_door = x_pixel >> 2
         sprite = DoorSprite.get_elevator(map_index, y_large)
