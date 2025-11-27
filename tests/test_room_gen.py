@@ -3,7 +3,7 @@ from zilliandomizer.logger import Logger
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, TOP_LEFT, TOP_RIGHT, Coord, RoomData
-from zilliandomizer.room_gen.maze import Cell, Grid
+from zilliandomizer.room_gen.maze import Cell, Grid, g_row
 from zilliandomizer.room_gen.room_gen import RoomGen
 from zilliandomizer.terrain_modifier import TerrainModifier
 
@@ -17,12 +17,12 @@ def test_navigation() -> None:
     ends: list[Coord] = [BOT_LEFT, BOT_RIGHT]
     g = Grid(ends, ends, 0x31, log, skill, [], [])
     g.data = [
-        list("        |||__|"),
-        list("__    ___  |||"),
-        list("|________    |"),
-        list("  ||       __|"),
-        list("   _____      "),
-        list("______________"),
+        g_row("        |||__|"),
+        g_row("__    ___  |||"),
+        g_row("|________    |"),
+        g_row("  ||       __|"),
+        g_row("   _____      "),
+        g_row("______________"),
     ]
     assert g.solve(2)
     assert g.solve(3)
@@ -30,12 +30,12 @@ def test_navigation() -> None:
     assert (1, 0, True) not in g.get_goables(3)
 
     g.data = [
-        list("              "),
-        list("           _  "),
-        list("__________ |  "),
-        list("          _|_ "),
-        list("         _||  "),
-        list("__________||__"),
+        g_row("              "),
+        g_row("           _  "),
+        g_row("__________ |  "),
+        g_row("          _|_ "),
+        g_row("         _||  "),
+        g_row("__________||__"),
     ]
     assert not g.solve(2)
     assert not g.solve(3)
@@ -52,12 +52,12 @@ def test_navigation() -> None:
     assert g.solve(3)
 
     g.data = [
-        list("       _      "),
-        list("              "),
-        list("     __  __   "),
-        list("     |        "),
-        list("   __|     _  "),
-        list("_____|________"),
+        g_row("       _      "),
+        g_row("              "),
+        g_row("     __  __   "),
+        g_row("     |        "),
+        g_row("   __|     _  "),
+        g_row("_____|________"),
     ]
     assert g.solve(2)
     assert g.solve(3)
@@ -74,12 +74,12 @@ def test_jump_requirements() -> None:
     log.spoil_stdout = True
     g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, log, 5, [], [])
     g.data = [
-        list("         |__  "),
-        list("__       |||  "),
-        list("   ______||  _"),
-        list("             |"),
-        list("        __   |"),
-        list("_____________|"),
+        g_row("         |__  "),
+        g_row("__       |||  "),
+        g_row("   ______||  _"),
+        g_row("             |"),
+        g_row("        __   |"),
+        g_row("_____________|"),
     ]
     assert not g.solve(2)
     print("2 false")
@@ -95,23 +95,23 @@ def test_softlock_detect() -> None:
 
     g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, log, 0, [], [])
     g.data = [
-        list("             |"),
-        list("__          _ "),
-        list("            |_"),
-        list("   __        |"),
-        list("             |"),
-        list("_____________|"),
+        g_row("             |"),
+        g_row("__          _ "),
+        g_row("            |_"),
+        g_row("   __        |"),
+        g_row("             |"),
+        g_row("_____________|"),
     ]
     assert g.softlock_exists(), "softlock detection can jump 4 tiles"
 
     g = Grid([BOT_LEFT, TOP_LEFT], [BOT_LEFT, TOP_LEFT], 0x31, log, 0, [], [])
     g.data = [
-        list("             |"),
-        list("__            "),
-        list("           _ _"),
-        list("   _       | |"),
-        list("           | |"),
-        list("___________|_|"),
+        g_row("             |"),
+        g_row("__            "),
+        g_row("           _ _"),
+        g_row("   _       | |"),
+        g_row("           | |"),
+        g_row("___________|_|"),
     ]
     assert not g.softlock_exists(), "If you can get in that hole, you can get out."
 
@@ -128,12 +128,12 @@ def test_hard_jumps() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
-        list("              "),
-        list("__          __"),
-        list("            |_"),
-        list("   __        |"),
-        list("             |"),
-        list("_____________|"),
+        g_row("              "),
+        g_row("__          __"),
+        g_row("            |_"),
+        g_row("   __        |"),
+        g_row("             |"),
+        g_row("_____________|"),
     ]
     assert not g.solve(3), "can't jump to that platform"
 
@@ -161,23 +161,23 @@ def test_hard_jumps() -> None:
     assert g.solve(2), "Champ room exit jump 2 with ceiling"
 
     g.data = [
-        list("              "),
-        list("__   __     __"),
-        list("         _  |_"),
-        list("   __        |"),
-        list("             |"),
-        list("_____________|"),
+        g_row("              "),
+        g_row("__   __     __"),
+        g_row("         _  |_"),
+        g_row("   __        |"),
+        g_row("             |"),
+        g_row("_____________|"),
     ]
     # TODO: enable this jump
     # assert g.solve(2), "jump to lower platform"
 
     g.data = [
-        list("          _   "),
-        list("__          __"),
-        list("            |_"),
-        list("   __    _   |"),
-        list("             |"),
-        list("_____________|"),
+        g_row("          _   "),
+        g_row("__          __"),
+        g_row("            |_"),
+        g_row("   __    _   |"),
+        g_row("             |"),
+        g_row("_____________|"),
     ]
     # This is possible, but traversal logic doesn't support it.
     # assert g.solve(2)
@@ -194,24 +194,24 @@ def test_from_early_dev() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, log, skill, [], [])
     g.data = [
-        list("| _   _       "),
-        list("    _ |  _ ___"),
-        list("___   |   __  "),
-        list("|| _ _   __  _"),
-        list("   |_ _  _  _ "),
-        list("_________|____"),
+        g_row("| _   _       "),
+        g_row("    _ |  _ ___"),
+        g_row("___   |   __  "),
+        g_row("|| _ _   __  _"),
+        g_row("   |_ _  _  _ "),
+        g_row("_________|____"),
     ]
     assert g.softlock_exists()
 
     ends = [BOT_LEFT, (2, 1)]
     g = Grid(ends, ends, 0x31, log, skill, [], [])
     g.data = [
-        list("         _    "),
-        list("   _ _  _|  _ "),
-        list(" ____|      | "),
-        list("         _ _| "),
-        list("    _    |  ||"),
-        list("______________"),
+        g_row("         _    "),
+        g_row("   _ _  _|  _ "),
+        g_row(" ____|      | "),
+        g_row("         _ _| "),
+        g_row("    _    |  ||"),
+        g_row("______________"),
     ]
     assert not g.solve(2)
     assert g.solve(3)
@@ -225,12 +225,12 @@ def test_skill_required_for_jumps() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, log, 0, [], [])
     g.data = [
-        list("              "),
-        list("            __"),
-        list("              "),
-        list("            __"),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert not g.solve(2), "whether skill 0 can jump around ledges"
     h = Grid(ends, ends, 0x31, log, 2, [], [])
@@ -245,49 +245,49 @@ def test_skill_required_for_jumps() -> None:
     # make sure it doesn't think impossible jump is possible
     g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
-        list("              "),
-        list("        _   __"),
-        list("          __| "),
-        list("            | "),
-        list("          __| "),
-        list("______________"),
+        g_row("              "),
+        g_row("        _   __"),
+        g_row("          __| "),
+        g_row("            | "),
+        g_row("          __| "),
+        g_row("______________"),
     ]
     assert not g.solve(2)
     g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
-        list("          _   "),
-        list("            __"),
-        list("              "),
-        list("            __"),
-        list("              "),
-        list("______________"),
+        g_row("          _   "),
+        g_row("            __"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert not g.solve(2)
     assert not g.solve(3)
     g = Grid(ends, ends, 0x31, log, 5, [], [])
     g.data = [
-        list("          _   "),
-        list("            __"),
-        list("              "),
-        list("              "),
-        list("            __"),
-        list("______________"),
+        g_row("          _   "),
+        g_row("            __"),
+        g_row("              "),
+        g_row("              "),
+        g_row("            __"),
+        g_row("______________"),
     ]
     assert not g.solve(2)
     assert not g.solve(3)
 
     g.data = [
-        list("          _   "),
-        list("            __"),
-        list("            ||"),
-        list("              "),
-        list("            __"),
-        list("______________"),
+        g_row("          _   "),
+        g_row("            __"),
+        g_row("            ||"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("______________"),
     ]
     assert not g.solve(2)
     assert not g.solve(3)
 
-    g.data[2] = list("            __")
+    g.data[2] = g_row("            __")
     assert not g.solve(2)
     assert not g.solve(3)
 
@@ -300,12 +300,12 @@ def test_long_distance_jumps() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, log, 0, [], [])
     g.data = [
-        list("              "),
-        list("            __"),
-        list("              "),
-        list("  ____        "),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("              "),
+        g_row("  ____        "),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert not g.solve(2), "jump 5"
     assert not g.solve(2.5), "jump 5"
@@ -319,12 +319,12 @@ def test_long_distance_jumps() -> None:
     # assert g.solve(2) and g.solve(2.5) and g.solve(3)
 
     g.data = [
-        list("              "),
-        list("            __"),
-        list("           _  "),
-        list("  __          "),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("           _  "),
+        g_row("  __          "),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert not g.solve(2), "can't jump distance 8"
     assert not g.solve(2.5), "can't jump distance 8"
@@ -333,23 +333,23 @@ def test_long_distance_jumps() -> None:
     assert g.solve(2.5), "height 1 distance 7, jump blocks 2.5"
 
     g.data = [
-        list("              "),
-        list("           ___"),
-        list("   __         "),
-        list("  _           "),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("           ___"),
+        g_row("   __         "),
+        g_row("  _           "),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert not g.solve(2), "can't jump height 1 distance 7 with ceiling"
     assert not g.solve(2.5), "can't jump height 1 distance 7 with ceiling"
 
     g.data = [
-        list("              "),
-        list("            __"),
-        list("   __      _  "),
-        list("  __          "),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("            __"),
+        g_row("   __      _  "),
+        g_row("  __          "),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert not g.solve(2), "can't jump height 0 distance 7"
     assert not g.solve(2.5), "can't jump height 0 distance 7"
@@ -366,12 +366,12 @@ def test_jump_from_walkway() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g0 = Grid(ends, ends, 0x31, log, 0, [], [])
     g0.data = [
-        list("              "),
-        list("     ___  ____"),
-        list("     |        "),
-        list("_____|__      "),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("     ___  ____"),
+        g_row("     |        "),
+        g_row("_____|__      "),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert g0.solve(2)
     g0.is_walkway[3][7] = 1
@@ -396,12 +396,12 @@ def test_stand_in_moving_walkway() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_RIGHT]
     g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
-        list("____          "),
-        list("|_ ____     __"),
-        list("            _ "),
-        list("    _   ______"),
-        list("         |||||"),
-        list("__________|___"),
+        g_row("____          "),
+        g_row("|_ ____     __"),
+        g_row("            _ "),
+        g_row("    _   ______"),
+        g_row("         |||||"),
+        g_row("__________|___"),
     ]
 
     assert (3, 13, True) in g.get_standing_goables(3), "stand in small space"
@@ -411,12 +411,12 @@ def test_stand_in_moving_walkway() -> None:
     assert (3, 13, True) not in g.get_standing_goables(3), "stand in small space from moving walkway"
 
     g.data = [
-        list("____          "),
-        list("|_ ____    ___"),
-        list("           _  "),
-        list("    _   ______"),
-        list("         |||||"),
-        list("__________|___"),
+        g_row("____          "),
+        g_row("|_ ____    ___"),
+        g_row("           _  "),
+        g_row("    _   ______"),
+        g_row("         |||||"),
+        g_row("__________|___"),
     ]
 
     g.is_walkway[3][12] = 2
@@ -424,12 +424,12 @@ def test_stand_in_moving_walkway() -> None:
     assert (3, 13, True) in g.get_standing_goables(3), "stand in larger space from moving walkway"
 
     g.data = [
-        list("____          "),
-        list("|_ ____    ___"),
-        list("           _ _"),
-        list("    _   ______"),
-        list("         |||||"),
-        list("__________|___"),
+        g_row("____          "),
+        g_row("|_ ____    ___"),
+        g_row("           _ _"),
+        g_row("    _   ______"),
+        g_row("         |||||"),
+        g_row("__________|___"),
     ]
 
     assert (3, 12, True) not in g.get_standing_goables(3), "stand in small space from moving walkway away from wall"
@@ -443,12 +443,12 @@ def test_low_skill_jump_1_distance_5() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_LEFT]
     g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
-        list("              "),
-        list("_____         "),
-        list("              "),
-        list("         _ _ _"),
-        list("       _      "),
-        list("______________"),
+        g_row("              "),
+        g_row("_____         "),
+        g_row("              "),
+        g_row("         _ _ _"),
+        g_row("       _      "),
+        g_row("______________"),
     ]
     assert not g.solve(2), "jump 1, skill 2, distance 5"
 
@@ -465,12 +465,12 @@ def test_low_skill_jump_1_distance_4() -> None:
     ends: list[Coord] = [(1, 7), BOT_RIGHT]
     g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
-        list("||            "),
-        list("___    _______"),
-        list("|||   ___    |"),
-        list("|      ||     "),
-        list("___           "),
-        list("______________"),
+        g_row("||            "),
+        g_row("___    _______"),
+        g_row("|||   ___    |"),
+        g_row("|      ||     "),
+        g_row("___           "),
+        g_row("______________"),
     ]
     assert not g.softlock_exists()
     assert g.solve(2), "jump 1, skill 2, distance 4"
@@ -484,12 +484,12 @@ def test_skill_horizontal_jump_from_walkway() -> None:
     ends: list[Coord] = [BOT_LEFT, TOP_LEFT]
     g = Grid(ends, ends, 0x31, log, 2, [], [])
     g.data = [
-        list("              "),
-        list("___ _  _      "),
-        list("|||           "),
-        list("|          ___"),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("___ _  _      "),
+        g_row("|||           "),
+        g_row("|          ___"),
+        g_row("              "),
+        g_row("______________"),
     ]
     assert g.solve(2), "jump 2, skill 2, over 2 gap"
     g.is_walkway[1][7] = 2

@@ -3,7 +3,7 @@ from collections.abc import Container, Iterable, Iterator, Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
 import random
-from typing import Literal, final
+from typing import Final, Literal, final
 
 from zilliandomizer.alarms import Alarms
 from zilliandomizer.logger import Logger
@@ -22,9 +22,12 @@ BOTTOM = 5
 # TODO: StrEnum ?
 @final
 class Cell:
-    wall = '|'
-    floor = '_'
-    space = ' '
+    wall: Final = '|'
+    floor: Final = '_'
+    space: Final = ' '
+
+
+CellType = Literal[" ", "_", "|"]
 
 
 class MakeFailure(Exception):
@@ -34,8 +37,15 @@ class MakeFailure(Exception):
 assert Cell.space == " ", "a performance optimization relies on this"
 
 
+def g_row(s: str) -> list[CellType]:
+    """ made for use in unit tests - the assertion will be slow """
+    tr = list(s)
+    assert all(char in (" ", "_", "|") for char in tr), s
+    return tr  # type: ignore[return-value]  # pyright: ignore[reportReturnType]
+
+
 class Grid:
-    data: list[list[str]]
+    data: list[list[CellType]]
     exits: list[Coord]
     """ places I enter and exit room - coords of lower left """
     ends: list[Coord]
@@ -551,11 +561,11 @@ class Grid:
 
         return whether a change was made
         """
-        changeables: list[tuple[int, int, list[str]]] = []
+        changeables: list[tuple[int, int, list[CellType]]] = []
 
-        def is_changeable(row: int, col: int) -> list[str]:
+        def is_changeable(row: int, col: int) -> list[CellType]:
             """ returns what it can change to """
-            tr: list[str] = []
+            tr: list[CellType] = []
             if self.in_end(row, col) or ((row, col) in self.no_change):
                 return tr
 
@@ -706,7 +716,7 @@ class Grid:
                             ):
                                 if self.data[y - 1][x] != Cell.space:
                                     target_col = x
-                                to_restore: dict[Coord, str] = {}
+                                to_restore: dict[Coord, CellType] = {}
                                 to_restore[y, target_col] = self.data[y][target_col]
                                 self.data[y][target_col] = Cell.wall
                                 if self.data[y - 1][target_col] == Cell.space:
@@ -734,7 +744,7 @@ class Grid:
         base_goables_2 = self.get_goables(2)
         base_goables_3 = self.get_goables(3)
 
-        def try_change(y: int, x: int, value: str) -> bool:
+        def try_change(y: int, x: int, value: CellType) -> bool:
             """ returns whether change was good """
             nonlocal base_goables_2, base_goables_3
 
@@ -744,7 +754,7 @@ class Grid:
             # before_change = self.map_str()
             saved = self.data[y][x]
             self.data[y][x] = value
-            above_saved: str | None = None
+            above_saved: CellType | None = None
             if value == Cell.wall and y > 0 and self.data[y - 1][x] == Cell.space:
                 above_saved = self.data[y - 1][x]
                 self.data[y - 1][x] = Cell.floor

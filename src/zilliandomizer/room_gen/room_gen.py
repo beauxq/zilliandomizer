@@ -11,7 +11,7 @@ from zilliandomizer.low_resources.sprite_types import AutoGunSub, BarrierSub, Sp
 from zilliandomizer.np_sprite_manager import NPSpriteManager
 from zilliandomizer.room_gen.aem import AlarmEntranceManager
 from zilliandomizer.room_gen.common import BOT_LEFT, Coord, EdgeDoors, RoomData, coord_to_pixel
-from zilliandomizer.room_gen.maze import Cell, Grid, MakeFailure
+from zilliandomizer.room_gen.maze import Cell, CellType, Grid, MakeFailure
 from zilliandomizer.room_gen.sprite_placing import alarm_places, auto_gun_places, barrier_places, choose_alarms
 from zilliandomizer.terrain_modifier import TerrainModifier
 from zilliandomizer.utils import make_loc_name, make_reg_name
@@ -171,7 +171,7 @@ class RoomGen:
                                     no_space: Iterable[Coord],
                                     no_change: Iterable[Coord],
                                     edge_doors: EdgeDoors,
-                                    pudding_tiles: Mapping[Coord, str]) -> Grid:
+                                    pudding_tiles: Mapping[Coord, CellType]) -> Grid:
         tr = Grid(exits,
                   ends,
                   map_index,
@@ -218,7 +218,7 @@ class RoomGen:
         list[Coord],  # ends
         Iterable[Coord],  # no space
         Iterable[Coord],  # no_change
-        Mapping[Coord, str]  # pudding_tiles
+        Mapping[Coord, CellType]  # pudding_tiles
     ]:
         """ returns (the length of the compressed room data, jump blocks required to traverse) """
 
@@ -299,7 +299,7 @@ class RoomGen:
         # which grid spaces to not change
         no_change: set[Coord] = set()
         no_space: set[Coord] = set()
-        pudding_tiles: dict[Coord, str] = {}
+        pudding_tiles: dict[Coord, CellType] = {}
         for n in pudding_ninths:
             top_y = (n // 3) * 2
             left_x = (n % 3) * 5
@@ -348,7 +348,7 @@ class RoomGen:
         """ returns (the length of the compressed room data, jump blocks required to traverse) """
         this_room = self._gen_rooms[map_index]
 
-        pudding_tiles: Mapping[Coord, str]
+        pudding_tiles: Mapping[Coord, CellType]
         if this_room.split_dip_entrance:
             exits, ends, no_space, no_change, pudding_tiles = self._generate_split(map_index, jump_blocks, size_limit)
             second_candidate_for_elevation = False

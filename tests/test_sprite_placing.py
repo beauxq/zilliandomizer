@@ -1,7 +1,7 @@
 
 from zilliandomizer.logger import Logger
 from zilliandomizer.room_gen.common import BOT_LEFT, BOT_RIGHT, Coord
-from zilliandomizer.room_gen.maze import Grid
+from zilliandomizer.room_gen.maze import Grid, g_row
 from zilliandomizer.room_gen.sprite_placing import alarm_places
 
 
@@ -10,12 +10,12 @@ def test_alarm_places() -> None:
     exits: list[Coord] = [BOT_LEFT, BOT_RIGHT]
     g = Grid(exits, exits, 0x0a, logger, 5, [], [])
     g.data = [
-        list("              "),
-        list("              "),
-        list("              "),
-        list("              "),
-        list("              "),
-        list("______________"),
+        g_row("              "),
+        g_row("              "),
+        g_row("              "),
+        g_row("              "),
+        g_row("              "),
+        g_row("______________"),
     ]
     ap = alarm_places(g, [(5, 7)])
     horizontals = list(filter(lambda b: b.horizontal, ap.bars))
@@ -26,7 +26,7 @@ def test_alarm_places() -> None:
     assert len(verticals) == 0
     print(len(ap.bars))
 
-    g.data[4] = list("        _     ")
+    g.data[4] = g_row("        _     ")
     ap = alarm_places(g, [(5, 7)])
     horizontals = list(filter(lambda b: b.horizontal, ap.bars))
     print(horizontals)
