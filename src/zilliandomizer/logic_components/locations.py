@@ -71,8 +71,8 @@ class Req:
     def __hash__(self) -> int:
         return hash(id(self))
 
-    def __eq__(self, __o: object) -> bool:
-        return self is __o
+    def __eq__(self, other: object, /) -> bool:
+        return self is other
 
     def __ge__(self, other: "Req") -> bool:
         """ self meets requirements of other """
