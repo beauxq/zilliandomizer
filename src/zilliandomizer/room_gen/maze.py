@@ -1,5 +1,5 @@
 from collections import deque
-from collections.abc import Container, Iterable, Set as AbstractSet
+from collections.abc import Container, Iterable, Sequence, Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
 import random
@@ -46,7 +46,7 @@ class Grid:
     data: list[list[str]]
     exits: list[Coord]
     """ places I enter and exit room - coords of lower left """
-    ends: list[Coord]
+    ends: Sequence[Coord]
     """ superset of exits, places I want to be able to get to - coords of lower left """
     map_index: int
     """ where in base """
@@ -62,10 +62,17 @@ class Grid:
     _skill: int
     """ skill from options """
     _edge_doors: EdgeDoors
+    _ends_set: AbstractSet[Coord]
+    """
+    a copy of `ends` -
+    a performance optimization to avoid lots of `__contains__` on `list`
+    (`in_end` showed up pretty high in profiler.)
+    (It can't replace the list because the order matters.)
+    """
 
     def __init__(self,
                  exits: list[Coord],
-                 ends: list[Coord],
+                 ends: Sequence[Coord],
                  map_index: int,
                  logger: Logger,
                  skill: int,
@@ -73,7 +80,6 @@ class Grid:
                  no_change: Iterable[Coord],
                  edge_doors: EdgeDoors = None) -> None:
         self.exits = exits
-        self.ends = ends
         self.map_index = map_index
         self.no_space = frozenset(no_space)
         self.no_change = frozenset(no_change)
@@ -89,9 +95,11 @@ class Grid:
             if 5 not in left_list:
                 left_list.append(5)
                 self._edge_doors = (left_list, self._edge_doors[1])
-            if BOT_LEFT not in self.ends:
-                self.ends.append(BOT_LEFT)
+            if BOT_LEFT not in ends:
+                ends = [*ends, BOT_LEFT]
 
+        self.ends = ends
+        self._ends_set = frozenset(self.ends)
         self.walkways = self.walkways_in_room()
         self.reset()
 
@@ -501,13 +509,13 @@ class Grid:
 
     def in_end(self, row: int, col: int) -> bool:
         """ this coordinate is in an end area """
-        if (row, col) in self.ends:
+        if (row, col) in self._ends_set:
             return True
-        if (row, col - 1) in self.ends:
+        if (row, col - 1) in self._ends_set:
             return True
-        if (row + 1, col) in self.ends:
+        if (row + 1, col) in self._ends_set:
             return True
-        return (row + 1, col - 1) in self.ends
+        return (row + 1, col - 1) in self._ends_set
 
     def sparsify(self) -> bool:
         """
