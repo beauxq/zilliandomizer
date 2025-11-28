@@ -1,5 +1,5 @@
 from collections import deque
-from collections.abc import Container, Iterable, Iterator, Set as AbstractSet
+from collections.abc import Container, Iterable, Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass
 import random
@@ -157,13 +157,14 @@ class Grid:
 
     def _adj_moves(self,
                    state: tuple[int, int, bool],
-                   highest_jump: float) -> Iterator[tuple[int, int, bool]]:
+                   highest_jump: float) -> list[tuple[int, int, bool]]:
         """
-        yield all the places I can move in one step
+        return all the places I can move in one step
 
         state is (row, col, standing)
         """
 
+        moves: list[tuple[int, int, bool]] = []
         row, col, standing = state
 
         if not standing:
@@ -187,7 +188,7 @@ class Grid:
                     )
                 )
             ):
-                yield row, col, True
+                moves.append((row, col, True))
 
             # move left or right crawling
             for direction in (-1, 1):
@@ -195,16 +196,16 @@ class Grid:
                 if target_col >= LEFT and target_col <= RIGHT:
                     tile = self.data[row][target_col]
                     if tile == Cell.floor:
-                        yield row, target_col, False
+                        moves.append((row, target_col, False))
                     elif tile == Cell.space:
                         # fall
                         target_row = row + 1
                         while self.data[target_row][target_col] == Cell.space:
                             target_row += 1
-                        yield target_row, target_col, True
+                        moves.append((target_row, target_col, True))
         else:  # standing
             # can change to not standing
-            yield row, col, False
+            moves.append((row, col, False))
 
             is_walkway = self.is_walkway[row][col]
 
@@ -217,14 +218,14 @@ class Grid:
                             self.side_of_jump_around(row, col, -1, 2) or
                             self.side_of_jump_around(row, col, 1, 2)
                         ):
-                    yield row - 2, col, True
+                    moves.append((row - 2, col, True))
                 if highest_jump >= 3 and row > 3 and \
                         self.data[row - 3][col] == Cell.floor and \
                         self.data[row - 4][col] == Cell.space and (
                             self.side_of_jump_around(row, col, -1, 3) or
                             self.side_of_jump_around(row, col, 1, 3)
                         ):
-                    yield row - 3, col, True
+                    moves.append((row - 3, col, True))
 
             # check jump and move left or right
             for jump_height in range(1, int(highest_jump) + 1):  # grid spaces, not jump levels
@@ -310,7 +311,7 @@ class Grid:
                                     break
 
                             if not found_something_blocking_jump:
-                                yield target_row, target_col, True
+                                moves.append((target_row, target_col, True))
 
             for direction in (-1, 1):
                 # check move
@@ -321,14 +322,14 @@ class Grid:
                     self.data[row - 1][next_col] == Cell.space
                 ):
                     if self.data[row][next_col] == Cell.floor:
-                        yield row, next_col, True
+                        moves.append((row, next_col, True))
                     # horizontal jump over gap of 1
                     next_next_col = next_col + direction
                     if next_next_col >= LEFT and next_next_col <= RIGHT and \
                             self.data[row][next_col] == Cell.space and \
                             self.data[row - 1][next_next_col] == Cell.space and \
                             self.data[row][next_next_col] == Cell.floor:
-                        yield row, next_next_col, True
+                        moves.append((row, next_next_col, True))
                     # horizontal jump over gap of 2
                     nnn_col = next_next_col + direction
                     if nnn_col >= LEFT and nnn_col <= RIGHT and \
@@ -338,12 +339,12 @@ class Grid:
                             self.data[row - 1][nnn_col] == Cell.space and \
                             self.data[row][nnn_col] == Cell.floor:
                         if not self.is_walkway[row][col]:
-                            yield row, nnn_col, True
+                            moves.append((row, nnn_col, True))
                         else:
                             # from moving walkway
                             if self._skill > 2 and (row == 1 or self.data[row - 2][next_col] != Cell.space):
                                 # can bonk ceiling
-                                yield row, nnn_col, True
+                                moves.append((row, nnn_col, True))
                             elif (
                                 row > 1 and
                                 # don't need skill if there is space above me
@@ -351,7 +352,7 @@ class Grid:
                                 self.data[row - 2][next_col] == Cell.space and
                                 self.data[row - 2][next_next_col] == Cell.space
                             ):
-                                yield row, nnn_col, True
+                                moves.append((row, nnn_col, True))
                     # horizontal jump over gap of 3
                     # this is only used on top row
                     # because it requires jump 3 for the speed
@@ -368,13 +369,13 @@ class Grid:
                                 self.data[1][nnn_col] == Cell.space and \
                                 self.data[0][nnnn_col] == Cell.space and \
                                 self.data[1][nnnn_col] == Cell.floor:
-                            yield row, nnnn_col, True
+                            moves.append((row, nnnn_col, True))
                     # or fall
                     if self.data[row][next_col] == Cell.space:
                         target_row = row
                         while self.data[target_row][next_col] == Cell.space:
                             target_row += 1
-                        yield target_row, next_col, True
+                        moves.append((target_row, next_col, True))
 
             # long distance jumps, so jump level 2 (jump_blocks 2.5) can be in logic
             if not is_walkway and highest_jump >= 2.5:
@@ -392,7 +393,7 @@ class Grid:
                         # jump height 2 distance 6 (gap 5) - jump_blocks 2 can't do that
                         if self.data[row - 3][distance_6] == Cell.space and \
                            self.data[row - 2][distance_6] == Cell.floor:
-                            yield row - 2, distance_6, True
+                            moves.append((row - 2, distance_6, True))
                         # jump height 1 distance 7 (gap 6) - jump_blocks 2 can't do that
                         elif (
                             distance_7 >= LEFT and
@@ -404,7 +405,7 @@ class Grid:
                             self.data[row - 2][distance_7] == Cell.space and
                             self.data[row - 1][distance_7] == Cell.floor
                         ):
-                            yield row - 1, distance_7, True
+                            moves.append((row - 1, distance_7, True))
                     # h0d6 (w/ ceiling at 3) is difficult with jb2, easy with jb2.5
                     if (
                         row == 2 and
@@ -416,7 +417,8 @@ class Grid:
                         self.data[1][distance_6] == Cell.space and
                         self.data[2][distance_6] == Cell.floor
                     ):
-                        yield 2, distance_6, True
+                        moves.append((2, distance_6, True))
+        return moves
 
     def _search(self,
                 start: Coord,
@@ -438,8 +440,7 @@ class Grid:
                 # print(self.map_str([(here[0], here[1])]))
                 if here == target_end:
                     return been
-                for adj in self._adj_moves(here, highest_jump):
-                    to_move_from.append(adj)
+                to_move_from.extend(self._adj_moves(here, highest_jump))
         return been
 
     def solve(self, highest_jump: float) -> bool:
