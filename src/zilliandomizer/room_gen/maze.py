@@ -882,8 +882,8 @@ class Grid:
                 here = (y, x)
                 here_goables = self._search(here, jump_blocks, standing, start_state)
                 if start_state not in here_goables:
-                    self._logger.debug(f"softlock at row {y} col {x} jump {jump_blocks}")
-                    self._logger.debug(self.map_str())
+                    # self._logger.debug(f"softlock at row {y} col {x} jump {jump_blocks}")
+                    # self._logger.debug(self.map_str())
                     self._skill = skill_temp
                     return True
         self._skill = skill_temp
