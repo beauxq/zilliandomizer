@@ -77,11 +77,11 @@ def room_data_exits_from_descs(descs: Iterable[Desc]) -> tuple[list[Coord], Edge
     return out, edge_doors, dip_entrance
 
 
-def make_room_gen_data(base: Base, pc_splits: Mapping[Node, Node]) -> dict[int, RoomData]:
+def make_room_gen_data(base: Base) -> dict[int, RoomData]:
     out = GEN_ROOMS.copy()
 
     _add_to_gen_rooms(out, base.red, {})
-    _add_to_gen_rooms(out, base.paperclip, pc_splits)
+    _add_to_gen_rooms(out, base.paperclip, base.pc_splits)
 
     return out
 

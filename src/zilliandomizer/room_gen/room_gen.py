@@ -151,7 +151,7 @@ class RoomGen:
                 # print(f"save {important_space_save}  scale {scaling_pad_on_target}  hard {hard_space_limit}")
                 space_taken, jump_required = self._generate_room(map_index, jump_block_ability, hard_space_limit)
                 total_space_taken += space_taken
-                self._logger.debug(f"{space_taken} over 59" if space_taken > 59 else f"{space_taken} under 60")
+                # self._logger.debug(f"{space_taken} over 59" if space_taken > 59 else f"{space_taken} under 60")
 
                 self._rooms[map_index] = jump_required
             if self.tc.get_space() >= 0:
@@ -446,10 +446,10 @@ class RoomGen:
                     this_room.computer +
                     primary_floor_sprite_count
                 )
-                self._logger.debug(
-                    f"need to place {primary_placeable_count} in room {map_index} primary region and "
-                    f"{will_place_in_pudding} in pudding region, including {pudding_can=} with {len(pudding_tiles)=}"
-                )
+                # self._logger.debug(
+                #     f"need to place {primary_placeable_count} in room {map_index} primary region and "
+                #     f"{will_place_in_pudding} in pudding region, including {pudding_can=} with {len(pudding_tiles)=}"
+                # )
                 if len(primary_placeables) < primary_placeable_count:
                     raise MakeFailure("not enough places to put things")
                 if primary_placeable_count > 0:
@@ -640,7 +640,7 @@ class RoomGen:
             )
             cans.append((coord, jump))
         self._canisters[map_index] = cans
-        self._logger.debug(f"{map_index=} placed {len(cans)=} {begin_cursor=} {end_cursor=} {pudding_can=}")
+        # self._logger.debug(f"{map_index=} placed {len(cans)=} {begin_cursor=} {end_cursor=} {pudding_can=}")
         if pudding_can:
             # jump_blocks 0 assuming no interesting terrain in pudding
             self._canisters[map_index].append((all_floor_placements_pudding_at_end[-1], 0))
@@ -659,7 +659,7 @@ class RoomGen:
                 for x, i in self.aem.get_ceiling_entrances(enemy_level):
                     col = x // 16 - 1
                     if grid.data[0][col] == Cell.space:
-                        self._logger.debug(f"map index {map_index} alarm entrance col {col}")
+                        # self._logger.debug(f"map index {map_index} alarm entrance col {col}")
                         self.aem.indexes[map_index] = i
                         # If there are no spaces in ceiling for alarm entrance, aem index doesn't change,
                         # so it will still be pointing at one of the ceiling entrances.

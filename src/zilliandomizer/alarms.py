@@ -147,8 +147,8 @@ class Alarms:
         #     chosen = set()
 
         self._logger.spoil(f"room: {map_index}  chosen: {chosen}")
-        _bytes = TerrainCompressor.decompress(self.tc.get_room(map_index))
-        assert len(_bytes) == 96, f"room {map_index} doesn't have the right number of bytes: {len(_bytes)}"
+        bytes_ = TerrainCompressor.decompress(self.tc.get_room(map_index))
+        assert len(bytes_) == 96, f"room {map_index} doesn't have the right number of bytes: {len(bytes_)}"
 
         # gather all the blocks involved
         blocks: dict[int, Literal["v", "h", "n"]] = {}  # key block_index
@@ -161,10 +161,10 @@ class Alarms:
                 # if I have have a reason to turn verify off in Patcher.
                 if a.vanilla and erase:
                     if a.vertical:
-                        assert _bytes[block_index] == to_vertical[_bytes[block_index]], \
+                        assert bytes_[block_index] == to_vertical[bytes_[block_index]], \
                             f"vanilla vertical map {map_index} block {block_index}"
                     else:  # horizontal
-                        assert _bytes[block_index] == to_horizontal[_bytes[block_index]], \
+                        assert bytes_[block_index] == to_horizontal[bytes_[block_index]], \
                             f"vanilla horizontal map {map_index} block {block_index}"
                 # else not vanilla - can't verify because it might cross a vanilla
 
@@ -174,9 +174,9 @@ class Alarms:
                     if block_index not in blocks:
                         blocks[block_index] = "n"
 
-        Alarms.add_alarms_to_room_terrain_bytes(_bytes, blocks)
+        Alarms.add_alarms_to_room_terrain_bytes(bytes_, blocks)
 
-        self.tc.set_room(map_index, TerrainCompressor.compress(_bytes))
+        self.tc.set_room(map_index, TerrainCompressor.compress(bytes_))
 
     @staticmethod
     def add_alarms_to_room_terrain_bytes(

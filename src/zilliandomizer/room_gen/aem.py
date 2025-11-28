@@ -69,26 +69,26 @@ class AlarmEntranceManager:
             if entrance is None:
                 x = 0
                 y = 0
-                _i2 = 0
-                _i3 = 0
+                i_2 = 0
+                i_3 = 0
                 level = 0
-                _i5 = 0
+                i_5 = 0
             else:
                 x = entrance.x
                 y = 0xa0 if entrance.ceiling else 0x98
-                _i2 = 0x00 if entrance.ceiling else (
+                i_2 = 0x00 if entrance.ceiling else (
                     0x01 if x < 0x80 else 0xff
                 )
-                _i3 = 0xff if entrance.ceiling else 0x00
+                i_3 = 0xff if entrance.ceiling else 0x00
                 level = entrance.level
-                _i5 = 0x11 if entrance.ceiling else (
+                i_5 = 0x11 if entrance.ceiling else (
                     0x12 if x < 0x80 else 0x13
                 )
             tr[address + 0] = x
             tr[address + 1] = y
-            tr[address + 2] = _i2
-            tr[address + 3] = _i3
+            tr[address + 2] = i_2
+            tr[address + 3] = i_3
             tr[address + 4] = level
-            tr[address + 5] = _i5
+            tr[address + 5] = i_5
 
         return tr

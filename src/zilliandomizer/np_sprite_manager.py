@@ -13,7 +13,6 @@ class NPSpriteManager:
         self.save_state()
 
     def _load(self) -> None:
-        print("loading non-player sprites...")
         self._data = deepcopy(sprite_data)
 
     def get_room(self, map_index: int) -> RoomSprites:
