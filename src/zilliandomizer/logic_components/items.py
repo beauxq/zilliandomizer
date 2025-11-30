@@ -68,6 +68,6 @@ item_name_to_id = {
 item_name_to_id[MAIN_ITEM.debug_name] = _make_item_id(MAIN_ITEM)
 
 id_to_item = {
-    _id: item_name_to_item[item_name]
-    for item_name, _id in item_name_to_id.items()
+    id_: item_name_to_item[item_name]
+    for item_name, id_ in item_name_to_id.items()
 }
